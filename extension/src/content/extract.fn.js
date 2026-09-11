@@ -10,6 +10,27 @@ export function extractPage(options = {}) {
   const NOISE = 'script,style,noscript,svg,canvas,nav,footer,header,aside,form,iframe,[aria-hidden="true"],[role="navigation"],[role="banner"],[role="contentinfo"],.ad,.ads,.advert,.cookie,.newsletter'
   const absolute = (href) => { try { return new URL(href, location.href).href } catch { return href } }
 
+  /**
+   * Only keep link/image URLs an agent can actually use: `javascript:`,
+   * `vbscript:`, `file:` and bare `data:` payloads are dropped (a page must not
+   * be able to smuggle an executable URL into the workspace file), while
+   * `data:image/*` stays for inline images.
+   */
+  const safeUrl = (raw, kind) => {
+    const value = String(raw ?? '').trim()
+    if (value === '') return ''
+    const lower = value.toLowerCase()
+    if (lower.startsWith('data:')) return kind === 'image' && lower.startsWith('data:image/') ? value : ''
+    if (/^(https?:|mailto:|tel:)/u.test(lower)) return absolute(value)
+    if (lower.startsWith('javascript:') || lower.startsWith('vbscript:') || lower.startsWith('file:') || lower.startsWith('blob:')) return ''
+    return absolute(value)
+  }
+
+  /** Invisible/zero-width characters are a prompt-injection vector; strip them. */
+  const clean = (value) => String(value)
+    .replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u2064\uFEFF]/gu, '')
+    .replace(/\u00A0/gu, ' ')
+
   /** Root element holding the main content, if the site marks one. */
   const pickRoot = () => {
     for (const selector of ['article', 'main', '[role="main"]', '#content', '.post', '.article']) {
@@ -112,13 +133,13 @@ export function extractPage(options = {}) {
         case 'code': out.push(`\`${String(node.innerText)}\``); break
         case 'blockquote': out.push('\n\n> '); inner(); out.push('\n\n'); break
         case 'a': {
-          const href = absolute(node.getAttribute('href') ?? '')
-          const text = String(node.innerText ?? '').trim()
-          out.push(text === '' ? '' : `[${text}](${href})`); break
+          const href = safeUrl(node.getAttribute('href'), 'link')
+          const text = clean(String(node.innerText ?? '').trim())
+          out.push(text === '' || href === '' ? text : `[${text}](${href})`); break
         }
         case 'img': {
-          const src = node.getAttribute('src')
-          out.push(src === null ? '' : `![${node.getAttribute('alt') ?? ''}](${absolute(src)})`); break
+          const src = safeUrl(node.getAttribute('src'), 'image')
+          out.push(src === '' ? '' : `![${clean(node.getAttribute('alt') ?? '')}](${src})`); break
         }
         case 'strong': case 'b': out.push('**'); inner(); out.push('**'); break
         case 'em': case 'i': out.push('*'); inner(); out.push('*'); break
@@ -139,7 +160,7 @@ export function extractPage(options = {}) {
   }
 
   const markdown = toMarkdown(clone)
-  const selection = String(window.getSelection() ?? '').trim()
+  const selection = clean(String(window.getSelection() ?? '')).trim()
   const metaOf = (name, attr = 'name') => document.querySelector(`meta[${attr}="${name}"]`)?.getAttribute('content') ?? null
 
   return {
@@ -151,7 +172,10 @@ export function extractPage(options = {}) {
       hasVideo: document.querySelector('video') !== null,
     },
     content: {
-      markdown: markdown.length > maxChars ? markdown.slice(0, maxChars) : markdown,
+      markdown: (() => {
+        const cleaned = clean(markdown)
+        return cleaned.length > maxChars ? cleaned.slice(0, maxChars) : cleaned
+      })(),
       truncated: markdown.length > maxChars,
       ...(selection === '' ? {} : { selection: { text: selection.slice(0, 20000) } }),
     },

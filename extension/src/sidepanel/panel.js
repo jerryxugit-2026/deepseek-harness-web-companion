@@ -20,6 +20,7 @@ const els = {
   retry: document.getElementById('retry'),
   openWindow: document.getElementById('open-window'),
   attach: document.getElementById('attach-page'),
+  attachSelection: document.getElementById('attach-selection'),
   frame: document.getElementById('dsh'),
 }
 
@@ -143,30 +144,36 @@ function explain(error) {
   return message
 }
 
-els.attach.addEventListener('click', () => {
-  void (async () => {
-    if (!(await hasCapturePermission())) {
-      const granted = await askForPermission()
-      if (!granted) {
-        els.status.textContent = '未授权：可在目标网页点一次扩展图标（临时授权）后重试'
-        return
-      }
-    }
-    els.attach.disabled = true
-    els.attach.textContent = '抓取中…'
-    const result = await ask({ kind: 'capture', mode: 'page', trigger: 'button' })
-    els.attach.disabled = false
-    els.attach.textContent = 'Attach 网页'
-    if (result.ok) {
-      const ref = result.value?.result?.fileRef ?? ''
-      els.status.textContent = `已附加：${ref}`
-      store.dispatch({ attach: 'attached', lastFileRef: ref })
+/** Shared capture trigger; `mode` picks page / selection / screenshot. */
+async function runCapture(mode, button) {
+  if (!(await hasCapturePermission())) {
+    const granted = await askForPermission()
+    if (!granted) {
+      els.status.textContent = '未授权：可在目标网页点一次扩展图标（临时授权）后重试'
       return
     }
-    const readable = explain(result.error)
-    els.status.textContent = `抓取失败：${readable}`
-    store.dispatch({ attach: 'failed', message: readable })
-  })()
+  }
+  const label = button.textContent
+  button.disabled = true
+  button.textContent = '抓取中…'
+  const result = await ask({ kind: 'capture', mode, trigger: 'button' })
+  button.disabled = false
+  button.textContent = label
+  if (result.ok) {
+    const ref = result.value?.result?.fileRef ?? ''
+    els.status.textContent = `已附加：${ref}`
+    store.dispatch({ attach: 'attached', lastFileRef: ref })
+    return
+  }
+  const readable = explain(result.error)
+  els.status.textContent = `抓取失败：${readable}`
+  store.dispatch({ attach: 'failed', message: readable })
+}
+
+els.attachSelection.addEventListener('click', () => { void runCapture('selection', els.attachSelection) })
+
+els.attach.addEventListener('click', () => {
+  void runCapture('page', els.attach)
 })
 
 void connect()

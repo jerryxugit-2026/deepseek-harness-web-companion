@@ -61,6 +61,7 @@ const fixtureServer = createServer((_req, res) => {
   <ul><li>要点一</li><li>要点二</li></ul>
   <pre><code class="language-js">const answer = 42</code></pre>
   <p>外部链接：<a href="/relative/path">相对链接</a></p>
+  <p>恶意链接：<a href="javascript:alert(1)">点我</a> 隐形字符：[KNOW\u200bLEDGE] 内联图：<img src="data:image/png;base64,iVBORw0KGgo=" alt="inline"></p>
   <div class="tabs"><span>SKILL.md</span><span>Stats &amp; details</span><span>Files</span><span>Versions</span></div>
   <button>Read more</button>
   <section class="stats">
@@ -239,6 +240,47 @@ if (latest !== null) {
     chars: text.length,
   })
 }
+
+console.log('3b. 选区模式：先选中一段文本，再以 selection 抓取')
+const selectionResult = await evaluate(fixture.sessionId, `(() => {
+  const p = [...document.querySelectorAll('article p')].find((el) => el.textContent.includes('${MARKER}'))
+  if (p === undefined) return 'no-target'
+  const range = document.createRange()
+  range.selectNodeContents(p)
+  const sel = window.getSelection()
+  sel.removeAllRanges()
+  sel.addRange(range)
+  return sel.toString().slice(0, 60)
+})()`)
+record('selectionSet', selectionResult)
+await browser.send('Target.activateTarget', { targetId: fixture.targetId })
+await sleep(400)
+const selectionReply = await evaluate(panel.sessionId, `(async () => {
+  const reply = await chrome.runtime.sendMessage({ kind: 'capture', mode: 'selection', trigger: 'button' })
+  return JSON.stringify(reply ?? null)
+})()`, 40000)
+record('selectionReply', typeof selectionReply === 'string' ? JSON.parse(selectionReply) : selectionReply)
+const selPath = (typeof selectionReply === 'string' ? JSON.parse(selectionReply) : selectionReply)?.value?.result?.filePath
+if (typeof selPath === 'string' && existsSync(selPath)) {
+  const text = readFileSync(selPath, 'utf8')
+  record('selectionFileChecks', {
+    hasSelectionBlock: text.includes('**用户选区**'),
+    markdownIsSelectionOnly: !text.includes('小节标题') && !text.includes('要点一'),
+    hasMarker: text.includes('MARKER') || text.includes('M2 抓取夹具'),
+    chars: text.length,
+  })
+}
+record('hardeningChecks', (() => {
+  // check the PAGE capture from this run (the newest file may be the selection one)
+  const pagePath = typeof filePath === 'string' && existsSync(filePath) ? filePath : undefined
+  if (pagePath === undefined) return null
+  const body = readFileSync(pagePath, 'utf8')
+  return {
+    javascriptUrlDropped: !/javascript:alert/u.test(body),
+    zeroWidthStripped: !/[\u200B-\u200F\uFEFF]/u.test(body),
+    dataImageKept: /data:image\/png/u.test(body),
+  }
+})())
 
 console.log('4. 面板 iframe 内的 DSH 页面是否收到推送并渲染胶囊')
 let chip = null

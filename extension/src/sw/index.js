@@ -9,6 +9,7 @@ import { buildCapture } from './capture.js'
 import { sendCapture } from './attach-sender.js'
 import { fail } from '../lib/result.js'
 import { PROTOCOL_VERSION } from '../lib/protocol.generated.js'
+import { handleMenuClick, registerMenus } from './menu.js'
 
 /** Last observed companion state, mirrored to the panel on request. */
 let lastState = { dsh: 'unknown', attach: 'idle' }
@@ -16,8 +17,16 @@ let lastState = { dsh: 'unknown', attach: 'idle' }
 chrome.runtime.onInstalled.addListener(() => {
   void (async () => {
     await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {})
+    registerMenus()
     lastState = { ...lastState, dsh: 'unknown' }
   })()
+})
+
+chrome.contextMenus?.onClicked.addListener((info) => {
+  void handleMenuClick(info, (request) => route({ kind: 'capture', ...request }), async (windowId) => {
+    // a context-menu click is a user gesture, so the panel may be opened here
+    try { await chrome.sidePanel.open(windowId === undefined ? {} : { windowId }) } catch { /* already open */ }
+  }).catch(() => {})
 })
 
 /** Route one panel/content request to its handler. */

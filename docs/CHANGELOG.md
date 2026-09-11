@@ -5,7 +5,34 @@
 
 ---
 
-## v3.21 — 2026-09-11（当前）
+## v3.22 — 2026-09-11（当前）
+
+**触发**：竞品调研后的第一批优化 —— 抓取硬化 + 划词入口。
+
+### 交付
+
+| 组件 | 说明 |
+|---|---|
+| `extract.fn.js` 硬化 | ①**URL scheme 白名单**：链接仅保留 `http/https/mailto/tel` 与相对路径（拒绝 `javascript:`/`vbscript:`/`file:`/`blob:`），图片额外允许 `data:image/*`（拒绝其它 `data:`）②**隐形字符清理**：零宽/双向控制/`\uFEFF` 全部剔除、`\u00A0` 归一为空格（提示注入载体） |
+| 划词入口 | 面板新增 **「Attach 选区」** 按钮（`mode: selection`）；`capture.js` 已有的选区分支复用同一编排 |
+| 右键菜单 | 新 `contextMenus` 权限 + `src/sw/menu.js`：**Ask DSH about this page** / **Ask DSH about selection**；点击即用户手势 → 顺带 `sidePanel.open()`，因此不依赖工具栏图标 |
+
+### 实测（`tests/m2/capture-probe.mjs` + 直接校验产物）
+
+| 断言 | 结果 |
+|---|---|
+| 选区模式 | ✅ 选中段落 → `mode: selection` 抓取 → 文件含 `**用户选区**` 块、**正文仅为选区**（不含 `小节标题`/`要点一`）、`chars: 282` |
+| `javascript:` 链接剔除 | ✅ 整页抓取文件内 `javascript:alert` 出现 **0** 次 |
+| 隐形字符清理 | ✅ 零宽字符已从 `KNOW\u200bLEDGE` 剔除 |
+| `data:image/*` 保留 | ✅ 内联 PNG 仍在（相对链接同时已绝对化） |
+| 新会话默认 | ✅ 仍为 `newSessionCreated/targetIsFreshSession/shellSwitched` 三项 true |
+| 体积 | 45.5 KB（仍在 G6 内） |
+
+顺带修正探针自身一处误判：硬化断言原先读"最新文件"，而在选区用例之后最新的是选区文件 → 改为明确读取**整页抓取**那份。
+
+---
+
+## v3.21 — 2026-09-11
 
 **触发**：用户提出"attach 应默认新开会话"（同意并实现）。
 
