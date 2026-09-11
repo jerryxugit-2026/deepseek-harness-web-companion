@@ -82,3 +82,21 @@ button[disabled] { opacity: 0.5; cursor: default; }
 }
 #notice[hidden] { display: none; }
 #notice p { margin: 0; opacity: 0.8; white-space: pre-wrap; }
+
+#gate {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid color-mix(in srgb, CanvasText 12%, transparent);
+  background: color-mix(in srgb, #d9a441 12%, Canvas);
+  font-size: 12px;
+}
+#gate[hidden] { display: none; }
+#gate p { margin: 0; line-height: 1.5; }
+#gate .gate-actions { display: flex; gap: 8px; }
+#gate .primary {
+  background: #0a84ff;
+  border-color: #0a84ff;
+  color: #fff;
+}

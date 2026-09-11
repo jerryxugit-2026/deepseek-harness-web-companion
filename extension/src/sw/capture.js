@@ -11,6 +11,15 @@
  */
 import { extractPage } from '../content/extract.fn.js'
 
+/** Classify an extension API failure so callers can act on it. */
+function classified(error, fallback) {
+  const message = String(error?.message ?? error)
+  if (/Cannot access contents of url|must request permission to access this host|Either the '<all_urls>' or 'activeTab'/u.test(message)) {
+    return Object.assign(new Error(message), { code: 'E_NO_PERMISSION' })
+  }
+  return Object.assign(new Error(message), { code: error?.code ?? fallback })
+}
+
 const MAX_MARKDOWN = 120000
 const MAX_SCREENSHOT_BYTES = 8 * 1024 * 1024
 
@@ -28,7 +37,7 @@ export async function capturePageContent(tabId, maxChars = MAX_MARKDOWN) {
     world: 'MAIN',
     func: extractPage,
     args: [{ maxChars }],
-  })
+  }).catch((error) => { throw classified(error, 'E_TARGET') })
   const value = injection?.result
   if (value === undefined || value === null) {
     throw Object.assign(new Error('extraction returned nothing'), { code: 'E_TARGET' })
@@ -39,6 +48,7 @@ export async function capturePageContent(tabId, maxChars = MAX_MARKDOWN) {
 /** Viewport screenshot as PNG (base64 without the data: prefix). */
 export async function captureScreenshot() {
   const dataUrl = await chrome.tabs.captureVisibleTab(undefined, { format: 'png' })
+    .catch((error) => { throw classified(error, 'E_NO_PERMISSION') })
   const base64 = dataUrl.replace(/^data:image\/png;base64,/u, '')
   const bytes = Math.round((base64.length * 3) / 4)
   if (bytes > MAX_SCREENSHOT_BYTES) {

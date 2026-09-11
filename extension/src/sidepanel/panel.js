@@ -9,6 +9,10 @@
 import { createStore } from './state.js'
 
 const els = {
+  gate: document.getElementById('gate'),
+  gateText: document.getElementById('gate-text'),
+  gateAllow: document.getElementById('gate-allow'),
+  gateCancel: document.getElementById('gate-cancel'),
   dot: document.getElementById('status-dot'),
   status: document.getElementById('status-text'),
   notice: document.getElementById('notice'),
@@ -84,10 +88,73 @@ els.openWindow.addEventListener('click', () => {
   void chrome.windows.create({ url: currentUrl, type: 'popup', width: 460, height: 900 })
 })
 
+/**
+ * One-time capture permission (design §9, option ③).
+ *
+ * `chrome.permissions.request` only works from a user gesture, and the
+ * 「看左边」intent path has none — so the grant must happen once, here, in a
+ * click handler. After that the intent path works without any gesture.
+ */
+async function hasCapturePermission() {
+  try {
+    return await chrome.permissions.contains({ origins: ['*://*/*'] })
+  } catch {
+    return false
+  }
+}
+
+/** Show the inline gate; resolves true when the user grants, false otherwise. */
+function askForPermission() {
+  return new Promise((resolve) => {
+    els.gateText.textContent = '需要一次性授权，才能读取任意网页的正文与截图。内容只在本机处理（写入工作区 + 交给本地 DSH），不会经过本扩展外的任何服务。'
+    els.gate.hidden = false
+    const cleanup = () => {
+      els.gate.hidden = true
+      els.gateAllow.removeEventListener('click', onAllow)
+      els.gateCancel.removeEventListener('click', onCancel)
+    }
+    const onAllow = () => {
+      void (async () => {
+        let granted = false
+        try {
+          // the click IS the gesture Chrome requires
+          granted = await chrome.permissions.request({ origins: ['*://*/*'] })
+        } catch (error) {
+          els.status.textContent = `授权失败：${String(error)}`
+        }
+        cleanup()
+        resolve(granted)
+      })()
+    }
+    const onCancel = () => { cleanup(); resolve(false) }
+    els.gateAllow.addEventListener('click', onAllow)
+    els.gateCancel.addEventListener('click', onCancel)
+  })
+}
+
+/** Turn extension errors into something a user can act on. */
+function explain(error) {
+  const message = String(error?.message ?? '')
+  if (/Cannot access contents of url|must request permission to access this host|Either the '<all_urls>' or 'activeTab'/u.test(message)) {
+    return '当前网页未获授权：请点「授权并抓取」授予一次「读取所有网站」权限；或在目标网页上点一次扩展图标（临时授权该标签页）后重试。'
+  }
+  if (error?.code === 'E_NO_WORKSPACE') return `没有可用的工作区：${message}`
+  if (error?.code === 'E_DSH_DOWN') return '本地 DSH 未运行：请先启动 dsh web。'
+  return message
+}
+
 els.attach.addEventListener('click', () => {
-  els.attach.disabled = true
-  els.attach.textContent = '抓取中…'
-  void ask({ kind: 'capture', mode: 'page', trigger: 'button' }).then((result) => {
+  void (async () => {
+    if (!(await hasCapturePermission())) {
+      const granted = await askForPermission()
+      if (!granted) {
+        els.status.textContent = '未授权：可在目标网页点一次扩展图标（临时授权）后重试'
+        return
+      }
+    }
+    els.attach.disabled = true
+    els.attach.textContent = '抓取中…'
+    const result = await ask({ kind: 'capture', mode: 'page', trigger: 'button' })
     els.attach.disabled = false
     els.attach.textContent = 'Attach 网页'
     if (result.ok) {
@@ -96,9 +163,10 @@ els.attach.addEventListener('click', () => {
       store.dispatch({ attach: 'attached', lastFileRef: ref })
       return
     }
-    els.status.textContent = `抓取失败：${result.error.message}`
-    store.dispatch({ attach: 'failed', message: result.error.message })
-  })
+    const readable = explain(result.error)
+    els.status.textContent = `抓取失败：${readable}`
+    store.dispatch({ attach: 'failed', message: readable })
+  })()
 })
 
 void connect()

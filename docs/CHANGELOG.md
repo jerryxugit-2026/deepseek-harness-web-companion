@@ -5,7 +5,28 @@
 
 ---
 
-## v3.16 — 2026-09-11（当前）
+## v3.17 — 2026-09-11（当前）
+
+**触发**：用户实测首次抓取失败 —— `Cannot access contents of url "https://bailian.console.aliyun.com/…". Extension manifest must request permission to access this host`。
+这正是 M0a 权限实验预警的那条限制（`activeTab` 只在"用户点扩展那一刻"对当前标签页生效）。本轮把它按设计 §9 方案③ 落地为**一次性授权引导**。
+
+### 交付
+
+| 组件 | 说明 |
+|---|---|
+| `manifest.json` | 增加 `optional_host_permissions: ["*://*/*"]`（`permissions.request` 的前提；此前**缺失**，所以授权根本无从发起）与 `optional_permissions: ["debugger"]` |
+| 面板授权门（`panel.html` / `panel.css` / `panel.js`） | 点「Attach 网页」时先查 `chrome.permissions.contains`；未授权则显示内联说明卡（"内容只在本机处理"）+ [授权并抓取] [取消]。**授权调用发生在点击处理函数内**（点击即 Chrome 要求的手势）→ 之后意图路径无需手势 |
+| 错误归类与可读化 | `capture.js` 把 `Cannot access contents of url` / `must request permission` / `<all_urls> or activeTab` 统一归类为 **`E_NO_PERMISSION`**；面板 `explain()` 把权限类错误翻成可操作提示（"点授权并抓取"或"在目标网页点一次扩展图标"），并区分 `E_NO_WORKSPACE`、`E_DSH_DOWN` |
+
+### 实测（`tests/m2/gate-probe.mjs` → `docs/reviews/probe-gate.json`）
+
+在**未授权的真实站点**（`https://example.com`）上：`permissions.contains('*://*/*') = false` → 点击 Attach（真实 CDP 点击）→ **授权门可见**，文案与按钮正确（`授权并抓取`）。截图 `docs/reviews/probe-gate.png`。
+
+**未覆盖**：授权弹窗本身的允许/拒绝分支——无头 Chrome 无法渲染原生弹窗（M0a 已实测该限制），需有头人工验证（列入人工清单）。
+
+---
+
+## v3.16 — 2026-09-11
 
 **触发**：M2 抓取侧落地，并用构建产物端到端取证 —— 「Attach 网页」按钮真正可用。
 

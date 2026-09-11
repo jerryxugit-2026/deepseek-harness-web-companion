@@ -1,0 +1,11 @@
+{
+  "probe": "m2-gate",
+  "target": "https://example.com",
+  "results": {
+    "targetUrl": "https://example.com/",
+    "permissionBefore": false,
+    "attachClicked": true,
+    "gateState": "{\"visible\":true,\"text\":\"需要一次性授权，才能读取任意网页的正文与截图。内容只在本机处理（写入工作区 + 交给本地 DSH），不会经过本扩展外的任何服务。\",\"allowLabel\":\"授权并抓取\"}",
+    "screenshot": "/Users/mac/ai_tools/dsh project/网页插件/docs/reviews/probe-gate.png"
+  }
+}
