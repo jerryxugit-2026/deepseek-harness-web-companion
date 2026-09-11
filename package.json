@@ -15,7 +15,8 @@
     "check": "npm run graph:sync && npm run graph:check && npm run check:consistency",
     "review:adversarial": "node scripts/pimoa-review.mjs --tool moa_verify --prompt-file scripts/review-prompts/design-adversarial.md",
     "probe:permission": "node tests/m0a/permission-probe.mjs",
-    "search": "semble search"
+    "search": "semble search",
+    "probe:composer": "node tests/m0a/composer-probe.mjs"
   },
   "devDependencies": {
     "@colbymchenry/codegraph": "^1.6.0"

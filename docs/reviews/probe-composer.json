@@ -1,0 +1,885 @@
+{
+  "probe": "m0a-composer",
+  "dshUrl": "http://127.0.0.1:3099/?token=<redacted>",
+  "chrome": "150.0.7871.125",
+  "shell": {
+    "probe": [
+      {
+        "step": "boot",
+        "value": {
+          "href": "http://127.0.0.1:3099/",
+          "moduleLoader": "object",
+          "bootKeys": [
+            "rev",
+            "entries",
+            "batches"
+          ],
+          "bootEntryIds": [
+            "@deepseek-ai/dsh-typert-registry",
+            "@deepseek-ai/dsh-api-gateway",
+            "@deepseek-ai/dsh-session-log-export",
+            "@deepseek-ai/dsh-api-session-controller",
+            "@deepseek-ai/dsh-api-workspace-controller",
+            "@deepseek-ai/dsh-client-hmr",
+            "@deepseek-ai/dsh-client-modules",
+            "@deepseek-ai/dsh-client-connection",
+            "@deepseek-ai/dsh-api-remotes",
+            "@deepseek-ai/dsh-cordis-client-runner",
+            "@deepseek-ai/dsh-client-ui-theme",
+            "@deepseek-ai/dsh-client-locale",
+            "@deepseek-ai/dsh-client-ui-layout",
+            "@deepseek-ai/dsh-client-ui-renderer",
+            "@deepseek-ai/dsh-client-ui-session",
+            "@deepseek-ai/dsh-client-ui-sidebar",
+            "@deepseek-ai/dsh-client-ui-settings",
+            "@deepseek-ai/dsh-client-ui-settings-general",
+            "@deepseek-ai/dsh-client-ui-settings-models",
+            "@deepseek-ai/dsh-client-ui-settings-plugin-inventory",
+            "@deepseek-ai/dsh-client-ui-conversation",
+            "@deepseek-ai/dsh-client-ui-approval",
+            "@deepseek-ai/dsh-client-ui-chat",
+            "@deepseek-ai/dsh-client-ui-brand-official",
+            "@deepseek-ai/dsh-client-ui-attachment",
+            "@deepseek-ai/dsh-client-ui-tool",
+            "@deepseek-ai/dsh-client-ui-cordis",
+            "@deepseek-ai/dsh-client-ui-workflow-run",
+            "@deepseek-ai/dsh-client-ui-deliverables",
+            "@deepseek-ai/dsh-client-ui-workspace",
+            "@deepseek-ai/dsh-client-ui-input-trigger",
+            "@deepseek-ai/dsh-client-ui-commands",
+            "@deepseek-ai/dsh-client-ui-skill",
+            "@deepseek-ai/dsh-client-ui-subagent",
+            "@deepseek-ai/dsh-client-ui-reference",
+            "@deepseek-ai/dsh-client-ui-jobs",
+            "@deepseek-ai/dsh-client-ui-goal",
+            "@deepseek-ai/dsh-client-ui-message-feedback",
+            "@deepseek-ai/dsh-client-ui-model-selection",
+            "@deepseek-ai/dsh-client-ui-permission-presets",
+            "@deepseek-ai/dsh-client-ui-agent-preset",
+            "@deepseek-ai/dsh-client-ui-settings-plugins",
+            "@deepseek-ai/dsh-client-ui-plan",
+            "@deepseek-ai/dsh-client-ui-user-questions",
+            "@deepseek-ai/dsh-client-ui-trajectory",
+            "dsh-web-companion-bridge",
+            "@deepseek-ai/dsh-client-ui-directory-picker-native"
+          ],
+          "reflectKeys": [
+            "ctx",
+            "store",
+            "props"
+          ],
+          "storeServices": []
+        }
+      },
+      {
+        "step": "services",
+        "value": {
+          "conversation": {
+            "type": "object",
+            "keys": [
+              "blocks",
+              "cancel",
+              "createDraftImages",
+              "ctx",
+              "draftAttachments",
+              "draftImages",
+              "encodeImage",
+              "input",
+              "loadOlder",
+              "name",
+              "releaseDraftImage",
+              "releaseDraftImages",
+              "requireSessions",
+              "scopeId",
+              "scopedSession",
+              "send",
+              "sendSession",
+              "serializeDraftImages",
+              "serializeImages",
+              "settleSubmittedImages",
+              "updateQueue"
+            ]
+          },
+          "sessions": {
+            "type": "object",
+            "keys": [
+              "binding",
+              "clear",
+              "create",
+              "deferredRemovals",
+              "drainScopeDrops",
+              "dropScope",
+              "eligible",
+              "followCurrent",
+              "fork",
+              "handleConnected",
+              "handleControlFrame",
+              "handleSessionActivity",
+              "handleSessionAdded",
+              "handleSessionError",
+              "handleSessionRemoved",
+              "handleSessionStatus",
+              "list",
+              "manager",
+              "materializeScope",
+              "open",
+              "openSubagent",
+              "projectList",
+              "pruneScopes",
+              "refresh",
+              "refreshSubagents",
+              "resolve",
+              "resolveAgentScope",
+              "rootCtx",
+              "scope",
+              "scopeDrops",
+              "scopeOf",
+              "scopes",
+              "search",
+              "searchResultLimit",
+              "selection",
+              "sessionOf",
+              "setSubagentCatalogOpen",
+              "startScopeDrop",
+              "subagentAddress",
+              "sweepDeferred",
+              "watched"
+            ]
+          },
+          "uiConversation": {
+            "type": "object",
+            "keys": [
+              "binding",
+              "bindings",
+              "ctx",
+              "drop",
+              "events",
+              "imageUrl",
+              "images",
+              "inspectRequestPrompt",
+              "name",
+              "peekImageUrl",
+              "seedImageUrl",
+              "sessions",
+              "views"
+            ]
+          },
+          "uiSession": {
+            "type": "object",
+            "keys": [
+              "absent",
+              "adapter",
+              "bindings",
+              "createMaterializedBinding",
+              "ctx",
+              "currentBinding",
+              "currentListeners",
+              "descriptors",
+              "materialize",
+              "materializeAbsent",
+              "name",
+              "pendingDomains",
+              "pendingInteractions",
+              "pendingListeners",
+              "pendingSnapshot",
+              "provide",
+              "publishCurrent",
+              "publishPendingInteractions",
+              "rebuildBindings",
+              "registerPendingInteraction",
+              "resolve",
+              "resolveCurrent",
+              "sessions"
+            ]
+          },
+          "slots": {
+            "type": "object",
+            "keys": [
+              "_acquire",
+              "_core",
+              "_host",
+              "_locale",
+              "_register",
+              "_release",
+              "_renderer",
+              "_rootBinding",
+              "_rootContributions",
+              "_rootListeners",
+              "_rootSource",
+              "_scopeListeners",
+              "_scopeRevision",
+              "_scopeRevisionSource",
+              "_scopes",
+              "_storeScopeOwners",
+              "_stores",
+              "bindStoreScope",
+              "clearStoreScope",
+              "ctx",
+              "entries",
+              "entriesOfSlot",
+              "getVersion",
+              "hostFace",
+              "inject",
+              "install",
+              "installLocale",
+              "installScope",
+              "name",
+              "onEntryError",
+              "provideRoot",
+              "publishScopeRevision",
+              "rebuildRootBinding",
+              "register",
+              "renderSlot",
+              "resolveStore",
+              "snapshot",
+              "spec",
+              "subscribe"
+            ]
+          },
+          "connection": {
+            "type": "object",
+            "keys": [
+              "generation",
+              "isLoopback",
+              "reconnect",
+              "registerGenerationSource",
+              "rpc",
+              "start",
+              "state"
+            ]
+          },
+          "workspace": "undefined",
+          "workspaces": {
+            "type": "object",
+            "keys": [
+              "archiveSession",
+              "create",
+              "ctx",
+              "delete",
+              "insertBefore",
+              "insertSessionBefore",
+              "list",
+              "model",
+              "name",
+              "rename"
+            ]
+          },
+          "uiWorkspace": {
+            "type": "object",
+            "keys": [
+              "archiveSession",
+              "clearArchivedCurrent",
+              "connectWorkspace",
+              "connecting",
+              "createDirectory",
+              "ctx",
+              "directoryPicker",
+              "listDirectory",
+              "name",
+              "pickDirectory",
+              "sessions",
+              "startSession",
+              "watchNavigation",
+              "workspaces"
+            ]
+          },
+          "workspaceRegistry": "undefined",
+          "sessionController": "undefined",
+          "session": "undefined",
+          "agent": "undefined",
+          "agents": "undefined",
+          "clientModules": "undefined",
+          "modules": {
+            "type": "object",
+            "keys": [
+              "arrive",
+              "arriveGraphRow",
+              "bootstrapIds",
+              "factories",
+              "graphRows",
+              "import",
+              "invalidate",
+              "loadBundle",
+              "loadCache",
+              "makeRequire",
+              "manifest",
+              "materialize",
+              "materializing",
+              "pendingArrival",
+              "prefetch",
+              "register",
+              "reloadUrls",
+              "seed",
+              "version"
+            ]
+          }
+        }
+      },
+      {
+        "step": "composer-contract",
+        "value": {
+          "conversationKeys": {
+            "type": "object",
+            "keys": [
+              "blocks",
+              "cancel",
+              "createDraftImages",
+              "ctx",
+              "draftAttachments",
+              "draftImages",
+              "encodeImage",
+              "input",
+              "loadOlder",
+              "name",
+              "releaseDraftImage",
+              "releaseDraftImages",
+              "requireSessions",
+              "scopeId",
+              "scopedSession",
+              "send",
+              "sendSession",
+              "serializeDraftImages",
+              "serializeImages",
+              "settleSubmittedImages",
+              "updateQueue"
+            ]
+          },
+          "hasCreateDraftImages": true,
+          "hasCreateDraftAttachments": false,
+          "sessionsKeys": {
+            "type": "object",
+            "keys": [
+              "binding",
+              "clear",
+              "create",
+              "deferredRemovals",
+              "drainScopeDrops",
+              "dropScope",
+              "eligible",
+              "followCurrent",
+              "fork",
+              "handleConnected",
+              "handleControlFrame",
+              "handleSessionActivity",
+              "handleSessionAdded",
+              "handleSessionError",
+              "handleSessionRemoved",
+              "handleSessionStatus",
+              "list",
+              "manager",
+              "materializeScope",
+              "open",
+              "openSubagent",
+              "projectList",
+              "pruneScopes",
+              "refresh",
+              "refreshSubagents",
+              "resolve",
+              "resolveAgentScope",
+              "rootCtx",
+              "scope",
+              "scopeDrops",
+              "scopeOf",
+              "scopes",
+              "search",
+              "searchResultLimit",
+              "selection",
+              "sessionOf",
+              "setSubagentCatalogOpen",
+              "startScopeDrop",
+              "subagentAddress",
+              "sweepDeferred",
+              "watched"
+            ]
+          },
+          "hasScope": true,
+          "sessionsListError": "TypeError: sessions?.list is not a function"
+        }
+      },
+      {
+        "step": "probe-done",
+        "value": {
+          "steps": 3
+        }
+      }
+    ],
+    "async": [
+      {
+        "step": "current-session",
+        "value": {
+          "threw": "TypeError: uiSession?.pendingSnapshot is not a function"
+        }
+      },
+      {
+        "step": "current-session",
+        "value": {
+          "sessionId": null,
+          "bindingProps": {
+            "type": "object",
+            "keys": [
+              "inputActions",
+              "sessionId"
+            ]
+          }
+        }
+      },
+      {
+        "step": "shell-services",
+        "value": {
+          "uiSessionKeys": [
+            "absent",
+            "adapter",
+            "bindings",
+            "createMaterializedBinding",
+            "ctx",
+            "currentBinding",
+            "currentListeners",
+            "descriptors",
+            "materialize",
+            "materializeAbsent",
+            "name",
+            "pendingDomains",
+            "pendingInteractions",
+            "pendingListeners",
+            "pendingSnapshot",
+            "provide",
+            "publishCurrent",
+            "publishPendingInteractions",
+            "rebuildBindings",
+            "registerPendingInteraction",
+            "resolve",
+            "resolveCurrent",
+            "sessions"
+          ],
+          "currentBinding": {
+            "type": "object",
+            "keys": [
+              "hooks",
+              "key",
+              "keyedHooks",
+              "props"
+            ]
+          },
+          "uiWorkspaceKeys": [
+            "archiveSession",
+            "clearArchivedCurrent",
+            "connectWorkspace",
+            "connecting",
+            "createDirectory",
+            "ctx",
+            "directoryPicker",
+            "listDirectory",
+            "name",
+            "pickDirectory",
+            "sessions",
+            "startSession",
+            "watchNavigation",
+            "workspaces"
+          ],
+          "hasConnectWorkspace": true,
+          "hasList": "undefined"
+        }
+      },
+      {
+        "step": "workspace-list",
+        "value": {
+          "items": 0,
+          "first": null
+        }
+      },
+      {
+        "step": "workspace-id",
+        "value": {
+          "workspaceId": null
+        }
+      },
+      {
+        "step": "sessions.create",
+        "value": {
+          "type": "string",
+          "id": "session-07c4"
+        }
+      },
+      {
+        "step": "session-source",
+        "value": {
+          "source": "plugin-created"
+        }
+      },
+      {
+        "step": "uiSession.binding",
+        "value": {
+          "threw": "Error: uiSession.provide: missing hook 'session'"
+        }
+      },
+      {
+        "step": "dom-diagnosis",
+        "value": {
+          "currentBinding": {
+            "type": "object",
+            "keys": [
+              "ctx",
+              "hooks",
+              "key",
+              "keyedHooks",
+              "props"
+            ]
+          },
+          "pendingSnapshot": "object",
+          "editableCount": 1,
+          "textboxCount": 1,
+          "textareaCount": 0,
+          "lexicalCount": 0,
+          "mainHead": "",
+          "bodyText": "新会话 工作区 m0a-workspace 未分组 新会话 设置 探索未至之境 预览版 选择工作区 标准模式 选择一个工作区开始 工作区内修改 DeepSeek-V4-Flash High 详情 点击消息流中的工具行查看详情 内测声明 DeepSeek Harness 目前的 0.1 版本仍处在面向 Harness 开发者进行测试的阶段，还有许多地方需要持续改进和打磨，希望听取广大开发者的反馈建议"
+        }
+      },
+      {
+        "step": "shell",
+        "value": {
+          "keys": [
+            "deps",
+            "state",
+            "notices",
+            "editor",
+            "actions",
+            "core",
+            "projection",
+            "rev",
+            "occurrenceIds",
+            "occurrenceSeq",
+            "unregister",
+            "noticeSeq",
+            "lastMirroredDraft",
+            "imageIds",
+            "disposed",
+            "mirrorFn",
+            "lexiconOff",
+            "detachedDrafts",
+            "failedDetached",
+            "failedRestoreRev",
+            "restoringFailures",
+            "imageFlightSeq",
+            "imageFlights",
+            "lexicon"
+          ],
+          "setDraftArity": 1
+        }
+      },
+      {
+        "step": "draft-write",
+        "value": {
+          "marker": "M0A-MARKER-mtxaui43",
+          "setDraftReturn": "undefined",
+          "domVisible": true,
+          "domTag": "DIV",
+          "domContentEditable": "false",
+          "domRole": "textbox",
+          "domAriaLabel": "选择工作区",
+          "domClasses": "uV2eYG_input",
+          "containerClasses": "uV2eYG_input",
+          "domContainsMarker": false,
+          "domText": "",
+          "readBack": {
+            "lastMirroredDraft": "M0A-MARKER-mtxaui43",
+            "stateDraft": "M0A-MARKER-mtxaui43",
+            "bindingActionsSetDraft": "function"
+          }
+        }
+      },
+      {
+        "step": "image-admission",
+        "value": {
+          "api": "createDraftImages",
+          "result": "array(1)",
+          "firstId": "846c8878-b9d9-498a-a"
+        }
+      }
+    ],
+    "rows": null,
+    "composer": true,
+    "title": "DeepSeek Harness"
+  },
+  "page": {
+    "hasAuthenticationText": false,
+    "bodyHead": "新会话\n工作区\nm0a-workspace\n未分组\n新会话\n设置\n探索未至之境\n预览版\n选择工作区\n标准模式\n工作区内修改\nDeepSeek-V4-Flash\nHigh\n详情\n点击消息流中的工具行查看详情\n内测声明\n\nDeepSeek Harness 目前的 0.1 版本仍处在面向 Harness 开发者进行测试的阶段"
+  },
+  "screenshot": "/Users/mac/ai_tools/dsh project/网页插件/docs/reviews/probe-composer.png",
+  "uiDriven": {
+    "steps": [
+      {
+        "clicked": true,
+        "text": "选择工作区",
+        "tag": "BUTTON"
+      },
+      {
+        "clicked": true,
+        "text": "m0a-workspace",
+        "tag": "DIV"
+      },
+      {
+        "clicked": true,
+        "text": "新会话",
+        "tag": "BUTTON"
+      },
+      {
+        "clicked": true,
+        "text": "session-row",
+        "target": "YDXeBa_title"
+      }
+    ],
+    "sidebar": [
+      {
+        "tag": "SPAN",
+        "role": null,
+        "text": "新会话",
+        "cls": "hHd-Xa_newSessionLabel hHd-Xa_wide",
+        "visible": true
+      },
+      {
+        "tag": "SPAN",
+        "role": null,
+        "text": "工作区",
+        "cls": "bhn1Oq_sectionLabel bhn1Oq_wide",
+        "visible": true
+      },
+      {
+        "tag": "SPAN",
+        "role": null,
+        "text": "m0a-workspace",
+        "cls": "YDXeBa_title",
+        "visible": true
+      },
+      {
+        "tag": "SPAN",
+        "role": null,
+        "text": "未分组",
+        "cls": "YDXeBa_title",
+        "visible": true
+      },
+      {
+        "tag": "SPAN",
+        "role": null,
+        "text": "新会话",
+        "cls": "YDXeBa_title",
+        "visible": true
+      },
+      {
+        "tag": "SPAN",
+        "role": null,
+        "text": "设置",
+        "cls": "UQsH_q_triggerLabel",
+        "visible": true
+      }
+    ],
+    "composer": {
+      "anyEditable": true,
+      "activeEditable": false,
+      "attrs": {
+        "ce": "false",
+        "role": "textbox"
+      }
+    },
+    "run": {
+      "ok": true
+    },
+    "domAfterWrite": "{\"present\":false,\"text\":\"\",\"composerTag\":\"DIV\",\"composerAttrs\":{\"contenteditable\":\"false\",\"role\":\"textbox\",\"classes\":\"uV2eYG_input\"},\"probeAsync\":[{\"step\":\"current-session\",\"value\":{\"sessionId\":\"session-07c4c1\",\"bindingProps\":{\"type\":\"object\",\"keys\":[\"inputActions\",\"sessionId\"]}}},{\"step\":\"shell-services\",\"value\":{\"uiSessionKeys\":[\"absent\",\"adapter\",\"bindings\",\"createMaterializedBinding\",\"ctx\",\"currentBinding\",\"currentListeners\",\"descriptors\",\"materialize\",\"materializeAbsent\",\"name\",\"pendingDomains\",\"pendingInteractions\",\"pendingListeners\",\"pendingSnapshot\",\"provide\",\"publishCurrent\",\"publishPendingInteractions\",\"rebuildBindings\",\"registerPendingInteraction\",\"resolve\",\"resolveCurrent\",\"sessions\"],\"currentBinding\":{\"type\":\"object\",\"keys\":[\"ctx\",\"hooks\",\"key\",\"keyedHooks\",\"props\"]},\"uiWorkspaceKeys\":[\"archiveSession\",\"clearArchivedCurrent\",\"connectWorkspace\",\"connecting\",\"createDirectory\",\"ctx\",\"directoryPicker\",\"listDirectory\",\"name\",\"pickDirectory\",\"sessions\",\"startSession\",\"watchNavigation\",\"workspaces\"],\"hasConnectWorkspace\":true,\"hasList\":\"undefined\"}},{\"step\":\"workspace-list\",\"value\":{\"items\":1,\"first\":{\"workspaceId\":\"556cd303-7ed\",\"title\":\"m0a-workspace\"}}},{\"step\":\"workspace-id\",\"value\":{\"workspaceId\":\"556cd303-7edb-4871-89b9-d3a1f5327740\"}},{\"step\":\"session-source\",\"value\":{\"source\":\"shell-current\",\"id\":\"session-07c4c1\"}},{\"step\":\"uiSession.binding\",\"value\":{\"threw\":\"Error: uiSession.provide: missing hook 'session'\"}},{\"step\":\"dom-diagnosis\",\"value\":{\"currentBinding\":{\"type\":\"object\",\"keys\":[\"ctx\",\"hooks\",\"key\",\"keyedHooks\",\"props\"]},\"pendingSnapshot\":\"object\",\"editableCount\":1,\"textboxCount\":1,\"textareaCount\":0,\"lexicalCount\":0,\"mainHead\":\"\",\"bodyText\":\"新会话 工作区 m0a-workspace 未分组 新会话 设置 探索未至之境 预览版 选择工作区 标准模式 工作区内修改 DeepSeek-V4-Flash High 详情 点击消息流中的工具行查看详情 内测声明 DeepSeek Harness 目前的 0.1 版本仍处在面向 Harness 开发者进行测试的阶段，还有许多地方需要持续改进和打磨，希望听取广大开发者的反馈建议。预计 DeepSe\"}},{\"step\":\"shell\",\"value\":{\"keys\":[\"deps\",\"state\",\"notices\",\"editor\",\"actions\",\"core\",\"projection\",\"rev\",\"occurrenceIds\",\"occurrenceSeq\",\"unregister\",\"noticeSeq\",\"lastMirroredDraft\",\"imageIds\",\"disposed\",\"mirrorFn\",\"lexiconOff\",\"detachedDrafts\",\"failedDetached\",\"failedRestoreRev\",\"restoringFailures\",\"imageFlightSeq\",\"imageFlights\",\"lexicon\"],\"setDraftArity\":1}},{\"step\":\"draft-write\",\"value\":{\"marker\":\"M0A-MARKER-mtxav0uz\",\"setDraftReturn\":\"undefined\",\"domVisible\":true,\"domTag\":\"DIV\",\"domContentEditable\":\"false\",\"domRole\":\"textbox\",\"domAriaLabel\":\"选择工作区\",\"domClasses\":\"uV2eYG_input\",\"containerClasses\":\"uV2eYG_input\",\"domContainsMarker\":false,\"domText\":\"\",\"readBack\":{\"lastMirroredDraft\":\"M0A-MARKER-mtxav0uz\",\"stateDraft\":\"M0A-MARKER-mtxav0uz\",\"bindingActionsSetDraft\":\"function\"}}},{\"step\":\"image-admission\",\"value\":{\"api\":\"createDraftImages\",\"result\":\"array(1)\",\"firstId\":\"c3d8d340-eb10-4d85-a\"}}]}"
+  },
+  "domAfterWrite": {
+    "present": false,
+    "text": "",
+    "composerTag": "DIV",
+    "composerAttrs": {
+      "contenteditable": "false",
+      "role": "textbox",
+      "classes": "uV2eYG_input"
+    },
+    "probeAsync": [
+      {
+        "step": "current-session",
+        "value": {
+          "sessionId": "session-07c4c1",
+          "bindingProps": {
+            "type": "object",
+            "keys": [
+              "inputActions",
+              "sessionId"
+            ]
+          }
+        }
+      },
+      {
+        "step": "shell-services",
+        "value": {
+          "uiSessionKeys": [
+            "absent",
+            "adapter",
+            "bindings",
+            "createMaterializedBinding",
+            "ctx",
+            "currentBinding",
+            "currentListeners",
+            "descriptors",
+            "materialize",
+            "materializeAbsent",
+            "name",
+            "pendingDomains",
+            "pendingInteractions",
+            "pendingListeners",
+            "pendingSnapshot",
+            "provide",
+            "publishCurrent",
+            "publishPendingInteractions",
+            "rebuildBindings",
+            "registerPendingInteraction",
+            "resolve",
+            "resolveCurrent",
+            "sessions"
+          ],
+          "currentBinding": {
+            "type": "object",
+            "keys": [
+              "ctx",
+              "hooks",
+              "key",
+              "keyedHooks",
+              "props"
+            ]
+          },
+          "uiWorkspaceKeys": [
+            "archiveSession",
+            "clearArchivedCurrent",
+            "connectWorkspace",
+            "connecting",
+            "createDirectory",
+            "ctx",
+            "directoryPicker",
+            "listDirectory",
+            "name",
+            "pickDirectory",
+            "sessions",
+            "startSession",
+            "watchNavigation",
+            "workspaces"
+          ],
+          "hasConnectWorkspace": true,
+          "hasList": "undefined"
+        }
+      },
+      {
+        "step": "workspace-list",
+        "value": {
+          "items": 1,
+          "first": {
+            "workspaceId": "556cd303-7ed",
+            "title": "m0a-workspace"
+          }
+        }
+      },
+      {
+        "step": "workspace-id",
+        "value": {
+          "workspaceId": "556cd303-7edb-4871-89b9-d3a1f5327740"
+        }
+      },
+      {
+        "step": "session-source",
+        "value": {
+          "source": "shell-current",
+          "id": "session-07c4c1"
+        }
+      },
+      {
+        "step": "uiSession.binding",
+        "value": {
+          "threw": "Error: uiSession.provide: missing hook 'session'"
+        }
+      },
+      {
+        "step": "dom-diagnosis",
+        "value": {
+          "currentBinding": {
+            "type": "object",
+            "keys": [
+              "ctx",
+              "hooks",
+              "key",
+              "keyedHooks",
+              "props"
+            ]
+          },
+          "pendingSnapshot": "object",
+          "editableCount": 1,
+          "textboxCount": 1,
+          "textareaCount": 0,
+          "lexicalCount": 0,
+          "mainHead": "",
+          "bodyText": "新会话 工作区 m0a-workspace 未分组 新会话 设置 探索未至之境 预览版 选择工作区 标准模式 工作区内修改 DeepSeek-V4-Flash High 详情 点击消息流中的工具行查看详情 内测声明 DeepSeek Harness 目前的 0.1 版本仍处在面向 Harness 开发者进行测试的阶段，还有许多地方需要持续改进和打磨，希望听取广大开发者的反馈建议。预计 DeepSe"
+        }
+      },
+      {
+        "step": "shell",
+        "value": {
+          "keys": [
+            "deps",
+            "state",
+            "notices",
+            "editor",
+            "actions",
+            "core",
+            "projection",
+            "rev",
+            "occurrenceIds",
+            "occurrenceSeq",
+            "unregister",
+            "noticeSeq",
+            "lastMirroredDraft",
+            "imageIds",
+            "disposed",
+            "mirrorFn",
+            "lexiconOff",
+            "detachedDrafts",
+            "failedDetached",
+            "failedRestoreRev",
+            "restoringFailures",
+            "imageFlightSeq",
+            "imageFlights",
+            "lexicon"
+          ],
+          "setDraftArity": 1
+        }
+      },
+      {
+        "step": "draft-write",
+        "value": {
+          "marker": "M0A-MARKER-mtxav0uz",
+          "setDraftReturn": "undefined",
+          "domVisible": true,
+          "domTag": "DIV",
+          "domContentEditable": "false",
+          "domRole": "textbox",
+          "domAriaLabel": "选择工作区",
+          "domClasses": "uV2eYG_input",
+          "containerClasses": "uV2eYG_input",
+          "domContainsMarker": false,
+          "domText": "",
+          "readBack": {
+            "lastMirroredDraft": "M0A-MARKER-mtxav0uz",
+            "stateDraft": "M0A-MARKER-mtxav0uz",
+            "bindingActionsSetDraft": "function"
+          }
+        }
+      },
+      {
+        "step": "image-admission",
+        "value": {
+          "api": "createDraftImages",
+          "result": "array(1)",
+          "firstId": "c3d8d340-eb10-4d85-a"
+        }
+      }
+    ]
+  },
+  "consoleLines": [],
+  "errors": []
+}

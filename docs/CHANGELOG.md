@@ -5,7 +5,34 @@
 
 ---
 
-## v3.5 — 2026-09-11（当前）
+## v3.6 — 2026-09-11（当前）
+
+**触发**：M0a 第二个实验（composer / client 插件契约探针，`tests/m0a/composer-probe.mjs`）——把 client 插件从"按文档推断"变成"在真实 GUI 里跑起来并逐项取证"。
+
+### 实测确认（逐字证据见 `docs/reviews/probe-composer.{md,json}`）
+
+| 项 | 结论 |
+|---|---|
+| **客户端打包机制（A6）** | ✅ 成立：`exports["./client"]` + `dsh.client.platform="web"` + CJS 闭包工厂 → 写入 boot 图、经 `/plugins/??dsh-web-companion-bridge/client.js&rev=…` 返回 200/5764B，插件 `apply` 在真实 GUI 中成功执行 |
+| **`inject` 是硬要求** | ❌→✅：不声明时 `apply` 早于服务就绪，`ctx.get('conversation'/'sessions')` 全 undefined；声明 `inject: ['sessions','conversation']` 后全部就位 |
+| **`createDraftImages`（Q3，PiMoa 假设 C）** | ✅ 运行时存在并可用：`createDraftImages([File])` → `array(1)`，返回浏览器端 id；`createDraftAttachments` 在本版本**不存在** |
+| **`setDraft` 签名** | ⚠️ 安装版 `0.1.2-rc.1` **arity=1**（无 `editRange`）→ v3.4 依据的"`setDraft(text, editRange?)`"来自更新源码；撤销契约改为**按 arity 能力探测**双路径 |
+| **写入方向可观察** | ✅（非 DOM 形式）：`setDraft(marker)` 后 `shell.state.draft === marker`、`shell.lastMirroredDraft === marker` |
+| **标准 props 可达** | ✅ `uiSession.currentBinding.props = { sessionId, inputActions }` → 插件可直接调用 `inputActions.setDraft`，无需 React |
+| **可见服务面** | `conversation` / `sessions` / `uiConversation` / `uiSession` / `slots` / `connection` / `modules`，keys 清单已存档 |
+
+### 未闭合项（明确记录，不粉饰）
+
+**E2E-0 断言①（活动编辑器）**在隔离 dev home 中无法达成：composer 元素存在但为惰性占位（`contenteditable="false"`、`aria-label="选择工作区"`），因为该环境没有"已绑定工作区且被 shell 选为当前"的会话。四种驱动方式均已尝试并留证（真实 UI 点击 / `sessions.create`+`open` / `uiWorkspace.connectWorkspace` / `uiSession.createMaterializedBinding` 抛 `missing hook 'session'`）。
+→ 两条解锁路径写在 `docs/reviews/probe-composer.md` §2：**A** 把插件挂进真实 profile（需一次工作区外写入，需用户批准）；**B** 接受非 DOM 回读，把断言①降级为 M1 前置人工步骤。**待用户选择**。
+
+### 其他修订
+
+§6.3 新增"运行时可达性（实测）"与"图片准入（Q3 结论）"两行；打包形态一栏由【源码】升级为【源码】+【实测】；插入/撤销契约按 arity 探测重写。
+
+---
+
+## v3.5 — 2026-09-11
 
 **触发**：M0a 权限实验首次实跑（`tests/m0a/permission-probe.mjs` → `docs/reviews/probe-permission.{md,json}`），把设计的**核心假设 A′** 从"推理"升级为"取证"。
 

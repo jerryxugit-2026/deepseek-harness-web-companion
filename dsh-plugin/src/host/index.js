@@ -82,7 +82,8 @@ export function apply(ctx, config = {}) {
     () => ctx.webServer.register({
       kind: 'exact',
       path: '/ag/ping',
-      handler: pingRoute({ state, protocolVersion: PROTOCOL_VERSION }),
+      // also refresh: the pairing file can be (re)written after this process booted
+      handler: withPairing(pingRoute({ state, protocolVersion: PROTOCOL_VERSION })),
     }),
     'dsh-web-companion-bridge: GET /ag/ping',
   )

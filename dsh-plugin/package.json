@@ -1,0 +1,26 @@
+{
+  "name": "dsh-web-companion-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DSH Web Companion bridge: host half (/ag/* routes + browser_* tools) and client half (composer intent sniffing, context chips)",
+  "type": "module",
+  "main": "src/host/index.js",
+  "exports": {
+    ".": "./src/host/index.js",
+    "./client": "./lib/client.js"
+  },
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "inject": []
+    }
+  },
+  "scripts": {
+    "build:client": "node build.mjs"
+  },
+  "devDependencies": {
+    "@deepseek-ai/dsh-credentials": "0.1.2-rc.1",
+    "@deepseek-ai/dsh-tools": "0.1.2-rc.1",
+    "ws": "^8.21.0"
+  }
+}

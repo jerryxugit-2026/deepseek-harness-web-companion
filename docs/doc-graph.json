@@ -114,8 +114,8 @@
       "path": "docs/CHANGELOG.md",
       "title": "变更记录（CHANGELOG）",
       "version": "v3.0",
-      "lines": 185,
-      "sections": 8,
+      "lines": 212,
+      "sections": 9,
       "codeRefs": 0,
       "docRefs": 1
     },
@@ -123,9 +123,9 @@
       "path": "docs/DOC-GRAPH.md",
       "title": "文档与代码图谱（DOC-GRAPH）",
       "version": null,
-      "lines": 309,
+      "lines": 308,
       "sections": 6,
-      "codeRefs": 212,
+      "codeRefs": 210,
       "docRefs": 0
     },
     {
@@ -201,6 +201,15 @@
       "docRefs": 0
     },
     {
+      "path": "docs/reviews/probe-composer.md",
+      "title": "M0a 探针报告 · composer / client 插件契约（probe-composer）",
+      "version": null,
+      "lines": 46,
+      "sections": 3,
+      "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
       "path": "docs/reviews/probe-permission.md",
       "title": "M0a 探针报告 · 权限实验（probe-permission）",
       "version": null,
@@ -221,15 +230,15 @@
     {
       "path": "详细设计文档.md",
       "title": "DSH Web Companion · 详细设计规范说明书",
-      "version": "v3.5",
-      "lines": 812,
+      "version": "v3.6",
+      "lines": 814,
       "sections": 16,
       "codeRefs": 20,
       "docRefs": 4
     }
   ],
   "code": {
-    "indexedFiles": 37,
+    "indexedFiles": 41,
     "areas": {
       "extension": [
         "docs/01-protocol.md",
@@ -239,7 +248,8 @@
       ],
       "dsh-plugin": [
         "docs/01-protocol.md",
-        "docs/DOC-GRAPH.md"
+        "docs/DOC-GRAPH.md",
+        "详细设计文档.md"
       ],
       "native-host": [
         "docs/01-protocol.md",
@@ -596,10 +606,6 @@
       },
       {
         "doc": "docs/03-bridge-plugin.md",
-        "ref": "lib/client.js"
-      },
-      {
-        "doc": "docs/03-bridge-plugin.md",
         "ref": "pending.ts"
       },
       {
@@ -665,10 +671,6 @@
       {
         "doc": "docs/04-client-plugin.md",
         "ref": "contract/slots.d.ts"
-      },
-      {
-        "doc": "docs/04-client-plugin.md",
-        "ref": "lib/client.js"
       },
       {
         "doc": "docs/04-client-plugin.md",
@@ -1216,10 +1218,6 @@
       },
       {
         "doc": "docs/DOC-GRAPH.md",
-        "ref": "client.js"
-      },
-      {
-        "doc": "docs/DOC-GRAPH.md",
         "ref": "codegen.mjs"
       },
       {
@@ -1341,10 +1339,6 @@
       {
         "doc": "docs/DOC-GRAPH.md",
         "ref": "launcher.test.mjs"
-      },
-      {
-        "doc": "docs/DOC-GRAPH.md",
-        "ref": "lib/client.js"
       },
       {
         "doc": "docs/DOC-GRAPH.md",
@@ -1649,10 +1643,6 @@
       {
         "doc": "详细设计文档.md",
         "ref": "contract/slots.d.ts"
-      },
-      {
-        "doc": "详细设计文档.md",
-        "ref": "deepseek-harness/packages/client/ui-conversation/src/client/input/contract.ts"
       },
       {
         "doc": "详细设计文档.md",
