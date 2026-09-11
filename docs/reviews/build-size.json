@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-09-11T21:27:06.814Z",
+  "generatedAt": "2026-09-11T21:35:00.535Z",
   "criterion": {
     "limitBytes": 1048576,
     "metric": "dist/ total, uncompressed"
   },
-  "totalBytes": 90267,
+  "totalBytes": 90235,
   "gzipBytes": 399,
   "pass": true,
   "files": [
@@ -26,7 +26,7 @@
     },
     {
       "path": "manifest.json",
-      "bytes": 1225
+      "bytes": 1193
     }
   ]
 }

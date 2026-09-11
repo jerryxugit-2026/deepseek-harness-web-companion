@@ -67,9 +67,10 @@ extension/
   "action": { "default_title": "Antigravity Companion" },
   "permissions": [
     "sidePanel", "storage", "cookies", "scripting", "activeTab", "tabs",
-    "contextMenus", "nativeMessaging", "alarms"
+    "contextMenus", "nativeMessaging", "alarms", "debugger"
   ],
-  "optional_permissions": ["debugger"],
+  // 注意（禁止的写法）：把 debugger 列进可选权限会被 Chrome 整条省略
+  // （逐字：Permission 'debugger' cannot be listed as optional…），"opt-in" 改由运行期开关实现
   "optional_host_permissions": ["*://*/*"],
   "host_permissions": ["http://127.0.0.1:3080/*"],
   "content_scripts": [
@@ -91,7 +92,7 @@ extension/
 | `scripting` + `activeTab` | 抓正文/选区；浏览器操作工具 | 不可 |
 | `tabs` | `captureVisibleTab`、工具桥定位标签页 | 不可 |
 | `nativeMessaging` | 自动拉起 `dsh web`（G4） | 可（降级为手动启动） |
-| `debugger` | 仅 M3 增强（全页截图、网络、控制台）；**optional**，运行时按需申请 | 可 |
+| `debugger` | 仅 M3 增强（全页截图、网络、控制台）；**必需权限**（Chrome 禁止 optional），运行期由微壳开关 + 站点白名单决定是否 attach | 可 |
 | `host_permissions: 127.0.0.1:3080/*` | 与桥接插件通信 + 在 DSH 页面注入 content script | 不可 |
 | `optional_host_permissions: *://*/*` | **仅**用于 M4 的「网页内悬浮胶囊 + 划词浮标」（PRD FR-1.2）常驻注入；用户在设置页显式授予后才申请 | 可（不授予则该功能不出现） |
 | 任意网页抓取 | 走 `activeTab`（用户点击时临时授权）+ `scripting.executeScript`，**默认不申请 `<all_urls>`** | — |

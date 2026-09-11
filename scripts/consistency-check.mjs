@@ -137,6 +137,14 @@ const RULES = [
     allowIf: NEGATED,
   },
   {
+    id: 'optional-debugger-permission',
+    // 只查「同一行」的声明式写法，避免跨行误伤（例如探针里读取 manifest 的那行）
+    pattern: /optional_permissions[^\n\]]{0,120}debugger|debugger[^\n\]]{0,120}optional_permissions/u,
+    reason: "A12：Chrome 逐字拒绝——'Permission debugger cannot be listed as optional. This permission will be omitted.'，且 SW 内 chrome.debugger 直接 undefined（实测 tests/m3/debugger-probe.mjs）。debugger 必须放必需 permissions，「opt-in」只在运行期实现",
+    skip: HISTORY,
+    allowIf: NEGATED,
+  },
+  {
     id: 'pending-decision-lingering',
     pattern: /待拍板|待你拍板/u,
     reason: 'BLOCKER-5：H4 已决（默认①）；悬空的双态表述禁止出现',

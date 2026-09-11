@@ -51,7 +51,7 @@
       "path": "docs/02-extension.md",
       "title": "02 · Chrome 扩展设计（`extension/`）",
       "version": null,
-      "lines": 295,
+      "lines": 296,
       "sections": 8,
       "codeRefs": 39,
       "docRefs": 0
@@ -114,8 +114,8 @@
       "path": "docs/CHANGELOG.md",
       "title": "变更记录（CHANGELOG）",
       "version": "v3.0",
-      "lines": 674,
-      "sections": 27,
+      "lines": 710,
+      "sections": 28,
       "codeRefs": 0,
       "docRefs": 1
     },
@@ -266,15 +266,15 @@
     {
       "path": "详细设计文档.md",
       "title": "DSH Web Companion · 详细设计规范说明书",
-      "version": "v3.23",
-      "lines": 867,
+      "version": "v3.24",
+      "lines": 877,
       "sections": 16,
-      "codeRefs": 27,
+      "codeRefs": 29,
       "docRefs": 4
     }
   ],
   "code": {
-    "indexedFiles": 130,
+    "indexedFiles": 132,
     "areas": {
       "extension": [
         "docs/01-protocol.md",

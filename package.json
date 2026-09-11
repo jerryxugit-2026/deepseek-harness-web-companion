@@ -34,6 +34,7 @@
     "probe:autostart": "node tests/m2/autostart-probe.mjs",
     "probe:look-left": "node tests/m2/look-left-probe.mjs",
     "probe:look-left-e2e": "node tests/m2/look-left-e2e-probe.mjs",
+    "probe:m3-debugger": "node tests/m3/debugger-probe.mjs",
     "native:install": "node native-host/install.mjs"
   },
   "devDependencies": {

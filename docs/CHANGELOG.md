@@ -5,7 +5,43 @@
 
 ---
 
-## v3.23 — 2026-09-11（当前）
+## v3.24 — 2026-09-11（当前）
+
+**触发**：你在 chrome://extensions 里看到 Chrome 的告警 —— `Permission 'debugger' cannot be listed as optional. This permission will be omitted.`
+
+这不是配置笔误，是**平台规则**，直接推翻了 M3 计划里"`debugger` 作为可选权限、运行时申请"的那一步。
+
+### 实测（同一扩展、两种声明，逐字对比）
+
+| 声明方式 | SW 内 `typeof chrome.debugger` | `permissions.contains` | attach 全链路 |
+|---|---|---|---|
+| `optional_permissions: ["debugger"]` | **`undefined`**（能力整个消失） | 无从发起 | 不可用 |
+| `permissions: [..., "debugger"]` | `object` | `true` | ✅ AX 树 15 节点（含 button/heading）、`Input.dispatchMouseEvent` **真的触发** `onclick`、`Input.insertText` 进输入框（须先点焦点）、`Page.captureScreenshot` 14KB PNG |
+
+### 决策（ADR-12）
+
+**`debugger` 放进必需 `permissions`；"opt-in" 从"权限层"下沉到"运行期"**：默认不 attach，微壳里显式打开「浏览器控制」+ 站点白名单才 attach，写操作仍受 DSH 侧审批。代价必须明说：安装/重载会出现不可消除的权限提示，attach 期间有「正在调试」横幅——竞品同样如此（ChatGPT / Claude 扩展都把 `debugger` 放必需权限）。被否决的替代：放弃 debugger 改用 `scripting` 合成事件 —— 拿不到**可信输入**与 AX 树，M3 退化为 DOM 模拟，不满足 E2E-7。
+
+### 交付
+
+| 位置 | 变更 |
+|---|---|
+| `extension/manifest.json` | `debugger` 移入 `permissions`；删除 `optional_permissions`（Chrome 的告警来源） |
+| `tests/m3/debugger-probe.mjs` | 新增 M3 能力前置探针（14 断言，`npm run probe:m3-debugger`）→ `docs/reviews/m3-debugger-probe.json` |
+| 文档 | 设计文档 §4 ADR-12、§9 权限表与降级矩阵 T8、§11.1 速查表、M3 里程碑；`docs/02-extension.md`、`docs/07-implementation-plan.md`、`docs/08-security.md` |
+| 门禁 | 一致性规则第 19 条 `optional-debugger-permission`（禁止把 debugger 写回 optional） |
+
+### 探针自身修正（三处断言失真）
+
+1. `getTargets()` 的 `attached` **包含 CDP 自身连接**（实测 `before=1`）→ 占用判断只能看增量；2. `Input.insertText` 打到**当前焦点**元素，不先点焦点则静默无效（这是 M3 `type` 的接线要点，不是探针瑕疵）；3. `permissions.getAll()` 用布尔断言取 `permissions.includes('debugger')`，避免字符串化形状的坑。
+
+### 顺带记录的 M3 接线要点
+
+`chrome.debugger.sendCommand()` 返回的是 **CDP result 本体**：`Runtime.evaluate` 的取值在 `.result.value`（不是 `.value`）。这与 v3.23 的 `validateAs` 是同一类"契约形状"坑，已在同一份探针里固化为断言。
+
+---
+
+## v3.23 — 2026-09-11
 
 **触发**：把「看左边」的**最后一跳**接通 —— 之前止步于桥接插件收到 intent。
 

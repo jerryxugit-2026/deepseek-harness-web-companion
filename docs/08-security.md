@@ -48,7 +48,7 @@
 | 常驻读取所有网页 | ❌ | 用 `activeTab`：只有用户点击/快捷键时才注入抓取 |
 | 悬浮胶囊 / 划词浮标（PRD FR-1.2） | ❌（可选） | 需用户显式授予 `optional_host_permissions: *://*/*` |
 | 浏览器控制写操作 | ❌ | `allowBrowserWriteOps=false`，需在插件配置里开；仍受 DSH 审批 |
-| Chrome 调试器（全页截图/网络） | ❌（可选） | `optional_permissions: ["debugger"]`，用时申请，会显示「正在调试此浏览器」横幅 |
+| Chrome 调试器（全页截图/网络） | ❌（运行期开关，默认关） | `debugger` 必须在必需权限里声明（Chrome 拒绝 optional，v3.24 实测）；但**默认不 attach**：微壳内「浏览器控制」开关 + 站点白名单才 attach，attach 期间显示「正在调试此浏览器」横幅，用户点 Cancel 即断 |
 | 网络外发 | ❌ | 除 DSH 自身的模型调用外无任何外发；所有组件仅连 `127.0.0.1` |
 
 ---

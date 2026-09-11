@@ -44,7 +44,7 @@
 | 3.1 | 扩展侧 WS 客户端 + ops 框架 | `EXT/src/sw/agent-bridge.js`、`ops/{read,tabs,wait}.js` | 2.4 | `agent-bridge.test.js` + 只读 ops 单测全绿；**E2E-6 通过** |
 | 3.2 | 写操作 ops | `ops/{click,type,navigate}.js` | 3.1 | 三 op 单测全绿；**E2E-7 通过**（真实点击/输入改变页面状态） |
 | 3.3 | 工具注册与错误映射 | `PLUG/src/host/tool-bridge.ts` | 3.1 | `tool-bridge.test.ts` 全绿；模型可见工具列表含 7 个工具（写入类默认不出现在只读模式） |
-| 3.4 | 截图工具（含 fullPage 增强，可选 debugger） | `ops/screenshot.js`、`optional_permissions: debugger` 流程 | 3.3 | 视口截图工具可用；`fullPage` 在授权 debugger 后可用（否则明确报错并给替代方案） |
+| 3.4 | 截图工具（含 fullPage 增强，走 debugger） | `ops/screenshot.js` + 运行期「浏览器控制」开关（`debugger` 已在必需权限中，见 ADR-12） | 3.3 | 视口截图工具可用；`fullPage` 在开关打开后可用（否则明确报错并给替代方案） |
 | 3.5 | 权限与审批接线 | 与 DSH 权限预设/审批服务的接线 | 3.3 | 写操作在只读预设下被拒绝且提示开启方式 |
 
 **M3 退出条件**：E2E-6/7 通过；模型能在一次对话里「读网页 → 点击 → 验证结果」。
