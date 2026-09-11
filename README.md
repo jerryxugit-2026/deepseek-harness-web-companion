@@ -1,15 +1,9 @@
-# DSH Web Companion (DeepSeek Harness 网页侧边栏智能伴侣)
+# DSH Web Companion（DeepSeek Harness 网页侧边栏智能伴侣）
 
-本项目旨在为 Chrome 浏览器打造一个专属于本地 **DeepSeek Harness (DSH)** 的超轻量智能侧伴侣插件。
+在 Chrome 侧边栏里直接驱动本机 **DeepSeek Harness (DSH)** 完全体 Agent：点开即用原生 DSH 界面，写下「看左边」或点顶栏按钮，把左侧网页快照（正文 Markdown + 视口截图 + best-effort 字幕/元数据）注入本地工作区，打通「网页信息获取 → 本地工程修改与命令执行」闭环。
 
-它在保持 Chrome 原生 Gemini 侧边栏“即点即开、并排显示”极致体验的同时，直接内嵌本地运行的完全体 Agent——DeepSeek Harness（端口 3080），具备完整的本地文件读写、沙箱终端执行与多模型（DeepSeek / Claude / Gemini）驱动能力。用户在输入框写下“看左边”或点击顶栏按钮，瞬间即可完成左侧当前网页的全量快照（正文 Markdown + 视口多模态截图 + 视频字幕/元数据），打通从“网页信息获取”到“本地工程修改与命令执行”的完整生产力闭环。
-
-> **核心技术架构**：
-> - **扩展端**：**TypeScript** (Chrome MV3 原生，体积 < 1MB，启动 < 50ms，内存 < 20MB)。
-> - **桥接端**：**Node.js 进程内插件** (`dsh-antigravity-bridge`)，直接运行在 DSH 进程内，复用既有 3080 端口，**0 额外进程，0 额外端口，0 额外内存消耗**。
-> - **单内核保障**：单选 DSH 极大降低复杂度，100% 免费复用成熟的 Thinking 思维链折叠、Tool 卡片、审批弹窗与工作区选择，且可通过 DSH 自由配置任意 LLM 模型。
-> - **Go 守护拉起器**：标记为后续增强项，**当前阶段不做**，聚焦扩展与插件核心链路。
-> - **平台边界**：纯粹深耕 **Chromium 生态（Chrome / Edge / Brave / Arc）**，**Safari 明确坚决不做**。
+> **Agent 内核 = DSH**（本机真实运行，带本地文件读写、沙箱终端、子 agent 与权限审批）。桥接层以 **DSH 进程内插件**实现，复用既有 3080 端口，**0 新增常驻进程**。
+> ⚠️ 内嵌复用的是 DSH 的**视觉与交互层**；上下文胶囊、意图嗅探、草稿写入等**桥接逻辑仍需自写 client 插件**（详见详设 §0.3）。
 
 ---
 
@@ -17,14 +11,20 @@
 
 | 阶段 | 状态 |
 |---|---|
-| 可行性验证（真实 Chrome 内嵌 DSH + 认证方案） | ✅ 已完成，证据见 [FINDINGS.md](./FINDINGS.md)（含截图与报告） |
-| 详细设计文档（TypeScript + Node.js 极简单内核 v3.0） | ✅ 已完成，见 [详细设计文档.md](./详细设计文档.md) 与 [DESIGN.md](./DESIGN.md) |
-| 代码实现（M1 骨架 → M4 打磨） | ⏳ 下一步（见 [DESIGN §9](./DESIGN.md)） |
+| 可行性验证（真实 Chrome 内嵌 DSH + 认证方案） | ✅ [FINDINGS.md](./FINDINGS.md)（含截图与实测矩阵） |
+| 详细设计 **v3.1**（已吸收两份独立审核的修正） | ✅ [详细设计文档.md](./详细设计文档.md) |
+| 内部评审 + PiMoa 多模型对抗审核 | ✅ [docs/REVIEW-v3.0.md](./docs/REVIEW-v3.0.md) · [docs/reviews/](./docs/reviews/) |
+| 文档 ↔ 代码双图谱 | ✅ [docs/DOC-GRAPH.md](./docs/DOC-GRAPH.md) + `.codegraph/`（CodeGraph 1.6.0） |
+| **待你拍板** | ⏳ **H4**：DSH 未运行时是否自动拉起（详设 [§0.2](./详细设计文档.md)；本版按「做」设计） |
+| 代码实现 | ⏸ M1 骨架已写但**暂停**；评审通过后从 **M0 最小闭环 spike** 开工 |
 
-**三条已验证的关键事实**（决定整体架构）：
-1. 扩展页面**不能**直接调 DSH 的 `/api`（Origin/Sec-Fetch 围栏 403），但 iframe 内 DSH 页面自身的同源请求完全合法。
-2. DSH 原生下发的 `SameSite=Strict` cookie 在扩展 iframe 中会让 **WebSocket 事件流握手 401**（界面卡死在 `connection lost`）；改成 **`SameSite=None; Secure`** 后完整可用 —— 截图为证：`spike/out/panel-none-secure.png`。
-3. 交互上采用 **“看左边” 自然语言意图拦截 + 顶栏【👀 看左边】按钮** 触发单次全量快照，彻底免去后台无休止的 DOM 监听与轮询，零后台电量开销，零无效 Token 浪费。
+---
+
+## 三条已实测的关键事实
+
+1. 扩展页面**不能**直连 DSH `/api`（Origin/Sec-Fetch 围栏 → 403），但 iframe 内 DSH 页面自身的同源请求合法 → 自建 `/ag/*` 路由（自行校验预共享 key + 钉死扩展 ID）。
+2. DSH 原生的 `SameSite=Strict` cookie 在扩展 iframe 内 **fetch 能过、WebSocket 握手 401**（界面卡在 `connection lost`）；改签 **`SameSite=None; Secure`** 后完整可用 —— 截图 `spike/out/panel-none-secure.png`。
+3. Chrome 137+ 已移除命令行 `--load-extension` → 自动化测试走 CDP `Extensions.loadUnpacked`；本机**没有 pnpm** → 开发期用 profile `cordis.patch.yml` 绝对路径条目安装插件（已实测跑通）。
 
 ---
 
@@ -32,16 +32,49 @@
 
 | 文档 | 内容 |
 |---|---|
-| **[详细设计文档.md](./详细设计文档.md)** | ★ **完整单文件设计文档 (v3.0)**：终局决策论证、量化验收、六大硬约束、极简架构、ADR、协议契约、模块设计、时序、测试方案、安全、交付计划、平台约束、技术深水区剖析 |
-| [DESIGN.md](./DESIGN.md) | 主设计摘要（架构/决策/PRD 对齐差异/风险/里程碑），与详细设计完全同步 |
-| [PRD_需求定义说明书.md](./PRD_需求定义说明书.md) | 用户侧需求定义 (v3.0) |
+| **[详细设计文档.md](./详细设计文档.md)** | ★ **唯一权威（v3.1）**：量化验收、硬约束、架构、ADR、协议契约、模块函数级设计、时序与降级矩阵、测试方案、安全模型、里程碑、平台速查、未决问题与最脆弱假设 |
+| [DESIGN.md](./DESIGN.md) | 设计摘要（与详设一致；**冲突时以详设为准**并视为阻断项） |
+| [PRD_需求定义说明书.md](./PRD_需求定义说明书.md) | 需求定义（v3.0） |
 | [FINDINGS.md](./FINDINGS.md) | 可行性实证：约束、变体矩阵、复现方式 |
-| [docs/01-protocol.md](./docs/01-protocol.md) | 全部消息/RPC 契约、单源 schema、错误码表 |
-| [docs/02-extension.md](./docs/02-extension.md) | Chrome 扩展：文件/函数级设计、权限理由、单测矩阵 |
-| [docs/03-bridge-plugin.md](./docs/03-bridge-plugin.md) | DSH host 插件：路由、cookie 签发、WS hub、`browser_*` 工具 |
-| [docs/04-client-plugin.md](./docs/04-client-plugin.md) | DSH client 插件：attach 进 composer、上下文胶囊 |
-| [docs/05-native-host.md](./docs/05-native-host.md) | native messaging 自动拉起（后续增强设计，当前不做） |
-| [docs/06-test-plan.md](./docs/06-test-plan.md) | 分层测试方案（L0-L4）、E2E 用例设计 |
-| [docs/07-implementation-plan.md](./docs/07-implementation-plan.md) | 实现计划：M1-M4 任务分解、依赖、每任务完成判据 |
-| [docs/08-security.md](./docs/08-security.md) | 安全与威胁模型：12 类威胁、权限最小化、审计 |
-| [docs/research/](./docs/research/) | 平台调研笔记（DSH 插件规范 / 客户端 composer 接缝 / Chrome 扩展约束） |
+| [docs/REVIEW-v3.0.md](./docs/REVIEW-v3.0.md) | 内部评审：12 条硬错误 + 11 处信息丢失 + 优化建议 |
+| [docs/reviews/](./docs/reviews/) | PiMoa 多模型对抗审核结果（8 阻断 / 10 MAJOR / 3 内部矛盾） |
+| [docs/CHANGELOG.md](./docs/CHANGELOG.md) | 变更纪律与历史（防止重写丢信息） |
+| [docs/DOC-GRAPH.md](./docs/DOC-GRAPH.md) | 文档 ↔ 代码图谱（自动生成，随进展更新） |
+| [docs/01](./docs/01-protocol.md) · [02](./docs/02-extension.md) · [03](./docs/03-bridge-plugin.md) · [04](./docs/04-client-plugin.md) · [05](./docs/05-native-host.md) · [06](./docs/06-test-plan.md) · [07](./docs/07-implementation-plan.md) · [08](./docs/08-security.md) | 模块详版（协议/扩展/host 插件/client 插件/native host/测试/计划/安全） |
+| [docs/research/](./docs/research/) | 三份平台调研（DSH 插件规范 / composer 接缝 / Chrome 约束，带 citations） |
+
+---
+
+## 工程纪律（质量门）
+
+```sh
+npm run graph:sync     # 代码图谱增量重建（CodeGraph，本地 SQLite + FTS5）
+npm run graph:docs     # 文档图谱重生成（docs/DOC-GRAPH.md + doc-graph.json）
+npm run graph:check    # 校验图谱是否最新 + 引用是否断裂（必须 0 问题）
+
+# 对抗审核（本地 PiMoa MCP，127.0.0.1:8758；用 ~/ai_tools/PiMoa/bin/pimoa-service.sh status 查看服务）
+node scripts/pimoa-review.mjs --tool moa_verify \
+  --prompt-file scripts/review-prompts/design-adversarial.md \
+  --context 详细设计文档.md docs/REVIEW-v3.0.md \
+  --out docs/reviews/pimoa-<milestone>.md
+```
+
+**每个里程碑收尾必须**：①刷新两个图谱 ②跑 PiMoa 复评 ③`graph:check` 与复评任一不过，不得进入下一阶段。
+
+---
+
+## 目录结构
+
+```
+网页插件/
+├── 详细设计文档.md / PRD_需求定义说明书.md / DESIGN.md / FINDINGS.md / README.md
+├── docs/            # 模块详版、平台调研、评审报告、对抗审核、图谱、变更记录
+├── protocol/        # 单源消息 schema + codegen（M1）
+├── extension/       # Chrome MV3（TypeScript + Vite）
+├── dsh-plugin/      # DSH 插件（host 桥接 + client composer 注入）
+├── native-host/     # native messaging 宿主（M2，H4 决策后）
+├── scripts/         # init-key / doc-graph / pimoa-review / review-prompts
+├── tests/e2e/       # E2E harness（CDP 驱动真实 Chrome）
+├── spike/           # 已跑通的可行性实验（回归基线）
+└── .devhome/        # 隔离 DSH_HOME（dev/e2e 用，已 gitignore）
+```

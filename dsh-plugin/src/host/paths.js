@@ -8,7 +8,7 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 
 /** Companion file holding the shared key and the trusted extension origins. */
-export const COMPANION_FILE = 'antigravity-companion.json'
+export const COMPANION_FILE = 'dsh-web-companion.json'
 
 /** Resolve the DSH home exactly like the launcher does (`$DSH_HOME` wins). */
 export function dshHome(env = process.env) {

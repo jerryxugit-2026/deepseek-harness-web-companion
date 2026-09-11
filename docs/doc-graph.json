@@ -17,26 +17,26 @@
       "version": null,
       "lines": 81,
       "sections": 7,
-      "codeRefs": 4,
+      "codeRefs": 0,
       "docRefs": 0
     },
     {
       "path": "PRD_需求定义说明书.md",
       "title": "DeepSeek Harness Web Companion (DSH 浏览器智能侧伴侣)",
       "version": "v3.0.0",
-      "lines": 137,
+      "lines": 138,
       "sections": 8,
       "codeRefs": 0,
       "docRefs": 2
     },
     {
       "path": "README.md",
-      "title": "DSH Web Companion (DeepSeek Harness 网页侧边栏智能伴侣)",
+      "title": "DSH Web Companion（DeepSeek Harness 网页侧边栏智能伴侣）",
       "version": null,
-      "lines": 48,
-      "sections": 3,
+      "lines": 81,
+      "sections": 7,
       "codeRefs": 0,
-      "docRefs": 12
+      "docRefs": 15
     },
     {
       "path": "docs/01-protocol.md",
@@ -114,18 +114,18 @@
       "path": "docs/CHANGELOG.md",
       "title": "变更记录（CHANGELOG）",
       "version": "v3.0",
-      "lines": 63,
-      "sections": 4,
-      "codeRefs": 5,
+      "lines": 106,
+      "sections": 5,
+      "codeRefs": 0,
       "docRefs": 1
     },
     {
       "path": "docs/DOC-GRAPH.md",
       "title": "文档与代码图谱（DOC-GRAPH）",
       "version": null,
-      "lines": 295,
+      "lines": 304,
       "sections": 6,
-      "codeRefs": 205,
+      "codeRefs": 210,
       "docRefs": 0
     },
     {
@@ -134,7 +134,7 @@
       "version": "v3.0",
       "lines": 68,
       "sections": 5,
-      "codeRefs": 9,
+      "codeRefs": 0,
       "docRefs": 1
     },
     {
@@ -143,7 +143,7 @@
       "version": null,
       "lines": 1137,
       "sections": 18,
-      "codeRefs": 42,
+      "codeRefs": 0,
       "docRefs": 0
     },
     {
@@ -152,7 +152,7 @@
       "version": null,
       "lines": 1446,
       "sections": 22,
-      "codeRefs": 21,
+      "codeRefs": 0,
       "docRefs": 0
     },
     {
@@ -170,7 +170,16 @@
       "version": null,
       "lines": 71,
       "sections": 4,
-      "codeRefs": 7,
+      "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
+      "path": "docs/reviews/pimoa-adversarial-v3.1.md",
+      "title": "PiMoa 对抗性审核结果",
+      "version": null,
+      "lines": 93,
+      "sections": 5,
+      "codeRefs": 0,
       "docRefs": 0
     },
     {
@@ -185,20 +194,21 @@
     {
       "path": "详细设计文档.md",
       "title": "DSH Web Companion · 详细设计规范说明书",
-      "version": "v3.1",
-      "lines": 717,
+      "version": "v3.2",
+      "lines": 748,
       "sections": 16,
-      "codeRefs": 15,
+      "codeRefs": 19,
       "docRefs": 4
     }
   ],
   "code": {
-    "indexedFiles": 31,
+    "indexedFiles": 32,
     "areas": {
       "extension": [
         "docs/01-protocol.md",
         "docs/06-test-plan.md",
-        "docs/DOC-GRAPH.md"
+        "docs/DOC-GRAPH.md",
+        "详细设计文档.md"
       ],
       "dsh-plugin": [
         "docs/01-protocol.md",
@@ -212,18 +222,13 @@
         "docs/01-protocol.md",
         "docs/06-test-plan.md",
         "docs/DOC-GRAPH.md",
-        "docs/REVIEW-v3.0.md",
-        "docs/reviews/pimoa-adversarial-v3.0.md",
         "详细设计文档.md"
       ],
       "scripts": [
         "docs/05-native-host.md",
         "docs/06-test-plan.md",
         "docs/07-implementation-plan.md",
-        "docs/CHANGELOG.md",
         "docs/DOC-GRAPH.md",
-        "docs/REVIEW-v3.0.md",
-        "docs/reviews/pimoa-adversarial-v3.0.md",
         "scripts/review-prompts/design-adversarial.md",
         "详细设计文档.md"
       ],
@@ -232,7 +237,6 @@
         "docs/DOC-GRAPH.md"
       ],
       "spike": [
-        "FINDINGS.md",
         "docs/06-test-plan.md",
         "docs/DOC-GRAPH.md",
         "详细设计文档.md"
@@ -241,10 +245,6 @@
   },
   "plannedReferences": {
     "inArea": [
-      {
-        "doc": "FINDINGS.md",
-        "ref": "spike/out/embed-report.json"
-      },
       {
         "doc": "docs/01-protocol.md",
         "ref": "dsh-plugin/src/shared/protocol.generated.ts"
@@ -384,22 +384,6 @@
       {
         "doc": "docs/DOC-GRAPH.md",
         "ref": "tests/e2e/out/report.json"
-      },
-      {
-        "doc": "docs/REVIEW-v3.0.md",
-        "ref": "protocol/messages.schema.json"
-      },
-      {
-        "doc": "docs/REVIEW-v3.0.md",
-        "ref": "scripts/install-plugin.mjs"
-      },
-      {
-        "doc": "docs/reviews/pimoa-adversarial-v3.0.md",
-        "ref": "protocol/messages.schema.json"
-      },
-      {
-        "doc": "docs/reviews/pimoa-adversarial-v3.0.md",
-        "ref": "scripts/install-plugin.mjs"
       },
       {
         "doc": "详细设计文档.md",
@@ -1173,6 +1157,10 @@
       },
       {
         "doc": "docs/DOC-GRAPH.md",
+        "ref": "background/service-worker.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
         "ref": "bridge-client.test.ts"
       },
       {
@@ -1429,6 +1417,10 @@
       },
       {
         "doc": "docs/DOC-GRAPH.md",
+        "ref": "platform.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
         "ref": "protocol-sync.test.js"
       },
       {
@@ -1477,6 +1469,10 @@
       },
       {
         "doc": "docs/DOC-GRAPH.md",
+        "ref": "selection.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
         "ref": "service.d.ts"
       },
       {
@@ -1486,6 +1482,10 @@
       {
         "doc": "docs/DOC-GRAPH.md",
         "ref": "slots.d.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "src/client/index.js"
       },
       {
         "doc": "docs/DOC-GRAPH.md",
@@ -1608,230 +1608,6 @@
         "ref": "wait.js"
       },
       {
-        "doc": "docs/REVIEW-v3.0.md",
-        "ref": "antigravity-companion.json"
-      },
-      {
-        "doc": "docs/REVIEW-v3.0.md",
-        "ref": "content/intent-sniff.ts"
-      },
-      {
-        "doc": "docs/REVIEW-v3.0.md",
-        "ref": "intent-sniff.ts"
-      },
-      {
-        "doc": "docs/REVIEW-v3.0.md",
-        "ref": "panel.ts"
-      },
-      {
-        "doc": "docs/research/01-dsh-plugin-authoring.md",
-        "ref": ".../apps/web/package.json"
-      },
-      {
-        "doc": "docs/research/01-dsh-plugin-authoring.md",
-        "ref": ".../apps/web/tests/scaffold.ts"
-      },
-      {
-        "doc": "docs/research/01-dsh-plugin-authoring.md",
-        "ref": ".../apps/web/tests/support.ts"
-      },
-      {
-        "doc": "docs/research/01-dsh-plugin-authoring.md",
-        "ref": ".../apps/web/vite.config.ts"
-      },
-      {
-        "doc": "docs/research/01-dsh-plugin-authoring.md",
-        "ref": ".../package.json"
-      },
-      {
-        "doc": "docs/research/01-dsh-plugin-authoring.md",
-        "ref": ".../packages/client/tsdown.client.ts"
-      },
-      {
-        "doc": "docs/research/01-dsh-plugin-authoring.md",
-        "ref": ".../packages/client/web/src/platform.ts"
-      },
-      {
-        "doc": "docs/research/01-dsh-plugin-authoring.md",
-        "ref": ".../packages/client/web/src/seed.ts"
-      },
-      {
-        "doc": "docs/research/01-dsh-plugin-authoring.md",
-        "ref": ".../tsdown.config.ts"
-      },
-      {
-        "doc": "docs/research/01-dsh-plugin-authoring.md",
-        "ref": ".../vitest.config.ts"
-      },
-      {
-        "doc": "docs/research/01-dsh-plugin-authoring.md",
-        "ref": "../../scripts/client-build-environment.ts"
-      },
-      {
-        "doc": "docs/research/01-dsh-plugin-authoring.md",
-        "ref": "./package.json"
-      },
-      {
-        "doc": "docs/research/01-dsh-plugin-authoring.md",
-        "ref": ".e2e.ts"
-      },
-      {
-        "doc": "docs/research/01-dsh-plugin-authoring.md",
-        "ref": ".expected.e2e.ts"
-      },
-      {
-        "doc": "docs/research/01-dsh-plugin-authoring.md",
-        "ref": ".perf.ts"
-      },
-      {
-        "doc": "docs/research/01-dsh-plugin-authoring.md",
-        "ref": ".snapshot.ts"
-      },
-      {
-        "doc": "docs/research/01-dsh-plugin-authoring.md",
-        "ref": ".spec.ts"
-      },
-      {
-        "doc": "docs/research/01-dsh-plugin-authoring.md",
-        "ref": "apps/web/tests/scaffold.ts"
-      },
-      {
-        "doc": "docs/research/01-dsh-plugin-authoring.md",
-        "ref": "apps/web/vite.config.ts"
-      },
-      {
-        "doc": "docs/research/01-dsh-plugin-authoring.md",
-        "ref": "lib/client.js"
-      },
-      {
-        "doc": "docs/research/01-dsh-plugin-authoring.md",
-        "ref": "lib/index.js"
-      },
-      {
-        "doc": "docs/research/01-dsh-plugin-authoring.md",
-        "ref": "lib/types/client/index.js"
-      },
-      {
-        "doc": "docs/research/01-dsh-plugin-authoring.md",
-        "ref": "lib/types/invariant.js"
-      },
-      {
-        "doc": "docs/research/01-dsh-plugin-authoring.md",
-        "ref": "packages/client/tsdown.client.ts"
-      },
-      {
-        "doc": "docs/research/01-dsh-plugin-authoring.md",
-        "ref": "packages/client/ui-goal/tsdown.config.ts"
-      },
-      {
-        "doc": "docs/research/01-dsh-plugin-authoring.md",
-        "ref": "packages/client/ui-slots/package.json"
-      },
-      {
-        "doc": "docs/research/01-dsh-plugin-authoring.md",
-        "ref": "packages/client/web/src/seed.ts"
-      },
-      {
-        "doc": "docs/research/01-dsh-plugin-authoring.md",
-        "ref": "scaffold.ts"
-      },
-      {
-        "doc": "docs/research/01-dsh-plugin-authoring.md",
-        "ref": "src/client/index.ts"
-      },
-      {
-        "doc": "docs/research/01-dsh-plugin-authoring.md",
-        "ref": "src/css-modules.d.ts"
-      },
-      {
-        "doc": "docs/research/01-dsh-plugin-authoring.md",
-        "ref": "src/index.ts"
-      },
-      {
-        "doc": "docs/research/01-dsh-plugin-authoring.md",
-        "ref": "src/invariant.ts"
-      },
-      {
-        "doc": "docs/research/01-dsh-plugin-authoring.md",
-        "ref": "tsconfig.base.client.json"
-      },
-      {
-        "doc": "docs/research/01-dsh-plugin-authoring.md",
-        "ref": "tsconfig.json"
-      },
-      {
-        "doc": "docs/research/01-dsh-plugin-authoring.md",
-        "ref": "tsdown.config.ts"
-      },
-      {
-        "doc": "docs/research/01-dsh-plugin-authoring.md",
-        "ref": "vitest.config.ts"
-      },
-      {
-        "doc": "docs/research/01-dsh-plugin-authoring.md",
-        "ref": "vitest.e2e.config.ts"
-      },
-      {
-        "doc": "docs/research/01-dsh-plugin-authoring.md",
-        "ref": "vitest.shared.ts"
-      },
-      {
-        "doc": "docs/research/01-dsh-plugin-authoring.md",
-        "ref": "vitest.web.config.ts"
-      },
-      {
-        "doc": "docs/research/02-dsh-client-composer-attach.md",
-        "ref": ".d.ts"
-      },
-      {
-        "doc": "docs/research/02-dsh-client-composer-attach.md",
-        "ref": "client.js"
-      },
-      {
-        "doc": "docs/research/02-dsh-client-composer-attach.md",
-        "ref": "facade.d.ts"
-      },
-      {
-        "doc": "docs/research/02-dsh-client-composer-attach.md",
-        "ref": "facade.ts"
-      },
-      {
-        "doc": "docs/research/02-dsh-client-composer-attach.md",
-        "ref": "hub.d.ts"
-      },
-      {
-        "doc": "docs/research/02-dsh-client-composer-attach.md",
-        "ref": "index.d.ts"
-      },
-      {
-        "doc": "docs/research/02-dsh-client-composer-attach.md",
-        "ref": "lib/client.js"
-      },
-      {
-        "doc": "docs/research/02-dsh-client-composer-attach.md",
-        "ref": "service.d.ts"
-      },
-      {
-        "doc": "docs/research/02-dsh-client-composer-attach.md",
-        "ref": "ui-slots/src/index.ts"
-      },
-      {
-        "doc": "docs/reviews/pimoa-adversarial-v3.0.md",
-        "ref": "antigravity-companion.json"
-      },
-      {
-        "doc": "docs/reviews/pimoa-adversarial-v3.0.md",
-        "ref": "content/intent-sniff.ts"
-      },
-      {
-        "doc": "docs/reviews/pimoa-adversarial-v3.0.md",
-        "ref": "intent-sniff.ts"
-      },
-      {
-        "doc": "docs/reviews/pimoa-adversarial-v3.0.md",
-        "ref": "src/client/index.js"
-      },
-      {
         "doc": "详细设计文档.md",
         "ref": "background/service-worker.ts"
       },
@@ -1857,15 +1633,15 @@
       },
       {
         "doc": "详细设计文档.md",
+        "ref": "platform.ts"
+      },
+      {
+        "doc": "详细设计文档.md",
         "ref": "selection.ts"
       }
     ]
   },
   "externalReferences": [
-    {
-      "doc": "FINDINGS.md",
-      "ref": "dsh-client-connection/lib/index.js"
-    },
     {
       "doc": "docs/02-extension.md",
       "ref": "dsh-session.test.js"
@@ -1916,6 +1692,10 @@
     },
     {
       "doc": "docs/DOC-GRAPH.md",
+      "ref": "dsh-client-ui-conversation/lib/types/client/contract/input.d.ts"
+    },
+    {
+      "doc": "docs/DOC-GRAPH.md",
       "ref": "dsh-client-ui-input-trigger/lib/client.js"
     },
     {
@@ -1941,66 +1721,6 @@
     {
       "doc": "docs/DOC-GRAPH.md",
       "ref": "ui-input-trigger/lib/client.js"
-    },
-    {
-      "doc": "docs/REVIEW-v3.0.md",
-      "ref": "dsh-web-companion.json"
-    },
-    {
-      "doc": "docs/research/01-dsh-plugin-authoring.md",
-      "ref": "./lib/client.js"
-    },
-    {
-      "doc": "docs/research/01-dsh-plugin-authoring.md",
-      "ref": "/Users/mac/.dsh/profiles/web/package.json"
-    },
-    {
-      "doc": "docs/research/02-dsh-client-composer-attach.md",
-      "ref": "dsh-api-gateway/lib/types/client/index.d.ts"
-    },
-    {
-      "doc": "docs/research/02-dsh-client-composer-attach.md",
-      "ref": "dsh-api-session-controller/lib/types/client/contract/session.d.ts"
-    },
-    {
-      "doc": "docs/research/02-dsh-client-composer-attach.md",
-      "ref": "dsh-api-session-controller/lib/types/client/contract/sessions.d.ts"
-    },
-    {
-      "doc": "docs/research/02-dsh-client-composer-attach.md",
-      "ref": "dsh-client-connection/lib/types/api-path.d.ts"
-    },
-    {
-      "doc": "docs/research/02-dsh-client-composer-attach.md",
-      "ref": "dsh-client-ui-agent-preset/package.json"
-    },
-    {
-      "doc": "docs/research/02-dsh-client-composer-attach.md",
-      "ref": "dsh-client-ui-conversation/lib/client.js"
-    },
-    {
-      "doc": "docs/research/02-dsh-client-composer-attach.md",
-      "ref": "dsh-client-ui-input-trigger/lib/client.js"
-    },
-    {
-      "doc": "docs/research/02-dsh-client-composer-attach.md",
-      "ref": "dsh-client-ui-renderer/lib/types/client/registry.d.ts"
-    },
-    {
-      "doc": "docs/research/02-dsh-client-composer-attach.md",
-      "ref": "dsh-file-reference/lib/types/grammar.js"
-    },
-    {
-      "doc": "docs/research/02-dsh-client-composer-attach.md",
-      "ref": "dsh-host-webserver/lib/index.js"
-    },
-    {
-      "doc": "docs/research/02-dsh-client-composer-attach.md",
-      "ref": "ui-input-trigger/lib/client.js"
-    },
-    {
-      "doc": "详细设计文档.md",
-      "ref": "dsh-client-ui-conversation/lib/types/client/contract/input.d.ts"
     }
   ],
   "issues": []

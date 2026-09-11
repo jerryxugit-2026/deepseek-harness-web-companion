@@ -16,7 +16,7 @@
 | 资产 | 价值 | 暴露面 |
 |---|---|---|
 | DSH 会话 cookie 的签名密钥 | 极高（可伪造任意会话） | 仅 `$DSH_HOME/.credentials.yaml`（0600） |
-| 预共享 key | 高（可调用 `/ag/*`） | 扩展 `chrome.storage.local` + `$DSH_HOME/antigravity-companion.json`（0600） |
+| 预共享 key | 高（可调用 `/ag/*`） | 扩展 `chrome.storage.local` + `$DSH_HOME/dsh-web-companion.json`（0600） |
 | 网页正文/截图 | 中（可能含隐私数据） | 本地回环 → 工作区文件 → 模型请求 |
 | 浏览器控制能力 | 极高（可操作已登录站点） | 仅经模型工具调用，受权限预设约束 |
 
@@ -58,7 +58,7 @@
 - **桥接插件**记录（不含 key/正文）：`ts, origin, route, status, bytes, duration, captureId, extConnected`。
 - **扩展**记录：`capture(mode, domain, chars, truncated)`、`attach(result, captureId)`、`tool(op, tabId, ok, elapsedMs)`、`error(code)`。
 - **落盘文件**：front-matter 记录来源 URL、抓取时间、触发方式（页面/选区/截图），形成可追溯链。
-- 审计日志位置：`$DSH_HOME/logs/antigravity-bridge.log`（轮转 5×2MB）、`chrome.storage.local` 仅保留最近 200 条操作记录（面板「活动」页可查）。
+- 审计日志位置：`$DSH_HOME/logs/dsh-web-companion-bridge.log`（轮转 5×2MB）、`chrome.storage.local` 仅保留最近 200 条操作记录（面板「活动」页可查）。
 
 ---
 

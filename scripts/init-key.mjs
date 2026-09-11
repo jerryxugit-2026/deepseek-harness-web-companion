@@ -5,7 +5,7 @@
  *   1. Generate (once) an RSA key pair and pin the extension id by writing the
  *      public key into `extension/manifest.json` — an unpacked extension's id is
  *      otherwise derived from its directory path, which changes per checkout.
- *   2. Generate the shared key and write `$DSH_HOME/antigravity-companion.json`
+ *   2. Generate the shared key and write `$DSH_HOME/dsh-web-companion.json`
  *      (0600) with the trusted extension origin list.
  *   3. Write the same key + port into `extension/src/lib/dev-config.js` so the
  *      development build can talk to the bridge without an options page.
@@ -76,7 +76,7 @@ const companion = {
   createdAt: new Date().toISOString(),
 }
 mkdirSync(dshHome, { recursive: true })
-const companionPath = join(dshHome, 'antigravity-companion.json')
+const companionPath = join(dshHome, 'dsh-web-companion.json')
 writeFileSync(companionPath, `${JSON.stringify(companion, null, 2)}\n`, { mode: 0o600 })
 chmodSync(companionPath, 0o600)
 

@@ -16,7 +16,7 @@ import { createGuard } from './guard.js'
 import { pingRoute } from './routes/ping.js'
 import { enterRoute } from './routes/enter.js'
 
-export const name = 'antigravity-bridge'
+export const name = 'dsh-web-companion-bridge'
 export const inject = ['webServer', 'credentials']
 
 export const PROTOCOL_VERSION = 1
@@ -69,14 +69,14 @@ export function apply(ctx, config = {}) {
     void (async () => {
       await refresh()
       ctx.logger?.info?.(
-        `[antigravity-bridge] ${PLUGIN_VERSION} on port ${String(state.port() ?? '?')}; ` +
+        `[dsh-web-companion-bridge] ${PLUGIN_VERSION} on port ${String(state.port() ?? '?')}; ` +
         `paired=${String(pairing.key !== undefined && pairing.extensionOrigins.length > 0)} ` +
         `origins=${String(pairing.extensionOrigins.length)} source=${resolved.keyFile}` +
         (pairing.error === undefined ? '' : ` error=${pairing.error}`),
       )
     })()
     return () => {}
-  }, 'antigravity-bridge: pairing')
+  }, 'dsh-web-companion-bridge: pairing')
 
   ctx.effect(
     () => ctx.webServer.register({
@@ -84,7 +84,7 @@ export function apply(ctx, config = {}) {
       path: '/ag/ping',
       handler: pingRoute({ state, protocolVersion: PROTOCOL_VERSION }),
     }),
-    'antigravity-bridge: GET /ag/ping',
+    'dsh-web-companion-bridge: GET /ag/ping',
   )
 
   ctx.effect(
@@ -93,6 +93,6 @@ export function apply(ctx, config = {}) {
       path: '/ag/enter',
       handler: withPairing(enterRoute({ state, config: resolved })),
     }),
-    'antigravity-bridge: GET /ag/enter',
+    'dsh-web-companion-bridge: GET /ag/enter',
   )
 }

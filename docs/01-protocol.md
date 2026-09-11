@@ -30,7 +30,7 @@
 输出 `200 application/json`：
 
 ```json
-{ "ok": true, "protocolVersion": 1, "plugin": "dsh-antigravity-bridge", "pluginVersion": "0.1.0",
+{ "ok": true, "protocolVersion": 1, "plugin": "dsh-web-companion-bridge", "pluginVersion": "0.1.0",
   "dsh": { "port": 3080, "home": "/Users/mac/.dsh" },
   "capabilities": ["attach", "agentBridge", "screenshot", "browserTools"],
   "connectedClients": 1, "connectedExtension": true }

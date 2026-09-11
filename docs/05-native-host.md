@@ -18,11 +18,11 @@ native-host/
 └── tests/{framing.test.mjs,launcher.test.mjs,install.test.mjs}
 ```
 
-Chrome 侧 manifest（安装后落盘到 `~/Library/Application Support/Google/Chrome/NativeMessagingHosts/com.antigravity.web_companion.json`）：
+Chrome 侧 manifest（安装后落盘到 `~/Library/Application Support/Google/Chrome/NativeMessagingHosts/com.dsh.web_companion.json`）：
 
 ```json
 {
-  "name": "com.antigravity.web_companion",
+  "name": "com.dsh.web_companion",
   "description": "Antigravity Web Companion host: starts and inspects the local dsh web server",
   "path": "/Users/mac/ai_tools/dsh project/网页插件/native-host/run.sh",
   "type": "stdio",

@@ -1,6 +1,6 @@
 # 03 · DSH 桥接插件（host 半）设计：`dsh-plugin/`
 
-**包名**：`dsh-antigravity-bridge`
+**包名**：`dsh-web-companion-bridge`
 **作用**：DSH 进程内的桥接层 —— 认证握手、网页捕获落盘、attach 事件推送、以及把浏览器操作暴露成 DSH 的模型工具。
 **为什么必须是插件**：只有同进程才能签发 DSH 会话 cookie、注册模型工具、访问工作区与 attachment 存储（见 DESIGN §4 D3）。
 
@@ -17,7 +17,7 @@ dsh-plugin/
 │   ├── host/
 │   │   ├── index.ts              # 插件入口：apply(ctx, config)；装配路由/WS/工具
 │   │   ├── config.ts             # Config schema（zod）
-│   │   ├── key-store.ts          # 预共享 key 的读取/校验（$DSH_HOME/antigravity-companion.json）
+│   │   ├── key-store.ts          # 预共享 key 的读取/校验（$DSH_HOME/dsh-web-companion.json）
 │   │   ├── guard.ts              # Origin + key 校验（HTTP 与 WS 共用）
 │   │   ├── cookie.ts             # 会话 cookie 签发（含版本探测与回退）
 │   │   ├── routes/
@@ -39,7 +39,7 @@ dsh-plugin/
 
 ```json
 {
-  "name": "dsh-antigravity-bridge",
+  "name": "dsh-web-companion-bridge",
   "version": "0.1.0",
   "type": "module",
   "main": "lib/index.js",
@@ -83,7 +83,7 @@ export const Config = Schema.object({
 
 | 环境 | 做法 | 备注 |
 |---|---|---|
-| **本机现状（无 pnpm）** | 在 profile 的 `cordis.patch.yml` 加绝对路径条目：`- insert: [{ id: antigravity-bridge, name: '/abs/.../dsh-plugin/src/host/index.js' }]` | 【实测】loader 接受绝对路径，插件可正常加载并注册路由；本项目 dev profile 已用此法跑通 |
+| **本机现状（无 pnpm）** | 在 profile 的 `cordis.patch.yml` 加绝对路径条目：`- insert: [{ id: dsh-web-companion-bridge, name: '/abs/.../dsh-plugin/src/host/index.js' }]` | 【实测】loader 接受绝对路径，插件可正常加载并注册路由；本项目 dev profile 已用此法跑通 |
 | **有 pnpm 时（推荐长期）** | 打包成 bundle（`dsh.bundle.patch` + `cordis.patch.yml`）后 `dsh plugin --profile web add <spec>` | 【调研】该命令转发给 pnpm；本地目录是 **symlink**（`link:`）不是复制，改代码即生效；成功后自动把包名追加进 `dsh.profile.bundles` |
 
 ⚠️ **不要运行 `dsh --profile web --dump-config` 之外的写操作**：该命令每次都会重写 `profiles/web/cordis.yml`，只读环境会 `EPERM`；**永远改 `cordis.patch.yml`**，`cordis.yml` 是每次启动都会被重写的空根。
@@ -95,12 +95,12 @@ export const Config = Schema.object({
 
 ```ts
 // src/host/index.ts
-export const name = 'antigravity-bridge'          // 服务名（ctx.antigravityBridge 可读）
+export const name = 'dsh-web-companion-bridge'          // 服务名（ctx.antigravityBridge 可读）
 export const inject = ['webServer', 'credentials', 'tools'] // 需要的服务：按实际可用性调整
 export const Config = ConfigSchema                 // zod schema
 
 export async function apply(ctx: Context, config: Config): Promise<void> {
-  const key = await loadKey(config)                       // 读 $DSH_HOME/antigravity-companion.json
+  const key = await loadKey(config)                       // 读 $DSH_HOME/dsh-web-companion.json
   const guard = createGuard({ key, allowedOrigins: config.extensionOrigins })
   const hub = createHub(ctx, config)                      // 两条 WS 通道
   const store = createStore(ctx, config)                   // 落盘 + attachment
@@ -125,7 +125,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
 |---|---|---|---|
 | `enabled` | boolean | `true` | 总开关 |
 | `extensionOrigins` | string[] | `[]` | 允许的 `chrome-extension://<id>` 列表（至少一个，空则拒绝一切） |
-| `keyFile` | string | `$DSH_HOME/antigravity-companion.json` | 预共享 key 文件 |
+| `keyFile` | string | `$DSH_HOME/dsh-web-companion.json` | 预共享 key 文件 |
 | `attachDir` | string | `网页捕获` | 相对工作区的落盘目录 |
 | `attachMaxBytes` | number | `8388608` | 单次捕获上限（含截图 base64） |
 | `markdownMaxChars` | number | `120000` | 写入文件的正文上限 |

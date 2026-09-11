@@ -12,7 +12,7 @@ export function pingRoute({ state, protocolVersion }) {
     res.end(JSON.stringify({
       ok: true,
       protocolVersion,
-      plugin: 'dsh-antigravity-bridge',
+      plugin: 'dsh-web-companion-bridge',
       pluginVersion: state.pluginVersion,
       keyConfigured: pairing.key !== undefined,
       paired: pairing.key !== undefined && pairing.extensionOrigins.length > 0,

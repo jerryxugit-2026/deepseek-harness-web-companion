@@ -39,7 +39,7 @@ dsh-plugin/src/client/
 ## 3. 生命周期与接线
 
 ```ts
-export const name = 'antigravity-bridge-client'
+export const name = 'dsh-web-companion-bridge-client'
 export const inject = []                     // 具体服务名以调研结论为准（见 §7）
 
 export function apply(ctx: Context): void {

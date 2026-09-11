@@ -58,6 +58,8 @@ const codeFiles = allFiles.filter((f) => /\.(mjs|cjs|js|ts|tsx|json|sh)$/u.test(
 
 /** Paths that look like code inside backticks, e.g. `extension/src/sw/index.js`. */
 const CODE_REF = /`([A-Za-z0-9_./@-]+\.(?:mjs|cjs|js|ts|tsx|json|sh))`/gu
+/** 历史/审计类文档只做导航，不参与"待实现引用"统计（否则旧稿里的文件名会污染进度视图）。 */
+const HISTORY_DOCS = [/^FINDINGS\.md$/u, /^docs\/CHANGELOG\.md$/u, /^docs\/REVIEW-/u, /^docs\/reviews\//u, /^docs\/research\//u]
 /** Markdown links to other documents in this repo. */
 const DOC_LINK = /\]\(\.?\/?([^)#\s]+\.md)(?:#[^)]*)?\)/gu
 const HEADING = /^(#{1,6})\s+(.*)$/u
@@ -78,7 +80,8 @@ function docNode(path) {
       if (level === 1 && sections.length === 0 && title === path) title = label
       sections.push({ level, heading: label, line: index + 1 })
     }
-    for (const match of line.matchAll(CODE_REF)) codeRefs.add(match[1])
+    const historical = HISTORY_DOCS.some((pattern) => pattern.test(path))
+    if (!historical) for (const match of line.matchAll(CODE_REF)) codeRefs.add(match[1])
     for (const match of line.matchAll(DOC_LINK)) {
       const target = match[1].replace(/^\.\//u, '')
       if (/^https?:\/\//u.test(target)) continue // external URL, not an in-repo link
@@ -250,8 +253,11 @@ ${issueRows}
 const rendered = renderMarkdown()
 const jsonText = `${stable(graph)}\n`
 
+/** 生成时间每次都会变，比较时剔除该行（否则 --check 永远为假）。 */
+const stripTimestamp = (text) => text.replace(/^> 生成时间：.*$/mu, '> 生成时间：<normalized>')
+
 if (CHECK) {
-  const okMd = existsSync(OUT_MD) && readFileSync(OUT_MD, 'utf8') === rendered
+  const okMd = existsSync(OUT_MD) && stripTimestamp(readFileSync(OUT_MD, 'utf8')) === stripTimestamp(rendered)
   const okJson = existsSync(OUT_JSON) && readFileSync(OUT_JSON, 'utf8') === jsonText
   if (!okMd || !okJson) {
     console.error('doc-graph: 图谱已过期，请运行 `node scripts/doc-graph.mjs`')
