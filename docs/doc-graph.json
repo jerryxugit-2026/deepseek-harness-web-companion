@@ -114,8 +114,8 @@
       "path": "docs/CHANGELOG.md",
       "title": "变更记录（CHANGELOG）",
       "version": "v3.0",
-      "lines": 245,
-      "sections": 11,
+      "lines": 275,
+      "sections": 12,
       "codeRefs": 0,
       "docRefs": 1
     },
@@ -248,10 +248,10 @@
     {
       "path": "详细设计文档.md",
       "title": "DSH Web Companion · 详细设计规范说明书",
-      "version": "v3.8",
+      "version": "v3.9",
       "lines": 814,
       "sections": 16,
-      "codeRefs": 21,
+      "codeRefs": 22,
       "docRefs": 4
     }
   ],

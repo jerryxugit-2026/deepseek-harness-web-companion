@@ -13,6 +13,7 @@
  * Usage: node tests/m0a/composer-probe.mjs [--port 3099] [--url <tokenized url>]
  */
 import { execFileSync } from 'node:child_process'
+import { readFileSync as readFileSync2 } from 'node:fs'
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -89,10 +90,28 @@ for (let i = 0; i < 40; i += 1) {
 if (browserWs === undefined) throw new Error('chrome devtools never came up')
 const browser = await Cdp.connect(browserWs)
 
-const url = tokenUrl()
-console.log(`[m0a-composer] opening ${url.replace(/token=.*/u, 'token=<redacted>')}`)
-const { targetId } = await browser.send('Target.createTarget', { url, width: 1280, height: 900, newWindow: true })
+/**
+ * Two ways to authenticate the page: the tokenized startup URL, or a cookie we
+ * mint ourselves from $DSH_HOME credentials (needed for a real instance whose
+ * token we do not have).
+ */
+const MINT = process.argv.includes('--mint')
+const url = MINT ? `http://127.0.0.1:${DSH_PORT}/` : tokenUrl()
+console.log(`[m0a-composer] opening ${url.replace(/token=.*/u, 'token=<redacted>')}${MINT ? ' (minted cookie)' : ''}`)
+const { targetId } = await browser.send('Target.createTarget', { url: 'about:blank', width: 1280, height: 900, newWindow: true })
 const { sessionId } = await browser.send('Target.attachToTarget', { targetId, flatten: true })
+if (MINT) {
+  const minted = execFileSync(process.execPath, [resolve(ROOT, 'spike', 'mint-cookie.mjs'), `127.0.0.1:${DSH_PORT}`], { encoding: 'utf8' }).trim()
+  const at = minted.indexOf('=')
+  const name = minted.slice(0, at)
+  const value = minted.slice(at + 1)
+  const stored = await browser.send('Network.setCookie', {
+    name, value, url: `http://127.0.0.1:${DSH_PORT}/`, path: '/', httpOnly: true, sameSite: 'Strict',
+  }, sessionId)
+  console.log(`[m0a-composer] minted cookie stored=${JSON.stringify(stored)} name=${name.slice(0, 20)}…`)
+}
+await browser.send('Page.navigate', { url }, sessionId)
+void readFileSync2
 await browser.send('Runtime.enable', {}, sessionId)
 await browser.send('Page.enable', {}, sessionId)
 await browser.send('Log.enable', {}, sessionId)
@@ -200,13 +219,13 @@ for (let i = 0; i < 12; i += 1) {
   await sleep(1000)
 }
 
-// now run the plugin's write probe
-const runResult = await evaluate(`(async () => {
-  if (typeof globalThis.__AG_PROBE_RUN__ !== 'function') return { error: 'no probe entry' }
-  await globalThis.__AG_PROBE_RUN__()
-  return { ok: true }
+// M0b assertion ②: with the composer ACTIVE, write a marker through the
+// plugin's SessionInput and read it back out of the live editor, then undo it.
+uiDriven.markerWrite = await evaluate(`(async () => {
+  if (typeof globalThis.__AG_PROBE_WRITE__ !== 'function') return { error: 'no write entry' }
+  return JSON.stringify(await globalThis.__AG_PROBE_WRITE__('M0B-DOM-MARKER'))
 })()`, 30000)
-uiDriven.run = runResult
+uiDriven.composerAfterWrite = await composerState()
 uiDriven.domAfterWrite = await evaluate(`JSON.stringify({
   present: document.querySelector('[contenteditable="true"], textarea') !== null,
   text: (document.querySelector('[contenteditable], textarea')?.innerText ?? document.querySelector('textarea')?.value ?? '').slice(0, 200),

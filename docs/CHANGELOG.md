@@ -5,7 +5,37 @@
 
 ---
 
-## v3.8 — 2026-09-11（当前）
+## v3.9 — 2026-09-11（当前）
+
+**触发**：方案 A 落地后，在**用户真实 DSH 实例**（`~/.dsh`，端口 3080）上复跑 composer 探针——**M0b 两条硬断言全部达成**。
+
+### 方案 A 落地（真实 profile 挂载）
+
+- `~/.dsh/profiles/web/cordis.patch.yml` 追加顶层 `insert` 行（保留既有 semble/codegraph 两行）；备份 `cordis.patch.yml.bak-before-companion`
+- `~/.dsh/dsh-web-companion.json`（0600）配对文件；扩展 dev-config 指向 3080
+- 预检发现并修掉**首次写入的缩进错误**（会嵌套进上一条 insert，导致 loader 行缺 `name`、启动失败）；`dsh --profile web --dump-config` 复核通过
+- 实测：`/ag/ping` → `paired:true`、`pairingSource=/Users/mac/.dsh/dsh-web-companion.json`；`/ag/enter` 与 `/ag/whoami` 无票据/无 Origin → **403**（fail-closed 正常）
+
+### M0b 硬断言结果（真实 GUI）
+
+| 断言 | 结果 | 证据 |
+|---|---|---|
+| ① 读到的必须是 **DSH 原生 composer**（且是活动编辑器） | ✅ `{anyEditable: true, activeEditable: true, attrs: {ce: "true", role: "textbox"}}` | `docs/reviews/probe-composer.json` |
+| ② **写入方向可观察** | ✅ `__AG_PROBE_WRITE__('M0B-DOM-MARKER')` → `domText: "M0B-DOM-MARKER"`、`domHasMarker: true`、`lastMirroredDraft: "M0B-DOM-MARKER"`；随后**自动恢复原草稿**（`restoredNow: ""`，DOM 复原为换行） | 同上 |
+| ③ 白盒探针（`__ModuleLoader__` / 服务面 / 图片 API） | ✅ `createDraftImages: true`、`sessions.scope: true`、`uiSession.currentBinding.props = {sessionId, inputActions}` | 同上 |
+
+### 关键实现修正（探针自身）
+
+1. **探针不再创建/切换会话**：早先版本在真实 GUI 里 `sessions.create` 会把 shell 切到"无工作区"的会话，composer 变回惰性态（`contenteditable="false"`）——这解释了此前"断言①始终失败"。现改为只观察 shell 当前会话，写入由 harness 在 UI 就绪后经 `__AG_PROBE_WRITE__` 触发。
+2. 写入前记录原草稿、写入后**自动回填**，不在用户界面留残留文本。
+
+### 副作用（如实记录）
+
+探针在用户真实实例里留下了约 8 个空会话（14:52–14:55，标题均为「新会话」，均为无消息的空会话）——可在侧栏逐个删除；后续探针已改为不再创建会话。
+
+---
+
+## v3.8 — 2026-09-11
 
 **触发**：M0a 第五个实验——空闲 WebSocket 保活（Q8 / D10）。
 

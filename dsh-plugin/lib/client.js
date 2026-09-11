@@ -170,31 +170,15 @@ window.__ModuleLoader__.load({
         }
         recordAsync('workspace-id', { workspaceId: workspaceId === undefined ? null : String(workspaceId) })
 
-        // create or adopt a session; prefer whatever the shell already has current
-        let sessionId = currentSessionId
-        try {
-          if (typeof sessionId === 'string') {
-            recordAsync('session-source', { source: 'shell-current', id: sessionId.slice(0, 14) })
-          } else if (typeof uiWorkspace?.connectWorkspace === 'function' && workspaceId !== undefined) {
-            const created = await uiWorkspace.connectWorkspace(workspaceId)
-            sessionId = created?.id ?? created?.sessionId ?? created
-            recordAsync('uiWorkspace.connectWorkspace', { type: typeof created, id: typeof sessionId === 'string' ? sessionId.slice(0, 12) : String(sessionId) })
-          } else {
-            const created = await sessions.create(workspaceId === undefined ? {} : { workspaceId })
-            sessionId = created?.id ?? created?.sessionId ?? created
-            recordAsync('sessions.create', { type: typeof created, id: typeof sessionId === 'string' ? sessionId.slice(0, 12) : String(sessionId) })
-            recordAsync('session-source', { source: 'plugin-created' })
-            if (typeof sessionId === 'string') {
-              try { await sessions.open(sessionId) } catch (error) { recordAsync('sessions.open', String(error).slice(0, 120)) }
-            }
-          }
-          await sleep(2000)
-        } catch (error) {
-          recordAsync('session-create', { threw: String(error).slice(0, 200) })
-        }
+        // IMPORTANT: never create or switch sessions here. Doing so fights the
+        // UI (the shell follows us to a workspace-less session and the composer
+        // goes inert). This probe only OBSERVES the session the shell currently
+        // has; writes are driven by __AG_PROBE_WRITE__ after the UI is ready.
+        const sessionId = currentSessionId
+        recordAsync('session-source', { source: typeof sessionId === 'string' ? 'shell-current' : 'none', id: typeof sessionId === 'string' ? sessionId.slice(0, 14) : null })
 
         if (typeof sessionId !== 'string') {
-          recordAsync('draft-write', { skipped: 'no session could be created' })
+          recordAsync('draft-write', { skipped: 'shell has no current session; waiting for the UI to select one' })
           return asyncSteps
         }
 
@@ -238,6 +222,9 @@ window.__ModuleLoader__.load({
             if (shell === undefined || shell === null) { await sleep(600); continue }
             const marker = `M0A-MARKER-${Date.now().toString(36)}`
             recordAsync('shell', { keys: Object.keys(shell).slice(0, 40), setDraftArity: typeof shell.setDraft === 'function' ? shell.setDraft.length : null })
+            const preDraft = typeof shell.state?.draft === 'string'
+              ? shell.state.draft
+              : (typeof shell.lastMirroredDraft === 'string' ? shell.lastMirroredDraft : '')
             const wrote = shell.setDraft(marker)
             await sleep(1200)
             // read-back sources that do NOT depend on the DOM rendering
@@ -284,6 +271,14 @@ window.__ModuleLoader__.load({
             } catch (error) {
               recordAsync('image-admission', { threw: String(error).slice(0, 160) })
             }
+            // leave the user's draft exactly as we found it
+            try {
+              shell.setDraft(preDraft)
+              await sleep(400)
+              recordAsync('draft-restored', { givenBack: preDraft.length, now: String(shell.state?.draft ?? '').slice(0, 40) })
+            } catch (error) {
+              recordAsync('draft-restore-failed', { threw: String(error).slice(0, 160) })
+            }
             return asyncSteps
           } catch (error) {
             recordAsync('draft-write-attempt', { attempt, threw: String(error).slice(0, 160) })
@@ -292,6 +287,40 @@ window.__ModuleLoader__.load({
         }
         return asyncSteps
       }
+      /**
+       * Harness-driven write: runs only after the UI has an ACTIVE composer, so
+       * the marker can be verified in the DOM (M0b assertion ②) and then undone.
+       */
+      globalThis.__AG_PROBE_WRITE__ = async (marker) => {
+        const uiSessionNow = ctx.get('uiSession')
+        const sessionsNow = ctx.get('sessions')
+        const conversationNow = ctx.get('conversation')
+        const id = uiSessionNow?.currentBinding?.props?.sessionId
+        if (typeof id !== 'string') return { error: 'no current session', props: describe(uiSessionNow?.currentBinding?.props) }
+        const actx = sessionsNow.scope(id)
+        const shell = conversationNow.input.for(actx)
+        if (shell === undefined || shell === null) return { error: 'no session input shell' }
+        const pre = typeof shell.state?.draft === 'string' ? shell.state.draft : ''
+        shell.setDraft(marker)
+        await new Promise((r) => { setTimeout(r, 900) })
+        const el = document.querySelector('[contenteditable="true"], [contenteditable]')
+        const result = {
+          marker,
+          sessionId: id.slice(0, 14),
+          contentEditable: el?.getAttribute?.('contenteditable') ?? null,
+          domText: String(el?.innerText ?? '').slice(0, 160),
+          domHasMarker: String(el?.innerText ?? '').includes(marker),
+          stateDraft: String(shell.state?.draft ?? '').slice(0, 80),
+          lastMirroredDraft: String(shell.lastMirroredDraft ?? '').slice(0, 80),
+          imageApi: typeof conversationNow.createDraftImages === 'function',
+        }
+        shell.setDraft(pre)
+        await new Promise((r) => { setTimeout(r, 400) })
+        result.restoredNow = String(shell.state?.draft ?? '').slice(0, 60)
+        globalThis.__AG_PROBE_WRITE_RESULT__ = result
+        return result
+      }
+
       globalThis.__AG_PROBE_RUN__ = runDraftProbe
       globalThis.__AG_PROBE_CTX__ = { conversationAvailable: ctx.get('conversation') !== undefined, sessionsAvailable: ctx.get('sessions') !== undefined }
       void runDraftProbe()

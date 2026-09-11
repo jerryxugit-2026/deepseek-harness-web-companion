@@ -1,13 +1,13 @@
 {
   "probe": "m0a-composer",
-  "dshUrl": "http://127.0.0.1:3099/?token=<redacted>",
+  "dshUrl": "http://127.0.0.1:3080/",
   "chrome": "150.0.7871.125",
   "shell": {
     "probe": [
       {
         "step": "boot",
         "value": {
-          "href": "http://127.0.0.1:3099/",
+          "href": "http://127.0.0.1:3080/",
           "moduleLoader": "object",
           "bootKeys": [
             "rev",
@@ -494,105 +494,16 @@
         }
       },
       {
-        "step": "sessions.create",
-        "value": {
-          "type": "string",
-          "id": "session-07c4"
-        }
-      },
-      {
         "step": "session-source",
         "value": {
-          "source": "plugin-created"
-        }
-      },
-      {
-        "step": "uiSession.binding",
-        "value": {
-          "threw": "Error: uiSession.provide: missing hook 'session'"
-        }
-      },
-      {
-        "step": "dom-diagnosis",
-        "value": {
-          "currentBinding": {
-            "type": "object",
-            "keys": [
-              "ctx",
-              "hooks",
-              "key",
-              "keyedHooks",
-              "props"
-            ]
-          },
-          "pendingSnapshot": "object",
-          "editableCount": 1,
-          "textboxCount": 1,
-          "textareaCount": 0,
-          "lexicalCount": 0,
-          "mainHead": "",
-          "bodyText": "新会话 工作区 m0a-workspace 未分组 新会话 设置 探索未至之境 预览版 选择工作区 标准模式 选择一个工作区开始 工作区内修改 DeepSeek-V4-Flash High 详情 点击消息流中的工具行查看详情 内测声明 DeepSeek Harness 目前的 0.1 版本仍处在面向 Harness 开发者进行测试的阶段，还有许多地方需要持续改进和打磨，希望听取广大开发者的反馈建议"
-        }
-      },
-      {
-        "step": "shell",
-        "value": {
-          "keys": [
-            "deps",
-            "state",
-            "notices",
-            "editor",
-            "actions",
-            "core",
-            "projection",
-            "rev",
-            "occurrenceIds",
-            "occurrenceSeq",
-            "unregister",
-            "noticeSeq",
-            "lastMirroredDraft",
-            "imageIds",
-            "disposed",
-            "mirrorFn",
-            "lexiconOff",
-            "detachedDrafts",
-            "failedDetached",
-            "failedRestoreRev",
-            "restoringFailures",
-            "imageFlightSeq",
-            "imageFlights",
-            "lexicon"
-          ],
-          "setDraftArity": 1
+          "source": "none",
+          "id": null
         }
       },
       {
         "step": "draft-write",
         "value": {
-          "marker": "M0A-MARKER-mtxaui43",
-          "setDraftReturn": "undefined",
-          "domVisible": true,
-          "domTag": "DIV",
-          "domContentEditable": "false",
-          "domRole": "textbox",
-          "domAriaLabel": "选择工作区",
-          "domClasses": "uV2eYG_input",
-          "containerClasses": "uV2eYG_input",
-          "domContainsMarker": false,
-          "domText": "",
-          "readBack": {
-            "lastMirroredDraft": "M0A-MARKER-mtxaui43",
-            "stateDraft": "M0A-MARKER-mtxaui43",
-            "bindingActionsSetDraft": "function"
-          }
-        }
-      },
-      {
-        "step": "image-admission",
-        "value": {
-          "api": "createDraftImages",
-          "result": "array(1)",
-          "firstId": "846c8878-b9d9-498a-a"
+          "skipped": "shell has no current session; waiting for the UI to select one"
         }
       }
     ],
@@ -602,7 +513,7 @@
   },
   "page": {
     "hasAuthenticationText": false,
-    "bodyHead": "新会话\n工作区\nm0a-workspace\n未分组\n新会话\n设置\n探索未至之境\n预览版\n选择工作区\n标准模式\n工作区内修改\nDeepSeek-V4-Flash\nHigh\n详情\n点击消息流中的工具行查看详情\n内测声明\n\nDeepSeek Harness 目前的 0.1 版本仍处在面向 Harness 开发者进行测试的阶段"
+    "bodyHead": "新会话\n工作区\ndsh project\n新会话\n配置 semble 和 codegraph 索引\n14分钟\nAntigravity 轨迹清空错误原因\n2小时\n进行中\n浏览器侧边栏运行 DeepSeek agent\n1分钟\nRead HANDOFF prompt file\n3小时\n北卡自动报税项目方案制定\n15小时\n展开"
   },
   "screenshot": "/Users/mac/ai_tools/dsh project/网页插件/docs/reviews/probe-composer.png",
   "uiDriven": {
@@ -613,9 +524,9 @@
         "tag": "BUTTON"
       },
       {
-        "clicked": true,
+        "clicked": false,
         "text": "m0a-workspace",
-        "tag": "DIV"
+        "box": null
       },
       {
         "clicked": true,
@@ -646,14 +557,7 @@
       {
         "tag": "SPAN",
         "role": null,
-        "text": "m0a-workspace",
-        "cls": "YDXeBa_title",
-        "visible": true
-      },
-      {
-        "tag": "SPAN",
-        "role": null,
-        "text": "未分组",
+        "text": "dsh project",
         "cls": "YDXeBa_title",
         "visible": true
       },
@@ -667,6 +571,90 @@
       {
         "tag": "SPAN",
         "role": null,
+        "text": "配置 semble 和 codegraph 索引",
+        "cls": "YDXeBa_title",
+        "visible": true
+      },
+      {
+        "tag": "SPAN",
+        "role": null,
+        "text": "14分钟",
+        "cls": "YDXeBa_time",
+        "visible": true
+      },
+      {
+        "tag": "SPAN",
+        "role": null,
+        "text": "Antigravity 轨迹清空错误原因",
+        "cls": "YDXeBa_title",
+        "visible": true
+      },
+      {
+        "tag": "SPAN",
+        "role": null,
+        "text": "2小时",
+        "cls": "YDXeBa_time",
+        "visible": true
+      },
+      {
+        "tag": "SPAN",
+        "role": null,
+        "text": "进行中",
+        "cls": "YDXeBa_visuallyHidden",
+        "visible": true
+      },
+      {
+        "tag": "SPAN",
+        "role": null,
+        "text": "浏览器侧边栏运行 DeepSeek agent",
+        "cls": "YDXeBa_title",
+        "visible": true
+      },
+      {
+        "tag": "SPAN",
+        "role": null,
+        "text": "1分钟",
+        "cls": "YDXeBa_time",
+        "visible": true
+      },
+      {
+        "tag": "SPAN",
+        "role": null,
+        "text": "Read HANDOFF prompt file",
+        "cls": "YDXeBa_title",
+        "visible": true
+      },
+      {
+        "tag": "SPAN",
+        "role": null,
+        "text": "3小时",
+        "cls": "YDXeBa_time",
+        "visible": true
+      },
+      {
+        "tag": "SPAN",
+        "role": null,
+        "text": "北卡自动报税项目方案制定",
+        "cls": "YDXeBa_title",
+        "visible": true
+      },
+      {
+        "tag": "SPAN",
+        "role": null,
+        "text": "15小时",
+        "cls": "YDXeBa_time",
+        "visible": true
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "text": "展开其余 1 个会话",
+        "cls": "bhn1Oq_sessionOverflowButton",
+        "visible": true
+      },
+      {
+        "tag": "SPAN",
+        "role": null,
         "text": "设置",
         "cls": "UQsH_q_triggerLabel",
         "visible": true
@@ -674,23 +662,29 @@
     ],
     "composer": {
       "anyEditable": true,
-      "activeEditable": false,
+      "activeEditable": true,
       "attrs": {
-        "ce": "false",
+        "ce": "true",
         "role": "textbox"
       }
     },
-    "run": {
-      "ok": true
+    "markerWrite": "{\"marker\":\"M0B-DOM-MARKER\",\"sessionId\":\"session-930deb\",\"contentEditable\":\"true\",\"domText\":\"M0B-DOM-MARKER\",\"domHasMarker\":true,\"stateDraft\":\"\",\"lastMirroredDraft\":\"M0B-DOM-MARKER\",\"imageApi\":true,\"restoredNow\":\"\"}",
+    "composerAfterWrite": {
+      "anyEditable": true,
+      "activeEditable": true,
+      "attrs": {
+        "ce": "true",
+        "role": "textbox"
+      }
     },
-    "domAfterWrite": "{\"present\":false,\"text\":\"\",\"composerTag\":\"DIV\",\"composerAttrs\":{\"contenteditable\":\"false\",\"role\":\"textbox\",\"classes\":\"uV2eYG_input\"},\"probeAsync\":[{\"step\":\"current-session\",\"value\":{\"sessionId\":\"session-07c4c1\",\"bindingProps\":{\"type\":\"object\",\"keys\":[\"inputActions\",\"sessionId\"]}}},{\"step\":\"shell-services\",\"value\":{\"uiSessionKeys\":[\"absent\",\"adapter\",\"bindings\",\"createMaterializedBinding\",\"ctx\",\"currentBinding\",\"currentListeners\",\"descriptors\",\"materialize\",\"materializeAbsent\",\"name\",\"pendingDomains\",\"pendingInteractions\",\"pendingListeners\",\"pendingSnapshot\",\"provide\",\"publishCurrent\",\"publishPendingInteractions\",\"rebuildBindings\",\"registerPendingInteraction\",\"resolve\",\"resolveCurrent\",\"sessions\"],\"currentBinding\":{\"type\":\"object\",\"keys\":[\"ctx\",\"hooks\",\"key\",\"keyedHooks\",\"props\"]},\"uiWorkspaceKeys\":[\"archiveSession\",\"clearArchivedCurrent\",\"connectWorkspace\",\"connecting\",\"createDirectory\",\"ctx\",\"directoryPicker\",\"listDirectory\",\"name\",\"pickDirectory\",\"sessions\",\"startSession\",\"watchNavigation\",\"workspaces\"],\"hasConnectWorkspace\":true,\"hasList\":\"undefined\"}},{\"step\":\"workspace-list\",\"value\":{\"items\":1,\"first\":{\"workspaceId\":\"556cd303-7ed\",\"title\":\"m0a-workspace\"}}},{\"step\":\"workspace-id\",\"value\":{\"workspaceId\":\"556cd303-7edb-4871-89b9-d3a1f5327740\"}},{\"step\":\"session-source\",\"value\":{\"source\":\"shell-current\",\"id\":\"session-07c4c1\"}},{\"step\":\"uiSession.binding\",\"value\":{\"threw\":\"Error: uiSession.provide: missing hook 'session'\"}},{\"step\":\"dom-diagnosis\",\"value\":{\"currentBinding\":{\"type\":\"object\",\"keys\":[\"ctx\",\"hooks\",\"key\",\"keyedHooks\",\"props\"]},\"pendingSnapshot\":\"object\",\"editableCount\":1,\"textboxCount\":1,\"textareaCount\":0,\"lexicalCount\":0,\"mainHead\":\"\",\"bodyText\":\"新会话 工作区 m0a-workspace 未分组 新会话 设置 探索未至之境 预览版 选择工作区 标准模式 工作区内修改 DeepSeek-V4-Flash High 详情 点击消息流中的工具行查看详情 内测声明 DeepSeek Harness 目前的 0.1 版本仍处在面向 Harness 开发者进行测试的阶段，还有许多地方需要持续改进和打磨，希望听取广大开发者的反馈建议。预计 DeepSe\"}},{\"step\":\"shell\",\"value\":{\"keys\":[\"deps\",\"state\",\"notices\",\"editor\",\"actions\",\"core\",\"projection\",\"rev\",\"occurrenceIds\",\"occurrenceSeq\",\"unregister\",\"noticeSeq\",\"lastMirroredDraft\",\"imageIds\",\"disposed\",\"mirrorFn\",\"lexiconOff\",\"detachedDrafts\",\"failedDetached\",\"failedRestoreRev\",\"restoringFailures\",\"imageFlightSeq\",\"imageFlights\",\"lexicon\"],\"setDraftArity\":1}},{\"step\":\"draft-write\",\"value\":{\"marker\":\"M0A-MARKER-mtxav0uz\",\"setDraftReturn\":\"undefined\",\"domVisible\":true,\"domTag\":\"DIV\",\"domContentEditable\":\"false\",\"domRole\":\"textbox\",\"domAriaLabel\":\"选择工作区\",\"domClasses\":\"uV2eYG_input\",\"containerClasses\":\"uV2eYG_input\",\"domContainsMarker\":false,\"domText\":\"\",\"readBack\":{\"lastMirroredDraft\":\"M0A-MARKER-mtxav0uz\",\"stateDraft\":\"M0A-MARKER-mtxav0uz\",\"bindingActionsSetDraft\":\"function\"}}},{\"step\":\"image-admission\",\"value\":{\"api\":\"createDraftImages\",\"result\":\"array(1)\",\"firstId\":\"c3d8d340-eb10-4d85-a\"}}]}"
+    "domAfterWrite": "{\"present\":true,\"text\":\"\\n\",\"composerTag\":\"DIV\",\"composerAttrs\":{\"contenteditable\":\"true\",\"role\":\"textbox\",\"classes\":\"uV2eYG_input\"},\"probeAsync\":[{\"step\":\"current-session\",\"value\":{\"threw\":\"TypeError: uiSession?.pendingSnapshot is not a function\"}},{\"step\":\"current-session\",\"value\":{\"sessionId\":null,\"bindingProps\":{\"type\":\"object\",\"keys\":[\"inputActions\",\"sessionId\"]}}},{\"step\":\"shell-services\",\"value\":{\"uiSessionKeys\":[\"absent\",\"adapter\",\"bindings\",\"createMaterializedBinding\",\"ctx\",\"currentBinding\",\"currentListeners\",\"descriptors\",\"materialize\",\"materializeAbsent\",\"name\",\"pendingDomains\",\"pendingInteractions\",\"pendingListeners\",\"pendingSnapshot\",\"provide\",\"publishCurrent\",\"publishPendingInteractions\",\"rebuildBindings\",\"registerPendingInteraction\",\"resolve\",\"resolveCurrent\",\"sessions\"],\"currentBinding\":{\"type\":\"object\",\"keys\":[\"hooks\",\"key\",\"keyedHooks\",\"props\"]},\"uiWorkspaceKeys\":[\"archiveSession\",\"clearArchivedCurrent\",\"connectWorkspace\",\"connecting\",\"createDirectory\",\"ctx\",\"directoryPicker\",\"listDirectory\",\"name\",\"pickDirectory\",\"sessions\",\"startSession\",\"watchNavigation\",\"workspaces\"],\"hasConnectWorkspace\":true,\"hasList\":\"undefined\"}},{\"step\":\"workspace-list\",\"value\":{\"items\":0,\"first\":null}},{\"step\":\"workspace-id\",\"value\":{\"workspaceId\":null}},{\"step\":\"session-source\",\"value\":{\"source\":\"none\",\"id\":null}},{\"step\":\"draft-write\",\"value\":{\"skipped\":\"shell has no current session; waiting for the UI to select one\"}}]}"
   },
   "domAfterWrite": {
-    "present": false,
-    "text": "",
+    "present": true,
+    "text": "\n",
     "composerTag": "DIV",
     "composerAttrs": {
-      "contenteditable": "false",
+      "contenteditable": "true",
       "role": "textbox",
       "classes": "uV2eYG_input"
     },
@@ -698,7 +692,13 @@
       {
         "step": "current-session",
         "value": {
-          "sessionId": "session-07c4c1",
+          "threw": "TypeError: uiSession?.pendingSnapshot is not a function"
+        }
+      },
+      {
+        "step": "current-session",
+        "value": {
+          "sessionId": null,
           "bindingProps": {
             "type": "object",
             "keys": [
@@ -739,7 +739,6 @@
           "currentBinding": {
             "type": "object",
             "keys": [
-              "ctx",
               "hooks",
               "key",
               "keyedHooks",
@@ -769,113 +768,27 @@
       {
         "step": "workspace-list",
         "value": {
-          "items": 1,
-          "first": {
-            "workspaceId": "556cd303-7ed",
-            "title": "m0a-workspace"
-          }
+          "items": 0,
+          "first": null
         }
       },
       {
         "step": "workspace-id",
         "value": {
-          "workspaceId": "556cd303-7edb-4871-89b9-d3a1f5327740"
+          "workspaceId": null
         }
       },
       {
         "step": "session-source",
         "value": {
-          "source": "shell-current",
-          "id": "session-07c4c1"
-        }
-      },
-      {
-        "step": "uiSession.binding",
-        "value": {
-          "threw": "Error: uiSession.provide: missing hook 'session'"
-        }
-      },
-      {
-        "step": "dom-diagnosis",
-        "value": {
-          "currentBinding": {
-            "type": "object",
-            "keys": [
-              "ctx",
-              "hooks",
-              "key",
-              "keyedHooks",
-              "props"
-            ]
-          },
-          "pendingSnapshot": "object",
-          "editableCount": 1,
-          "textboxCount": 1,
-          "textareaCount": 0,
-          "lexicalCount": 0,
-          "mainHead": "",
-          "bodyText": "新会话 工作区 m0a-workspace 未分组 新会话 设置 探索未至之境 预览版 选择工作区 标准模式 工作区内修改 DeepSeek-V4-Flash High 详情 点击消息流中的工具行查看详情 内测声明 DeepSeek Harness 目前的 0.1 版本仍处在面向 Harness 开发者进行测试的阶段，还有许多地方需要持续改进和打磨，希望听取广大开发者的反馈建议。预计 DeepSe"
-        }
-      },
-      {
-        "step": "shell",
-        "value": {
-          "keys": [
-            "deps",
-            "state",
-            "notices",
-            "editor",
-            "actions",
-            "core",
-            "projection",
-            "rev",
-            "occurrenceIds",
-            "occurrenceSeq",
-            "unregister",
-            "noticeSeq",
-            "lastMirroredDraft",
-            "imageIds",
-            "disposed",
-            "mirrorFn",
-            "lexiconOff",
-            "detachedDrafts",
-            "failedDetached",
-            "failedRestoreRev",
-            "restoringFailures",
-            "imageFlightSeq",
-            "imageFlights",
-            "lexicon"
-          ],
-          "setDraftArity": 1
+          "source": "none",
+          "id": null
         }
       },
       {
         "step": "draft-write",
         "value": {
-          "marker": "M0A-MARKER-mtxav0uz",
-          "setDraftReturn": "undefined",
-          "domVisible": true,
-          "domTag": "DIV",
-          "domContentEditable": "false",
-          "domRole": "textbox",
-          "domAriaLabel": "选择工作区",
-          "domClasses": "uV2eYG_input",
-          "containerClasses": "uV2eYG_input",
-          "domContainsMarker": false,
-          "domText": "",
-          "readBack": {
-            "lastMirroredDraft": "M0A-MARKER-mtxav0uz",
-            "stateDraft": "M0A-MARKER-mtxav0uz",
-            "bindingActionsSetDraft": "function"
-          }
-        }
-      },
-      {
-        "step": "image-admission",
-        "value": {
-          "api": "createDraftImages",
-          "result": "array(1)",
-          "firstId": "c3d8d340-eb10-4d85-a"
+          "skipped": "shell has no current session; waiting for the UI to select one"
         }
       }
     ]
