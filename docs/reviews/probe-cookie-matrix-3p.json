@@ -1,0 +1,138 @@
+{
+  "probe": "cookie-matrix",
+  "controlCrossSite": [
+    {
+      "variant": "none-secure",
+      "installed": "{\"sameSite\":\"no_restriction\",\"secure\":true}",
+      "crossSiteFrame": {
+        "form": "F1",
+        "sessionCookiePresent": true,
+        "wsCookiePresent": true
+      }
+    },
+    {
+      "variant": "strict",
+      "installed": "{\"sameSite\":\"strict\",\"secure\":false}",
+      "crossSiteFrame": {
+        "form": "F1",
+        "sessionCookiePresent": false,
+        "wsCookiePresent": false
+      }
+    }
+  ],
+  "chrome": "150.0.7871.125",
+  "blockThirdPartyCookies": true,
+  "dshPort": "3099",
+  "extensionId": "kapghpiifnlomhkpfbccdfllgijkfjbf",
+  "pinnedExtensionId": "idpgkobbblmpmnonlndopijgfmehfmig",
+  "matrix": {
+    "probe": "cookie-matrix",
+    "extId": "kapghpiifnlomhkpfbccdfllgijkfjbf",
+    "port": "3099",
+    "results": [
+      {
+        "variant": "strict",
+        "installed": {
+          "variant": "strict",
+          "stored": {
+            "sameSite": "strict",
+            "secure": false,
+            "partitionKey": null
+          }
+        },
+        "extensionFetch": {
+          "form": "F1",
+          "sessionCookiePresent": true,
+          "ok": true
+        },
+        "frameFetch": {
+          "form": "F1",
+          "sessionCookiePresent": true,
+          "ok": false
+        },
+        "extensionWs": {
+          "sessionCookiePresent": false,
+          "wsError": null,
+          "wsClosed": null,
+          "wsTimeout": null
+        },
+        "frameWs": {
+          "sessionCookiePresent": false,
+          "wsError": null,
+          "wsClosed": null,
+          "wsTimeout": null
+        }
+      },
+      {
+        "variant": "none-secure",
+        "installed": {
+          "variant": "none-secure",
+          "stored": {
+            "sameSite": "no_restriction",
+            "secure": true,
+            "partitionKey": null
+          }
+        },
+        "extensionFetch": {
+          "form": "F1",
+          "sessionCookiePresent": true,
+          "ok": true
+        },
+        "frameFetch": {
+          "form": "F1",
+          "sessionCookiePresent": true,
+          "ok": false
+        },
+        "extensionWs": {
+          "sessionCookiePresent": true,
+          "wsError": null,
+          "wsClosed": null,
+          "wsTimeout": null
+        },
+        "frameWs": {
+          "sessionCookiePresent": true,
+          "wsError": null,
+          "wsClosed": null,
+          "wsTimeout": null
+        }
+      },
+      {
+        "variant": "partitioned",
+        "installed": {
+          "variant": "partitioned",
+          "stored": {
+            "sameSite": "no_restriction",
+            "secure": true,
+            "partitionKey": {
+              "hasCrossSiteAncestor": true,
+              "topLevelSite": "chrome-extension://kapghpiifnlomhkpfbccdfllgijkfjbf"
+            }
+          }
+        },
+        "extensionFetch": {
+          "form": "F1",
+          "sessionCookiePresent": true,
+          "ok": true
+        },
+        "frameFetch": {
+          "form": "F1",
+          "sessionCookiePresent": true,
+          "ok": false
+        },
+        "extensionWs": {
+          "sessionCookiePresent": true,
+          "wsError": null,
+          "wsClosed": null,
+          "wsTimeout": null
+        },
+        "frameWs": {
+          "sessionCookiePresent": true,
+          "wsError": null,
+          "wsClosed": null,
+          "wsTimeout": null
+        }
+      }
+    ]
+  },
+  "pageLog": "starting…\n{\"variant\":\"strict\",\"installed\":{\"variant\":\"strict\",\"stored\":{\"sameSite\":\"strict\",\"secure\":false,\"partitionKey\":null}}}\n{\"variant\":\"none-secure\",\"installed\":{\"variant\":\"none-secure\",\"stored\":{\"sameSite\":\"no_restriction\",\"secure\":true,\"partitionKey\":null}}}\n{\"variant\":\"partitioned\",\"installed\":{\"variant\":\"partitioned\",\"stored\":{\"sameSite\":\"no_restriction\",\"secure\":true,\"partitionKey\":{\"hasCrossSiteAncestor\":true,\"topLevelSite\":\"chrome-extension://kapghpiifnlomhkpfbccdfllgijkfjbf\"}}}}\nSUMMARY {\"probe\":\"cookie-matrix\",\"extId\":\"kapghpiifnlomhkpfbccdfllgijkfjbf\",\"port\":\"3099\",\"results\":[{\"variant\":\"strict\",\"installed\":{\"variant\":\"strict\",\"stored\":{\"sameSite\":\"strict\",\"secure\":false,\"partitionKey\":null}},\"extensionFetch\":{\"form\":\"F1\",\"sessionCookiePresent\":true,\"ok\":true},\"frameFetch\":{\"form\":\"F1\",\"sessionCookiePresent\":true,\"ok\":false},\"extensionWs\":{\"sessionCookiePresent\":false,\"wsError\":null,\"wsClosed\":null,\"wsTimeout\":null},\"frameWs\":{\"sessionCookiePresent\":false,\"wsError\":null,\"wsClosed\":null,\"wsTimeout\":null}},{\"variant\":\"none-secure\",\"installed\":{\"variant\":\"none-secure\",\"stored\":{\"sameSite\":\"no_restriction\",\"secure\":true,\"partitionKey\":null}},\"extensionFetch\":{\"form\":\"F1\",\"sessionCookiePresent\":true,\"ok\":true},\"frameFetch\":{\"form\":\"F1\",\"sessionCookiePresent\":true,\"ok\":false},\"extensionWs\":{\"sessionCookiePresent\":true,\"wsError\":null,\"wsClosed\":null,\"wsTimeout\":null},\"frameWs\":{\"sessionCookiePresent\":true,\"wsError\":null,\"wsClosed\":null,\"wsTimeout\":null}},{\"variant\":\"partitioned\",\"installed\":{\"variant\":\"partitioned\",\"stored\":{\"sameSite\":\"no_restriction\",\"secure\":true,\"partitionKey\":{\"hasCrossSiteAncestor\":true,\"topLevelSite\":\"chrome-extension://kapghpiifnlomhkpfbccdfllgijkfjbf\"}}},\"extensionFetch\":{\"form\":\"F1\",\"sessionCookiePresent\":true,\"ok\":true},\"frameFetch\":{\"form\":\"F1\",\"sessionCookiePresent\":true,\"ok\":false},\"extensionWs\":{\"sessionCookiePresent\":true,\"wsError\":null,\"wsClosed\":null,\"wsTimeout\":null},\"frameWs\":{\"sessionCookiePresent\":true,\"wsError\":null,\"wsClosed\":null,\"wsTimeout\":null}}]}"
+}

@@ -15,6 +15,9 @@ import { loadCompanionKey } from './key-store.js'
 import { createGuard } from './guard.js'
 import { pingRoute } from './routes/ping.js'
 import { enterRoute } from './routes/enter.js'
+import { whoamiRoute } from './routes/whoami.js'
+import { registerWsProbe } from './routes/ws-probe.js'
+import { probePageRoute } from './routes/probe-page.js'
 
 export const name = 'dsh-web-companion-bridge'
 export const inject = ['webServer', 'credentials']
@@ -86,6 +89,34 @@ export function apply(ctx, config = {}) {
       handler: withPairing(pingRoute({ state, protocolVersion: PROTOCOL_VERSION })),
     }),
     'dsh-web-companion-bridge: GET /ag/ping',
+  )
+
+  // M0a measurement endpoints: they report what the browser actually sent
+  // (cookie presence per request form), so Q1/Q2 can be answered with data.
+  ctx.effect(
+    () => ctx.webServer.register({
+      kind: 'exact',
+      path: '/ag/whoami',
+      handler: withPairing(whoamiRoute({ state })),
+    }),
+    'dsh-web-companion-bridge: GET /ag/whoami',
+  )
+
+  ctx.effect(
+    () => ctx.webServer.register({
+      kind: 'exact',
+      path: '/ag/probe-page',
+      handler: probePageRoute(),
+    }),
+    'dsh-web-companion-bridge: GET /ag/probe-page',
+  )
+
+  ctx.effect(
+    () => ctx.webServer.registerUpgrade({
+      path: '/ag/wsprobe',
+      handler: registerWsProbe({ state }),
+    }),
+    'dsh-web-companion-bridge: WS /ag/wsprobe',
   )
 
   ctx.effect(

@@ -5,7 +5,25 @@
 
 ---
 
-## v3.6 — 2026-09-11（当前）
+## v3.7 — 2026-09-11（当前）
+
+**触发**：M0a 第三、四个实验（cookie 矩阵 Q1/Q2 + 客户端 composer 契约已于 v3.6 记录）。
+
+### Q1 现象闭环（逐格取证）
+
+四形态 × 三属性矩阵（`docs/reviews/probe-cookie-matrix.json`）：`SameSite=Strict` 在**扩展页与 iframe 内的 WebSocket 握手都失败**、fetch 都成功；`None; Secure` 与 CHIPS **四格全绿**。机制（为什么 WS 与 fetch 不同）仍未证实，留 `chrome://net-export` 的 `COOKIE_*` 事件做后续定位。
+
+### 发现并修复一处设计缺陷：同源请求不带 `Origin`
+
+【实测】iframe 内同源 `fetch('/ag/whoami')` 到达服务端时 `Origin` 为 **null**（Fetch 规范：同源请求省略 Origin）。而 §5.4 从 v3.1 起把 F4 定义为"Origin 必须等于 authority"——照此实现会把 DSH 页面自己的合法请求误判。**已修正**：Origin 存在时必须匹配；缺失时以 `Sec-Fetch-Site: same-origin` + 有效会话 cookie 判定。`/ag/whoami` 分类器同步修正。
+
+### Q2 未闭环（诚实记录，不粉饰）
+
+`profile.block_third_party_cookies=true` 下矩阵结果与未屏蔽**完全一致**，但**跨站对照证明该偏好未生效**（`http://localhost` 顶层页 iframe `127.0.0.1` 时 `None; Secure` 仍被投递）。因此"3P 屏蔽不影响本设计"**尚未证实**，需改用真正的 3P 屏蔽开关重跑。§7.4 的 3P 兜底保持"不预置自动切换"。
+
+---
+
+## v3.6 — 2026-09-11
 
 **触发**：M0a 第二个实验（composer / client 插件契约探针，`tests/m0a/composer-probe.mjs`）——把 client 插件从"按文档推断"变成"在真实 GUI 里跑起来并逐项取证"。
 
