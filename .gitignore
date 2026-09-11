@@ -16,3 +16,6 @@ extension/src/lib/dev-config.js
 # test run outputs
 spike/out/
 tests/e2e/out/
+
+# extension build output
+extension/dist/

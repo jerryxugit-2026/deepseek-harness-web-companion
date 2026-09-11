@@ -12,7 +12,7 @@
     "graph:docs": "node scripts/doc-graph.mjs",
     "graph:check": "node scripts/doc-graph.mjs --check",
     "check:consistency": "node scripts/consistency-check.mjs",
-    "check": "npm run protocol:check && npm run graph:sync && npm run graph:docs && npm run check:consistency && npm run test:protocol && npm run test:unit",
+    "check": "npm run protocol:check && npm run graph:sync && npm run graph:docs && npm run check:consistency && npm run test:protocol && npm run test:unit && npm run build:ext",
     "review:adversarial": "node scripts/pimoa-review.mjs --tool moa_verify --prompt-file scripts/review-prompts/design-adversarial.md",
     "probe:permission": "node tests/m0a/permission-probe.mjs",
     "search": "semble search",
@@ -22,10 +22,12 @@
     "protocol:codegen": "node protocol/codegen.mjs",
     "protocol:check": "node protocol/codegen.mjs --check",
     "test:protocol": "node tests/protocol/contract.test.mjs",
-    "check:strict": "npm run protocol:check && npm run graph:sync && npm run graph:check && npm run check:consistency && npm run test:protocol && npm run test:unit",
+    "check:strict": "npm run protocol:check && npm run graph:sync && npm run graph:check && npm run check:consistency && npm run test:protocol && npm run test:unit && npm run build:ext",
     "probe:attach": "node tests/m0b/attach-probe.mjs",
     "probe:chip": "node tests/m0b/chip-probe.mjs",
-    "test:unit": "node tests/unit/tickets.test.mjs"
+    "test:unit": "node tests/unit/tickets.test.mjs",
+    "build:ext": "node extension/build.mjs",
+    "size:ext": "node extension/build.mjs --report-only"
   },
   "devDependencies": {
     "@colbymchenry/codegraph": "^1.6.0",

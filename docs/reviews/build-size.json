@@ -1,0 +1,32 @@
+{
+  "generatedAt": "2026-09-11T20:00:03.962Z",
+  "criterion": {
+    "limitBytes": 1048576,
+    "metric": "dist/ total, uncompressed"
+  },
+  "totalBytes": 33491,
+  "gzipBytes": 399,
+  "pass": true,
+  "files": [
+    {
+      "path": "src/sw/index.js",
+      "bytes": 26348
+    },
+    {
+      "path": "src/sidepanel/panel.js",
+      "bytes": 3383
+    },
+    {
+      "path": "src/sidepanel/panel.css",
+      "bytes": 1709
+    },
+    {
+      "path": "manifest.json",
+      "bytes": 1082
+    },
+    {
+      "path": "src/sidepanel/panel.html",
+      "bytes": 969
+    }
+  ]
+}

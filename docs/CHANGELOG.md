@@ -5,7 +5,35 @@
 
 ---
 
-## v3.13 — 2026-09-11（当前）
+## v3.14 — 2026-09-11（当前）
+
+**触发**：M1③ 扩展构建链与体积报告（G6「扩展 ≤1MB」的可证伪依据）。
+
+### 交付
+
+| 组件 | 说明 |
+|---|---|
+| `extension/package.json` + `tsconfig.json` | esbuild + TypeScript 工具链；`tsconfig` 采用 `allowJs` 分阶段迁移策略（本轮先立构建链，源码仍为 JS，后续逐文件转 TS） |
+| `extension/build.mjs` | esbuild 打包 MV3 入口（sw / panel / content）+ 复制静态壳（manifest、html、css）；产出 `dist/`；打印逐文件体积、总计、gzip 估算；写 `docs/reviews/build-size.json` |
+| 根 `package.json` | 新增 `build:ext` / `size:ext` |
+
+### 实测（`docs/reviews/build-size.json`）
+
+```
+  25.7 KB  src/sw/index.js
+   3.3 KB  src/sidepanel/panel.js
+   1.7 KB  src/sidepanel/panel.css
+   1.1 KB  manifest.json
+   0.9 KB  src/sidepanel/panel.html
+  32.6 KB  总计（未压缩）   ·   0.4 KB（gzip 估算）
+G6 判据：总计 ≤ 1024 KB → ✅ 通过
+```
+
+**⚠️ 诚实标注**：32.6 KB 是**尚未引入正文提取依赖**时的数字。M2 会加入 Readability/清洗与 WebVTT 解析（估算 +250–350 KB），届时必须重跑本报告；G6 的判据以那时为准，本轮的交付是**报告机制**而非最终数字。
+
+---
+
+## v3.13 — 2026-09-11
 
 **触发**：M1② 一次性进入票据落地（设计 §5.4 key 生命周期）。
 
