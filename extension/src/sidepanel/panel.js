@@ -68,7 +68,8 @@ async function connect() {
     return
   }
   mount(ready.value.url)
-  store.dispatch({ dsh: 'up', url: ready.value.url, message: '' })
+  // clear the message so a stale "connecting…" never lingers in the DOM
+  store.dispatch({ dsh: 'up', url: ready.value.url, message: '', handshake: ready.value.state?.handshake ?? 'unknown' })
 }
 
 els.frame.addEventListener('load', () => {

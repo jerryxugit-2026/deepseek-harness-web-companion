@@ -1,0 +1,26 @@
+{
+  "probe": "m1-panel",
+  "dshPort": "3080",
+  "extensionId": "idpgkobbblmpmnonlndopijgfmehfmig",
+  "results": {
+    "panelStatus": "up",
+    "panelStatusText": "DSH 已连接",
+    "frameSrc": "http://127.0.0.1:3080/ag/enter?ticket=2l4MW8yVkE90GO-mnOuubuygSJq6fBHM",
+    "frameSrcUsesTicket": true,
+    "frameSrcLeaksKey": false,
+    "notice": "正在连接本地 DSH…",
+    "iframe": {
+      "href": "http://127.0.0.1:3080/",
+      "title": "DeepSeek Harness",
+      "nodes": 265,
+      "composer": true,
+      "unauthorized": false,
+      "bodyText": "探索未至之境 预览版 dsh project 标准模式 描述你想要构建的内容… / 调用指令 @ 文件或对话 DeepSeek Flash High 详情 点击消息流中的工具行查看详情"
+    },
+    "dshHttp": {
+      "200 /": 1
+    },
+    "consoleErrors": [],
+    "screenshot": "/Users/mac/ai_tools/dsh project/网页插件/docs/reviews/probe-panel.png"
+  }
+}

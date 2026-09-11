@@ -5,7 +5,29 @@
 
 ---
 
-## v3.14.1 — 2026-09-11（当前）
+## v3.15 — 2026-09-11（当前）
+
+**触发**：**E2E-1 在真实扩展 + 真实实例上跑通**（用户已在自己的 Chrome 里加载扩展，ID `idpgkob…` 与配对文件一致）。
+
+### 实测（`tests/m1/panel-probe.mjs` → `docs/reviews/probe-panel.{md,json,png}`）
+
+| 断言 | 结果 |
+|---|---|
+| 面板文档 + SW 握手 | ✅ `panelStatus: "up"`、`"DSH 已连接"` |
+| **frame URL 用票据而非密钥** | ✅ `http://127.0.0.1:3080/ag/enter?ticket=2l4MW8…`；`frameSrcLeaksKey: false` |
+| **iframe 内是真正的 DSH GUI** | ✅ `title: "DeepSeek Harness"`、265 节点、**composer 存在**、`unauthorized: false`、正文含工作区 `dsh project` 与输入框占位文案 |
+| 网络与错误面 | ✅ DSH 源仅 `200 /`；**无控制台错误** |
+| 授权边界 | ✅ 真扩展 Origin 申请票据 200；伪造 Origin 403 |
+
+截图 `docs/reviews/probe-panel.png`：500px 宽面板形态 —— 顶栏「DSH 已连接 + Attach 网页」+ 其下完整 DSH GUI（工作区、模式、模型、输入框齐备）。
+
+### 顺带修正
+
+`panel.js` 在连接成功后未清空 message，DOM 里残留 `正在连接本地 DSH…`（元素已隐藏，但不该留）。已修为连接成功即清空，并记录 `handshake`（`ticket` / `key-fallback`）便于观测。
+
+---
+
+## v3.14.1 — 2026-09-11
 
 **触发**：把诊断字段补齐到协议（`/ag/ping` 暴露 `liveTickets` 与 `connectedClients`），使其成为**可验证的观测面**：
 下次重启真实实例后，`connectedClients ≥ 1` 即证明浏览器里的界面已连上我们的上下文通道（client 半加载成功）。
