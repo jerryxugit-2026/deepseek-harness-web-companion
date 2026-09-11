@@ -130,6 +130,13 @@ const RULES = [
     only: ['详细设计文档.md'],
   },
   {
+    id: 'bare-auth-restatement',
+    pattern: /key \+ Origin|key \+ 精确 Origin/u,
+    reason: 'BLOCKER-A：鉴权规则只在 §5.4 定义（F1–F4）；别处必须引用编号，禁止重述"key + Origin"（v3.2 的 §5.1 端点表残留即由此而来）',
+    skip: HISTORY,
+    allowIf: /§5\.4|F[1-4]\b|形态编号/u,
+  },
+  {
     id: 'three-form-auth-matrix',
     pattern: /三形态鉴权矩阵/u,
     reason: 'BLOCKER-1：鉴权矩阵必须为四形态（含 client 插件同源），三形态会把 /ag/client 判 403',

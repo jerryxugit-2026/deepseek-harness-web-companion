@@ -11,7 +11,7 @@
 | 面板页 → iframe `window.postMessage` | 零往返 | 只在「侧边栏 iframe」形态可用（独立窗口/普通标签页形态失效）；需校验 `event.origin` | v1.1 低延迟快路径（可选） |
 | 桥接插件 → client 插件 **WS `/ag/client`** | 三种宿主形态统一；天然同源（DSH 页面自己发起）；可回执、可补取 | 多一条 WS 连接 | **主通道（本设计）** |
 
-主通道的安全模型更简单：WS 由 DSH 页面自己发起（携带 DSH 会话 cookie），插件侧再用 key + Origin 白名单校验；**页面侧不需要信任任何跨窗口消息**。
+主通道的安全模型更简单：WS 由 DSH 页面自己发起（携带 DSH 会话 cookie），插件侧按**详细设计 §5.4 的 F4 形态**校验（key + DSH 会话 cookie + Origin == 本服务 authority）；**页面侧不需要信任任何跨窗口消息**。
 
 ---
 

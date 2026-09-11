@@ -1,14 +1,14 @@
 # 文档与代码图谱（DOC-GRAPH）
 
 > **自动生成，请勿手改**：`node scripts/doc-graph.mjs`（校验：`node scripts/doc-graph.mjs --check`）
-> 生成时间：2026-09-11T17:31:22.753Z
+> 生成时间：2026-09-11T17:38:07.104Z
 >
 > **更新时机（随项目进展）**：
 > 1. 任一 `*.md` 或代码文件增删改后 → `npm run graph:sync`（代码图谱增量重建）+ `npm run graph:docs`（本文件重生成）；
 > 2. 每个里程碑（M1–M4）收尾必须执行一次，并把 `--check` 纳入交付前检查；
 > 3. `--check` 发现 broken-doc-link / missing-code-ref 时以非零码退出，作为质量门。
 
-## 1. 文档清单（22 份 / 32 个代码与配置文件）
+## 1. 文档清单（23 份 / 32 个代码与配置文件）
 
 | 文档 | 标题 | 版本 | 行数 | 二级标题数 | 代码引用数 |
 |---|---|---|---|---|---|
@@ -24,16 +24,17 @@
 | `docs/06-test-plan.md` | 06 · 测试方案（单测矩阵 + E2E） | — | 128 | 8 | 36 |
 | `docs/07-implementation-plan.md` | 07 · 实现计划（任务分解与完成判据） | — | 87 | 7 | 39 |
 | `docs/08-security.md` | 08 · 安全与威胁模型 | — | 73 | 6 | 1 |
-| `docs/CHANGELOG.md` | 变更记录（CHANGELOG） | v3.0 | 106 | 5 | 0 |
-| `docs/DOC-GRAPH.md` | 文档与代码图谱（DOC-GRAPH） | — | 304 | 6 | 210 |
+| `docs/CHANGELOG.md` | 变更记录（CHANGELOG） | v3.0 | 131 | 6 | 0 |
+| `docs/DOC-GRAPH.md` | 文档与代码图谱（DOC-GRAPH） | — | 306 | 6 | 211 |
 | `docs/REVIEW-v3.0.md` | 详细设计 v3.0 评审报告（Review of v3.0 → 修正为 v3.1） | v3.0 | 68 | 5 | 0 |
 | `docs/research/01-dsh-plugin-authoring.md` | 01 — Writing, building, installing and testing a THIRD-PARTY DSH plugin (host half + browser/client half) | — | 1137 | 18 | 0 |
 | `docs/research/02-dsh-client-composer-attach.md` | 02 — DSH Web GUI 客户端插件「插入 composer 内容 + 附件 + 上下文 chip」seam 调研 | — | 1446 | 22 | 0 |
 | `docs/research/03-chrome-extension-constraints.md` | 03 — Chrome (Manifest V3) platform constraints & APIs for the side-panel + local-app extension | — | 591 | 11 | 0 |
 | `docs/reviews/pimoa-adversarial-v3.0.md` | PiMoa 对抗性审核结果 | — | 71 | 4 | 0 |
 | `docs/reviews/pimoa-adversarial-v3.1.md` | PiMoa 对抗性审核结果 | — | 93 | 5 | 0 |
+| `docs/reviews/pimoa-adversarial-v3.2.md` | PiMoa 对抗性审核结果 | v3.3 | 81 | 5 | 0 |
 | `scripts/review-prompts/design-adversarial.md` | scripts/review-prompts/design-adversarial.md | — | 27 | 4 | 0 |
-| `详细设计文档.md` | DSH Web Companion · 详细设计规范说明书 | v3.2 | 748 | 16 | 19 |
+| `详细设计文档.md` | DSH Web Companion · 详细设计规范说明书 | v3.3 | 776 | 16 | 19 |
 
 ## 2. 文档 ↔ 代码 覆盖矩阵
 
@@ -179,6 +180,7 @@ flowchart LR
 | `cookie.test.js` | `docs/02-extension.md` `docs/DOC-GRAPH.md` |
 | `cookie.ts` | `docs/03-bridge-plugin.md` `docs/DOC-GRAPH.md` |
 | `cookie.vector.test.ts` | `docs/03-bridge-plugin.md` `docs/DOC-GRAPH.md` |
+| `docs/reviews/probe-seed.json` | `docs/DOC-GRAPH.md` `详细设计文档.md` |
 | `enter.ts` | `docs/03-bridge-plugin.md` `docs/DOC-GRAPH.md` |
 | `extract.fn.js` | `docs/02-extension.md` `docs/DOC-GRAPH.md` |
 | `extract.test.js` | `docs/02-extension.md` `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` |
@@ -224,7 +226,7 @@ flowchart LR
 | `packages/client/web/src/seed.ts` | `docs/DOC-GRAPH.md` |
 | `panel.ts` | `docs/DOC-GRAPH.md` `详细设计文档.md` |
 | `pending.ts` | `docs/03-bridge-plugin.md` `docs/DOC-GRAPH.md` |
-| `platform.ts` | `docs/DOC-GRAPH.md` `详细设计文档.md` |
+| `platform.ts` | `docs/DOC-GRAPH.md` |
 | `protocol-sync.test.js` | `docs/02-extension.md` `docs/DOC-GRAPH.md` |
 | `protocol-sync.test.ts` | `docs/03-bridge-plugin.md` `docs/04-client-plugin.md` `docs/DOC-GRAPH.md` |
 | `protocol.ts` | `docs/DOC-GRAPH.md` |

@@ -114,8 +114,8 @@
       "path": "docs/CHANGELOG.md",
       "title": "变更记录（CHANGELOG）",
       "version": "v3.0",
-      "lines": 106,
-      "sections": 5,
+      "lines": 131,
+      "sections": 6,
       "codeRefs": 0,
       "docRefs": 1
     },
@@ -123,9 +123,9 @@
       "path": "docs/DOC-GRAPH.md",
       "title": "文档与代码图谱（DOC-GRAPH）",
       "version": null,
-      "lines": 304,
+      "lines": 306,
       "sections": 6,
-      "codeRefs": 210,
+      "codeRefs": 211,
       "docRefs": 0
     },
     {
@@ -183,6 +183,15 @@
       "docRefs": 0
     },
     {
+      "path": "docs/reviews/pimoa-adversarial-v3.2.md",
+      "title": "PiMoa 对抗性审核结果",
+      "version": "v3.3",
+      "lines": 81,
+      "sections": 5,
+      "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
       "path": "scripts/review-prompts/design-adversarial.md",
       "title": "scripts/review-prompts/design-adversarial.md",
       "version": null,
@@ -194,8 +203,8 @@
     {
       "path": "详细设计文档.md",
       "title": "DSH Web Companion · 详细设计规范说明书",
-      "version": "v3.2",
-      "lines": 748,
+      "version": "v3.3",
+      "lines": 776,
       "sections": 16,
       "codeRefs": 19,
       "docRefs": 4
@@ -1237,6 +1246,10 @@
       },
       {
         "doc": "docs/DOC-GRAPH.md",
+        "ref": "docs/reviews/probe-seed.json"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
         "ref": "enter.ts"
       },
       {
@@ -1617,6 +1630,10 @@
       },
       {
         "doc": "详细设计文档.md",
+        "ref": "docs/reviews/probe-seed.json"
+      },
+      {
+        "doc": "详细设计文档.md",
         "ref": "extractor.ts"
       },
       {
@@ -1630,10 +1647,6 @@
       {
         "doc": "详细设计文档.md",
         "ref": "panel.ts"
-      },
-      {
-        "doc": "详细设计文档.md",
-        "ref": "platform.ts"
       },
       {
         "doc": "详细设计文档.md",
