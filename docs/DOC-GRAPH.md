@@ -1,7 +1,7 @@
 # 文档与代码图谱（DOC-GRAPH）
 
 > **自动生成，请勿手改**：`node scripts/doc-graph.mjs`（校验：`node scripts/doc-graph.mjs --check`）
-> 生成时间：2026-09-11T20:33:57.413Z
+> 生成时间：2026-09-11T20:42:09.697Z
 >
 > **更新时机（随项目进展）**：
 > 1. 任一 `*.md` 或代码文件增删改后 → `npm run graph:sync`（代码图谱增量重建）+ `npm run graph:docs`（本文件重生成）；
@@ -24,7 +24,7 @@
 | `docs/06-test-plan.md` | 06 · 测试方案（单测矩阵 + E2E） | — | 128 | 8 | 36 |
 | `docs/07-implementation-plan.md` | 07 · 实现计划（任务分解与完成判据） | — | 87 | 7 | 39 |
 | `docs/08-security.md` | 08 · 安全与威胁模型 | — | 73 | 6 | 1 |
-| `docs/CHANGELOG.md` | 变更记录（CHANGELOG） | v3.0 | 555 | 23 | 0 |
+| `docs/CHANGELOG.md` | 变更记录（CHANGELOG） | v3.0 | 581 | 24 | 0 |
 | `docs/DOC-GRAPH.md` | 文档与代码图谱（DOC-GRAPH） | — | 292 | 6 | 190 |
 | `docs/REVIEW-v3.0.md` | 详细设计 v3.0 评审报告（Review of v3.0 → 修正为 v3.1） | v3.0 | 68 | 5 | 0 |
 | `docs/research/01-dsh-plugin-authoring.md` | 01 — Writing, building, installing and testing a THIRD-PARTY DSH plugin (host half + browser/client half) | — | 1137 | 18 | 0 |
@@ -41,7 +41,7 @@
 | `docs/reviews/probe-keepalive.md` | M0a 探针报告 · 空闲 WebSocket 保活（probe-keepalive / Q8） | — | 29 | 4 | 0 |
 | `docs/reviews/probe-permission.md` | M0a 探针报告 · 权限实验（probe-permission） | — | 35 | 5 | 0 |
 | `scripts/review-prompts/design-adversarial.md` | scripts/review-prompts/design-adversarial.md | — | 27 | 4 | 0 |
-| `详细设计文档.md` | DSH Web Companion · 详细设计规范说明书 | v3.19 | 814 | 16 | 22 |
+| `详细设计文档.md` | DSH Web Companion · 详细设计规范说明书 | v3.20 | 814 | 16 | 22 |
 
 ## 2. 文档 ↔ 代码 覆盖矩阵
 

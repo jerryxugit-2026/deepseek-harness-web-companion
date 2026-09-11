@@ -5,7 +5,33 @@
 
 ---
 
-## v3.19 — 2026-09-11（当前）
+## v3.20 — 2026-09-11（当前）
+
+**触发**：用户同意"UI 噪音启发式"；实测来自真实站点（ClawHub）的抓取噪声。
+
+### 交付（`extract.fn.js`，三条规则各自可关）
+
+| 规则 | 判定 | 干掉什么 |
+|---|---|---|
+| A `stripChipRows` | 同一父节点下 ≥3 个"短且无标点"的叶子（≥children-1） | 分类胶囊、面包屑、`SKILL.md / Files / Versions` tab 条 |
+| B `stripActionLabels` | 纯文本精确匹配动作词白名单（read more / share / download / stats & details / view all …） | "Read more"、tab 文案 |
+| C `stripTrailingMeta` | 文档后 30% 内、含 downloads / last updated / version / license 且数字占比高或极短 | `DownloadsAll time30d7d 162`、`Last updated 4mo ago…` 统计块 |
+
+元数据新增 `cleaner`（启用的规则数）便于观测。
+
+### 回归（`tests/m2/capture-probe.mjs` 夹具已升级）
+
+夹具页加入 chip 行 / tab 行 / "Read more" / 末尾统计块后重跑：
+
+| 断言 | 结果 |
+|---|---|
+| UI 噪音被剔除 | ✅ `hasCategoryChips: false`、`hasTabStrip: false`、`hasReadMore: false`、`hasTrailingStats: false` |
+| 正文完好 | ✅ 标记、标题、`## 小节标题`、`- 要点一`、```js 代码块、绝对化链接、front-matter 全部保留 |
+| 端到端 | ✅ 落盘 + 胶囊（`inserted`）+ ack |
+
+---
+
+## v3.19 — 2026-09-11
 
 **触发**：用户在真实 Chrome 中完成 H4① 自动拉起实测 —— **M2 阶段收尾**。
 

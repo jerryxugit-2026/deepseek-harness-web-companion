@@ -1,16 +1,16 @@
 {
-  "generatedAt": "2026-09-11T20:33:59.088Z",
+  "generatedAt": "2026-09-11T20:42:11.304Z",
   "criterion": {
     "limitBytes": 1048576,
     "metric": "dist/ total, uncompressed"
   },
-  "totalBytes": 50864,
+  "totalBytes": 52941,
   "gzipBytes": 399,
   "pass": true,
   "files": [
     {
       "path": "src/sw/index.js",
-      "bytes": 39561
+      "bytes": 41638
     },
     {
       "path": "src/sidepanel/panel.js",

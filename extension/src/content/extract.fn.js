@@ -23,6 +23,65 @@ export function extractPage(options = {}) {
   const clone = root.cloneNode(true)
   for (const node of clone.querySelectorAll(NOISE)) node.remove()
 
+  /**
+   * UI-noise heuristics (agreed 2026-09-11 after real-site findings).
+   *
+   * Real pages leak interface chrome that lives inside the main content region
+   * (category chips, tab strips, "Read more", trailing stats blocks), so the tag
+   * list above cannot catch it. Three conservative, individually switchable
+   * rules — all measured against the ClawHub page and the fixture:
+   *
+   *   A. chip rows: 3+ sibling leaf elements whose text is short and unpunctuated
+   *      (category tags, breadcrumbs, "SKILL.md / Files / Versions" tabs);
+   *   B. action labels: an exact-match allowlist of UI verbs;
+   *   C. trailing meta blocks: download counts, "Last updated …", version/license
+   *      lines near the end of the document.
+   */
+  const text = (el) => String(el.textContent ?? '').replace(/\s+/g, ' ').trim()
+  const sentences = (value) => /[。．.!?；;：:]|\s\S{40,}/u.test(value)
+
+  const stripChipRows = () => {
+    for (const parent of [...clone.querySelectorAll('*')]) {
+      const kids = [...parent.children]
+      if (kids.length < 3) continue
+      const leafish = kids.filter((kid) => {
+        const value = text(kid)
+        return value !== '' && value.length <= 24 && !sentences(value) && kid.children.length <= 1
+      })
+      // a row where *most* children are short unpunctuated labels is a chip/tab strip
+      if (leafish.length >= 3 && leafish.length >= kids.length - 1) {
+        for (const kid of leafish) kid.remove()
+      }
+    }
+  }
+
+  const ACTION_LABELS = /^(read more|show more|show less|see more|view all|more|report|share|copy|copy link|copy code|download|stats & details|stats and details|files|versions|skill card|overview|details)$/iu
+  const stripActionLabels = () => {
+    for (const el of [...clone.querySelectorAll('button, a, span, div')]) {
+      if (el.children.length > 0) continue
+      if (ACTION_LABELS.test(text(el))) el.remove()
+    }
+  }
+
+  const META_BLOCK = /(downloads?\b|last updated|current version|license\b|updated \d+\w+ ago)/iu
+  const stripTrailingMeta = () => {
+    const all = [...clone.querySelectorAll('p, div, section, ul, span')]
+    const tail = all.slice(Math.floor(all.length * 0.7))
+    for (const el of tail) {
+      const value = text(el)
+      if (value === '' || value.length > 400) continue
+      if (!META_BLOCK.test(value)) continue
+      // only drop when the block is mostly numbers/labels, not prose
+      const digitRatio = (value.match(/[\d.]+/gu) ?? []).join('').length / Math.max(1, value.length)
+      if (digitRatio > 0.15 || /^[^。.!?]{0,80}$/u.test(value)) el.remove()
+    }
+  }
+
+  const applied = []
+  if (options.stripChipRows !== false) { stripChipRows(); applied.push('chip-rows') }
+  if (options.stripActionLabels !== false) { stripActionLabels(); applied.push('action-labels') }
+  if (options.stripTrailingMeta !== false) { stripTrailingMeta(); applied.push('trailing-meta') }
+
   /** Convert one subtree to Markdown (single pass, explicit node walk). */
   const toMarkdown = (el) => {
     const out = []
@@ -102,6 +161,7 @@ export function extractPage(options = {}) {
       lang: document.documentElement.lang || null,
       headings: [...clone.querySelectorAll('h1,h2,h3')].slice(0, 20).map((h) => String(h.innerText).trim()).filter((t) => t !== ''),
       chars: markdown.length,
+      cleaner: applied.length,
     },
   }
 }

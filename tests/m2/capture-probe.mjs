@@ -52,11 +52,20 @@ const fixtureServer = createServer((_req, res) => {
 <nav>导航噪音 导航噪音</nav>
 <article>
   <h1>M2 抓取夹具</h1>
+  <div class="chips">
+    <a href="/c/knowledge">Knowledge</a><a href="/c/automation">Automation</a><a href="/c/creative">Creative</a>
+  </div>
   <p>${MARKER} 这是主内容第一段，用于验证抽取与落盘。</p>
   <h2>小节标题</h2>
   <ul><li>要点一</li><li>要点二</li></ul>
   <pre><code class="language-js">const answer = 42</code></pre>
   <p>外部链接：<a href="/relative/path">相对链接</a></p>
+  <div class="tabs"><span>SKILL.md</span><span>Stats &amp; details</span><span>Files</span><span>Versions</span></div>
+  <button>Read more</button>
+  <section class="stats">
+    <div>DownloadsAll time30d7d <strong>162</strong></div>
+    <div>Last updated4mo agoCurrent versionv1.0.0LicenseMIT-0Report</div>
+  </section>
 </article>
 <footer>页脚噪音</footer>
 </body></html>`)
@@ -179,6 +188,11 @@ if (latest !== null) {
   const text = readFileSync(latest, 'utf8')
   record('fileChecks', {
     hasMarker: text.includes(MARKER),
+    // UI-noise heuristics (v3.20): chips/tabs/action labels/trailing stats gone
+    hasCategoryChips: text.includes('Knowledge'),
+    hasTabStrip: text.includes('Stats & details') || text.includes('Stats &amp; details'),
+    hasReadMore: /Read more/u.test(text),
+    hasTrailingStats: /DownloadsAll time|Last updated/u.test(text),
     hasTitle: text.includes('M2 抓取夹具'),
     hasNavNoise: text.includes('导航噪音'),
     hasFooterNoise: text.includes('页脚噪音'),
