@@ -10,6 +10,7 @@
  *     leaving the UI stuck on "connection lost".
  */
 import { fetchWithTimeout, fail, ok } from '../lib/result.js'
+import { PROTOCOL_VERSION, validateAs } from '../lib/protocol.generated.js'
 import { dshOrigin, dshPort, enterUrl, isPaired, pingUrl } from '../lib/urls.js'
 
 /**
@@ -23,7 +24,10 @@ export async function probe(timeoutMs = 1500) {
     return fail('E_PLUGIN', `bridge plugin answered HTTP ${String(response.value.status)}`)
   }
   try {
-    return ok(await response.value.json())
+    const payload = await response.value.json()
+    const validated = validateAs('PingResponse', payload)
+    if (!validated.ok) return fail('E_PAYLOAD', `bridge plugin ping payload rejected: ${validated.error.message}`)
+    return ok(payload)
   } catch (error) {
     return fail('E_PAYLOAD', `bridge plugin returned non-JSON: ${String(error)}`)
   }
@@ -39,7 +43,7 @@ export async function ensureReady() {
     return { ok: false, state: { dsh: 'down' }, error: { code: 'E_DSH_DOWN', message: `DSH is not reachable at ${dshOrigin()}` } }
   }
   const info = ping.value
-  if (info.protocolVersion !== 1) {
+  if (info.protocolVersion !== PROTOCOL_VERSION) {
     return { ok: false, state: { dsh: 'up', plugin: info }, error: { code: 'E_VERSION', message: `protocol mismatch: plugin=${String(info.protocolVersion)} extension=1` } }
   }
   if (info.paired !== true || !isPaired()) {

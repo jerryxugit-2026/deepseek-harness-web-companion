@@ -12,13 +12,17 @@
     "graph:docs": "node scripts/doc-graph.mjs",
     "graph:check": "node scripts/doc-graph.mjs --check",
     "check:consistency": "node scripts/consistency-check.mjs",
-    "check": "npm run graph:sync && npm run graph:check && npm run check:consistency",
+    "check": "npm run protocol:check && npm run graph:sync && npm run graph:docs && npm run check:consistency && npm run test:protocol",
     "review:adversarial": "node scripts/pimoa-review.mjs --tool moa_verify --prompt-file scripts/review-prompts/design-adversarial.md",
     "probe:permission": "node tests/m0a/permission-probe.mjs",
     "search": "semble search",
     "probe:composer": "node tests/m0a/composer-probe.mjs",
     "probe:cookies": "node tests/m0a/cookie-matrix.mjs",
-    "probe:keepalive": "node tests/m0a/keepalive-probe.mjs"
+    "probe:keepalive": "node tests/m0a/keepalive-probe.mjs",
+    "protocol:codegen": "node protocol/codegen.mjs",
+    "protocol:check": "node protocol/codegen.mjs --check",
+    "test:protocol": "node tests/protocol/contract.test.mjs",
+    "check:strict": "npm run protocol:check && npm run graph:sync && npm run graph:check && npm run check:consistency && npm run test:protocol"
   },
   "devDependencies": {
     "@colbymchenry/codegraph": "^1.6.0"

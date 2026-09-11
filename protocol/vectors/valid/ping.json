@@ -1,0 +1,16 @@
+{
+  "ok": true,
+  "protocolVersion": 1,
+  "plugin": "dsh-web-companion-bridge",
+  "pluginVersion": "0.1.0",
+  "paired": true,
+  "keyConfigured": true,
+  "trustedOrigins": 1,
+  "pairingSource": "/Users/mac/.dsh/dsh-web-companion.json",
+  "pairingError": null,
+  "dsh": {
+    "home": "/Users/mac/.dsh",
+    "port": 3080
+  },
+  "capabilities": []
+}

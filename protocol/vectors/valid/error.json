@@ -1,0 +1,7 @@
+{
+  "ok": false,
+  "error": {
+    "code": "E_AUTH",
+    "message": "forbidden"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "type": "attach",
+  "protocolVersion": 1,
+  "captureId": "01J7",
+  "fileRef": "@网页捕获/a.md",
+  "filePath": "/abs/a.md",
+  "mode": "page",
+  "page": {
+    "title": "t",
+    "url": "https://e.com",
+    "domain": "e.com",
+    "capturedAt": 1
+  },
+  "image": {
+    "mime": "image/png",
+    "base64": "iVBORw0KGgo=",
+    "width": 10,
+    "height": 10
+  },
+  "summary": {
+    "chars": 10,
+    "truncated": false
+  }
+}

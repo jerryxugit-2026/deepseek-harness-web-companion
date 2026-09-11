@@ -1,0 +1,9 @@
+{
+  "type": "response",
+  "id": "r-2",
+  "ok": false,
+  "error": {
+    "code": "E_TARGET",
+    "message": "selector not found"
+  }
+}

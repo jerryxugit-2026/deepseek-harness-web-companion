@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "items": [
+    {
+      "type": "attach",
+      "protocolVersion": 1,
+      "captureId": "01J7",
+      "fileRef": "@网页捕获/a.md",
+      "mode": "page",
+      "page": {
+        "title": "t",
+        "url": "https://e.com",
+        "domain": "e.com",
+        "capturedAt": 1
+      }
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "protocolVersion": 1,
+  "captureId": "c",
+  "trigger": "button",
+  "page": {
+    "title": "t",
+    "url": "u",
+    "domain": "d",
+    "capturedAt": 1
+  },
+  "content": {
+    "markdown": "x"
+  },
+  "media": {
+    "screenshot": {
+      "mime": "image/webp",
+      "base64": "x",
+      "width": 1,
+      "height": 1
+    }
+  }
+}

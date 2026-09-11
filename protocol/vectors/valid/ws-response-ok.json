@@ -1,0 +1,9 @@
+{
+  "type": "response",
+  "id": "r-1",
+  "ok": true,
+  "result": {
+    "matched": 1
+  },
+  "elapsedMs": 87
+}

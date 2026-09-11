@@ -5,7 +5,31 @@
 
 ---
 
-## v3.9 — 2026-09-11（当前）
+## v3.10 — 2026-09-11（当前）
+
+**触发**：M1 第①项落地——协议单源 schema + codegen + 契约测试（ADR-9）。
+
+### 交付
+
+| 产物 | 说明 |
+|---|---|
+| `protocol/messages.schema.json` | **唯一真源**：HTTP 端点消息、WS 信封、client 事件、扩展内部消息、native messaging 消息全部定义在一个 JSON Schema 里（21 个消息定义 + 错误码/枚举） |
+| `protocol/codegen.mjs` | 生成三端自包含产物（扩展 ESM / 插件 ESM / native host MJS），每个产物头部带 schema 的 sha256；`--check` 逐字节比对 |
+| `protocol/vectors/` | 21 个正向量 + 11 个反向量（含 `image/webp`、未知错误码、多余字段、非法 op 等真实反例） |
+| `tests/protocol/contract.test.mjs` | 5 组断言：产物与 schema 一致 / 三端一致（版本·消息种类·枚举·路由·通道）/ 正向量全过 / 反向量全被拒且码为 `E_PAYLOAD` / 命名定义可直接校验 |
+| 接入 | 扩展 `urls.js`、`dsh-session.js` 与插件 `index.js`、`ping.js` **已改用生成物**（路由常量、版本号、入站校验、出站自校验） |
+
+### 自校验立刻抓到的真实漂移
+
+接上出站自校验后，`/ag/ping` 第一次返回 **500**：`pairing payload violates schema: expected string|null, got undefined at $.pairingError`——即"配对正常时 `pairingError` 被省略"这一手写行为不符合封闭 schema。**已修**（显式 `null`），这也验证了守卫的有效性：schema 漂移会在开发期立刻暴露，而不是留到联调。
+
+### 质量门更新
+
+`npm run check` = `protocol:check` → `graph:sync` → `graph:check` → `check:consistency` → `test:protocol`（五道全绿）。
+
+---
+
+## v3.9 — 2026-09-11
 
 **触发**：方案 A 落地后，在**用户真实 DSH 实例**（`~/.dsh`，端口 3080）上复跑 composer 探针——**M0b 两条硬断言全部达成**。
 

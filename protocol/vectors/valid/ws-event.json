@@ -1,0 +1,7 @@
+{
+  "type": "event",
+  "kind": "tab-activated",
+  "payload": {
+    "tabId": 12
+  }
+}

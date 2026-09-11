@@ -1,14 +1,14 @@
 # 文档与代码图谱（DOC-GRAPH）
 
 > **自动生成，请勿手改**：`node scripts/doc-graph.mjs`（校验：`node scripts/doc-graph.mjs --check`）
-> 生成时间：2026-09-11T18:55:05.743Z
+> 生成时间：2026-09-11T19:48:24.181Z
 >
 > **更新时机（随项目进展）**：
 > 1. 任一 `*.md` 或代码文件增删改后 → `npm run graph:sync`（代码图谱增量重建）+ `npm run graph:docs`（本文件重生成）；
 > 2. 每个里程碑（M1–M4）收尾必须执行一次，并把 `--check` 纳入交付前检查；
 > 3. `--check` 发现 broken-doc-link / missing-code-ref 时以非零码退出，作为质量门。
 
-## 1. 文档清单（28 份 / 55 个代码与配置文件）
+## 1. 文档清单（28 份 / 93 个代码与配置文件）
 
 | 文档 | 标题 | 版本 | 行数 | 二级标题数 | 代码引用数 |
 |---|---|---|---|---|---|
@@ -24,8 +24,8 @@
 | `docs/06-test-plan.md` | 06 · 测试方案（单测矩阵 + E2E） | — | 128 | 8 | 36 |
 | `docs/07-implementation-plan.md` | 07 · 实现计划（任务分解与完成判据） | — | 87 | 7 | 39 |
 | `docs/08-security.md` | 08 · 安全与威胁模型 | — | 73 | 6 | 1 |
-| `docs/CHANGELOG.md` | 变更记录（CHANGELOG） | v3.0 | 275 | 12 | 0 |
-| `docs/DOC-GRAPH.md` | 文档与代码图谱（DOC-GRAPH） | — | 310 | 6 | 210 |
+| `docs/CHANGELOG.md` | 变更记录（CHANGELOG） | v3.0 | 299 | 13 | 0 |
+| `docs/DOC-GRAPH.md` | 文档与代码图谱（DOC-GRAPH） | — | 304 | 6 | 204 |
 | `docs/REVIEW-v3.0.md` | 详细设计 v3.0 评审报告（Review of v3.0 → 修正为 v3.1） | v3.0 | 68 | 5 | 0 |
 | `docs/research/01-dsh-plugin-authoring.md` | 01 — Writing, building, installing and testing a THIRD-PARTY DSH plugin (host half + browser/client half) | — | 1137 | 18 | 0 |
 | `docs/research/02-dsh-client-composer-attach.md` | 02 — DSH Web GUI 客户端插件「插入 composer 内容 + 附件 + 上下文 chip」seam 调研 | — | 1446 | 22 | 0 |
@@ -39,7 +39,7 @@
 | `docs/reviews/probe-keepalive.md` | M0a 探针报告 · 空闲 WebSocket 保活（probe-keepalive / Q8） | — | 29 | 4 | 0 |
 | `docs/reviews/probe-permission.md` | M0a 探针报告 · 权限实验（probe-permission） | — | 35 | 5 | 0 |
 | `scripts/review-prompts/design-adversarial.md` | scripts/review-prompts/design-adversarial.md | — | 27 | 4 | 0 |
-| `详细设计文档.md` | DSH Web Companion · 详细设计规范说明书 | v3.9 | 814 | 16 | 22 |
+| `详细设计文档.md` | DSH Web Companion · 详细设计规范说明书 | v3.10 | 814 | 16 | 22 |
 
 ## 2. 文档 ↔ 代码 覆盖矩阵
 
@@ -47,7 +47,7 @@
 |---|---|---|
 | `extension/` | Chrome MV3 扩展（side panel / service worker / content script） | `docs/01-protocol.md` `docs/06-test-plan.md` `docs/DOC-GRAPH.md` `详细设计文档.md` |
 | `dsh-plugin/` | DSH 进程内插件（host 桥接 + client composer 注入） | `docs/01-protocol.md` `docs/DOC-GRAPH.md` `详细设计文档.md` |
-| `native-host/` | native messaging 宿主（拉起 dsh web，M2） | `docs/01-protocol.md` `docs/DOC-GRAPH.md` |
+| `native-host/` | native messaging 宿主（拉起 dsh web，M2） | `docs/01-protocol.md` |
 | `protocol/` | 单源消息 schema + codegen | `docs/01-protocol.md` `docs/06-test-plan.md` `docs/DOC-GRAPH.md` `详细设计文档.md` |
 | `scripts/` | 安装 / 配对 / 工具脚本 | `docs/05-native-host.md` `docs/06-test-plan.md` `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` `scripts/review-prompts/design-adversarial.md` `详细设计文档.md` |
 | `tests/e2e/` | E2E harness 与用例 | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
@@ -85,15 +85,11 @@ flowchart LR
 | `extension/src/content/extract.fn.js` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
 | `extension/src/content/markdown.js` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
 | `extension/src/lib/cookie.js` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
-| `extension/src/lib/protocol.generated.js` | `docs/01-protocol.md` `docs/DOC-GRAPH.md` |
 | `extension/src/sw/agent-bridge.js` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
 | `extension/src/sw/attach-sender.js` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
 | `extension/src/sw/capture.js` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
 | `extension/src/sw/native-host.js` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
 | `extension/tests/unit/markdown.test.js` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
-| `native-host/protocol.generated.mjs` | `docs/01-protocol.md` `docs/DOC-GRAPH.md` |
-| `protocol/codegen.mjs` | `docs/01-protocol.md` `docs/DOC-GRAPH.md` `详细设计文档.md` |
-| `protocol/messages.schema.json` | `docs/01-protocol.md` `docs/DOC-GRAPH.md` `详细设计文档.md` |
 | `protocol/tests/sync.test.mjs` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
 | `scripts/install-plugin.mjs` | `docs/DOC-GRAPH.md` |
 | `scripts/setup.mjs` | `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` |
@@ -173,7 +169,6 @@ flowchart LR
 | `chip.test.tsx` | `docs/04-client-plugin.md` `docs/DOC-GRAPH.md` |
 | `chip.tsx` | `docs/04-client-plugin.md` `docs/DOC-GRAPH.md` |
 | `click.js` | `docs/02-extension.md` `docs/DOC-GRAPH.md` |
-| `codegen.mjs` | `docs/01-protocol.md` `docs/DOC-GRAPH.md` |
 | `composer-insert.test.ts` | `docs/04-client-plugin.md` `docs/DOC-GRAPH.md` |
 | `composer-insert.ts` | `docs/04-client-plugin.md` `docs/DOC-GRAPH.md` |
 | `config.test.ts` | `docs/03-bridge-plugin.md` `docs/DOC-GRAPH.md` |
@@ -206,7 +201,6 @@ flowchart LR
 | `launcher.test.mjs` | `docs/05-native-host.md` `docs/DOC-GRAPH.md` |
 | `lib/cookie.js` | `docs/02-extension.md` `docs/DOC-GRAPH.md` |
 | `lib/index.js` | `docs/DOC-GRAPH.md` |
-| `lib/protocol.generated.js` | `docs/02-extension.md` `docs/DOC-GRAPH.md` |
 | `lib/types/client/index.js` | `docs/DOC-GRAPH.md` |
 | `lib/types/invariant.js` | `docs/DOC-GRAPH.md` |
 | `log.ts` | `docs/08-security.md` `docs/DOC-GRAPH.md` |

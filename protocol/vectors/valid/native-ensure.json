@@ -1,0 +1,9 @@
+{
+  "id": "n-1",
+  "cmd": "ensure-dsh",
+  "args": {
+    "profile": "web",
+    "port": 3080,
+    "timeoutMs": 20000
+  }
+}

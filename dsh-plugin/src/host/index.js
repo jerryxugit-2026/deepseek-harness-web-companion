@@ -10,6 +10,7 @@
  * Later milestones add `/ag/attach`, `/ag/pending`, `/ag/ack` and the two
  * WebSocket channels (`/ag/agent`, `/ag/client`) — see docs/03-bridge-plugin.md.
  */
+import { CHANNEL, PROTOCOL_VERSION, ROUTE, validateAs } from '../shared/protocol.generated.js'
 import { companionPath, dshHome } from './paths.js'
 import { loadCompanionKey } from './key-store.js'
 import { createGuard } from './guard.js'
@@ -23,7 +24,7 @@ import { probePageRoute } from './routes/probe-page.js'
 export const name = 'dsh-web-companion-bridge'
 export const inject = ['webServer', 'credentials']
 
-export const PROTOCOL_VERSION = 1
+export { PROTOCOL_VERSION }
 export const PLUGIN_VERSION = '0.1.0'
 
 /** How long a loaded pairing file is trusted before it is re-read. */
@@ -85,11 +86,11 @@ export function apply(ctx, config = {}) {
   ctx.effect(
     () => ctx.webServer.register({
       kind: 'exact',
-      path: '/ag/ping',
+      path: ROUTE.ping,
       // also refresh: the pairing file can be (re)written after this process booted
       handler: withPairing(pingRoute({ state, protocolVersion: PROTOCOL_VERSION })),
     }),
-    'dsh-web-companion-bridge: GET /ag/ping',
+    `dsh-web-companion-bridge: GET ${ROUTE.ping}`,
   )
 
   // M0a measurement endpoints: they report what the browser actually sent
@@ -97,15 +98,15 @@ export function apply(ctx, config = {}) {
   ctx.effect(
     () => ctx.webServer.register({
       kind: 'exact',
-      path: '/ag/whoami',
+      path: ROUTE.whoami,
       handler: withPairing(whoamiRoute({ state })),
     }),
-    'dsh-web-companion-bridge: GET /ag/whoami',
+    `dsh-web-companion-bridge: GET ${ROUTE.whoami}`,
   )
 
   ctx.effect(
     () => ctx.webServer.registerUpgrade({
-      path: '/ag/wsecho',
+      path: ROUTE.whoami.replace('/whoami', '/wsecho'),
       handler: registerWsEcho(),
     }),
     'dsh-web-companion-bridge: WS /ag/wsecho',
@@ -114,15 +115,15 @@ export function apply(ctx, config = {}) {
   ctx.effect(
     () => ctx.webServer.register({
       kind: 'exact',
-      path: '/ag/probe-page',
+      path: ROUTE.probePage,
       handler: probePageRoute(),
     }),
-    'dsh-web-companion-bridge: GET /ag/probe-page',
+    `dsh-web-companion-bridge: GET ${ROUTE.probePage}`,
   )
 
   ctx.effect(
     () => ctx.webServer.registerUpgrade({
-      path: '/ag/wsprobe',
+      path: ROUTE.whoami.replace('/whoami', '/wsprobe'),
       handler: registerWsProbe({ state }),
     }),
     'dsh-web-companion-bridge: WS /ag/wsprobe',
@@ -131,9 +132,9 @@ export function apply(ctx, config = {}) {
   ctx.effect(
     () => ctx.webServer.register({
       kind: 'exact',
-      path: '/ag/enter',
+      path: ROUTE.enter,
       handler: withPairing(enterRoute({ state, config: resolved })),
     }),
-    'dsh-web-companion-bridge: GET /ag/enter',
+    `dsh-web-companion-bridge: GET ${ROUTE.enter}`,
   )
 }

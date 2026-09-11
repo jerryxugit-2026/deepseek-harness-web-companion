@@ -114,8 +114,8 @@
       "path": "docs/CHANGELOG.md",
       "title": "变更记录（CHANGELOG）",
       "version": "v3.0",
-      "lines": 275,
-      "sections": 12,
+      "lines": 299,
+      "sections": 13,
       "codeRefs": 0,
       "docRefs": 1
     },
@@ -123,9 +123,9 @@
       "path": "docs/DOC-GRAPH.md",
       "title": "文档与代码图谱（DOC-GRAPH）",
       "version": null,
-      "lines": 310,
+      "lines": 304,
       "sections": 6,
-      "codeRefs": 210,
+      "codeRefs": 204,
       "docRefs": 0
     },
     {
@@ -248,7 +248,7 @@
     {
       "path": "详细设计文档.md",
       "title": "DSH Web Companion · 详细设计规范说明书",
-      "version": "v3.9",
+      "version": "v3.10",
       "lines": 814,
       "sections": 16,
       "codeRefs": 22,
@@ -256,7 +256,7 @@
     }
   ],
   "code": {
-    "indexedFiles": 55,
+    "indexedFiles": 93,
     "areas": {
       "extension": [
         "docs/01-protocol.md",
@@ -270,8 +270,7 @@
         "详细设计文档.md"
       ],
       "native-host": [
-        "docs/01-protocol.md",
-        "docs/DOC-GRAPH.md"
+        "docs/01-protocol.md"
       ],
       "protocol": [
         "docs/01-protocol.md",
@@ -303,22 +302,6 @@
       {
         "doc": "docs/01-protocol.md",
         "ref": "dsh-plugin/src/shared/protocol.generated.ts"
-      },
-      {
-        "doc": "docs/01-protocol.md",
-        "ref": "extension/src/lib/protocol.generated.js"
-      },
-      {
-        "doc": "docs/01-protocol.md",
-        "ref": "native-host/protocol.generated.mjs"
-      },
-      {
-        "doc": "docs/01-protocol.md",
-        "ref": "protocol/codegen.mjs"
-      },
-      {
-        "doc": "docs/01-protocol.md",
-        "ref": "protocol/messages.schema.json"
       },
       {
         "doc": "docs/06-test-plan.md",
@@ -386,10 +369,6 @@
       },
       {
         "doc": "docs/DOC-GRAPH.md",
-        "ref": "extension/src/lib/protocol.generated.js"
-      },
-      {
-        "doc": "docs/DOC-GRAPH.md",
         "ref": "extension/src/sw/agent-bridge.js"
       },
       {
@@ -410,18 +389,6 @@
       },
       {
         "doc": "docs/DOC-GRAPH.md",
-        "ref": "native-host/protocol.generated.mjs"
-      },
-      {
-        "doc": "docs/DOC-GRAPH.md",
-        "ref": "protocol/codegen.mjs"
-      },
-      {
-        "doc": "docs/DOC-GRAPH.md",
-        "ref": "protocol/messages.schema.json"
-      },
-      {
-        "doc": "docs/DOC-GRAPH.md",
         "ref": "protocol/tests/sync.test.mjs"
       },
       {
@@ -439,21 +406,9 @@
       {
         "doc": "docs/DOC-GRAPH.md",
         "ref": "tests/e2e/out/report.json"
-      },
-      {
-        "doc": "详细设计文档.md",
-        "ref": "protocol/codegen.mjs"
-      },
-      {
-        "doc": "详细设计文档.md",
-        "ref": "protocol/messages.schema.json"
       }
     ],
     "bare": [
-      {
-        "doc": "docs/01-protocol.md",
-        "ref": "codegen.mjs"
-      },
       {
         "doc": "docs/02-extension.md",
         "ref": "agent-bridge.test.js"
@@ -501,10 +456,6 @@
       {
         "doc": "docs/02-extension.md",
         "ref": "lib/cookie.js"
-      },
-      {
-        "doc": "docs/02-extension.md",
-        "ref": "lib/protocol.generated.js"
       },
       {
         "doc": "docs/02-extension.md",
@@ -1236,10 +1187,6 @@
       },
       {
         "doc": "docs/DOC-GRAPH.md",
-        "ref": "codegen.mjs"
-      },
-      {
-        "doc": "docs/DOC-GRAPH.md",
         "ref": "composer-insert.test.ts"
       },
       {
@@ -1365,10 +1312,6 @@
       {
         "doc": "docs/DOC-GRAPH.md",
         "ref": "lib/index.js"
-      },
-      {
-        "doc": "docs/DOC-GRAPH.md",
-        "ref": "lib/protocol.generated.js"
       },
       {
         "doc": "docs/DOC-GRAPH.md",

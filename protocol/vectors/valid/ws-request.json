@@ -1,0 +1,10 @@
+{
+  "type": "request",
+  "id": "r-1",
+  "protocolVersion": 1,
+  "op": "click",
+  "args": {
+    "selector": "#go"
+  },
+  "deadline": 1789152000000
+}

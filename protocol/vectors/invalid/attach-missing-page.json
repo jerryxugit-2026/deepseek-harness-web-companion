@@ -1,0 +1,8 @@
+{
+  "protocolVersion": 1,
+  "captureId": "c",
+  "trigger": "button",
+  "content": {
+    "markdown": "x"
+  }
+}

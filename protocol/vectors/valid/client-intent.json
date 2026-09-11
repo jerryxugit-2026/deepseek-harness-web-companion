@@ -1,0 +1,9 @@
+{
+  "type": "intent",
+  "protocolVersion": 1,
+  "kind": "look-left",
+  "sessionId": "session-1",
+  "draft": "看左边，总结要点",
+  "trigger": "keyword",
+  "at": 1
+}

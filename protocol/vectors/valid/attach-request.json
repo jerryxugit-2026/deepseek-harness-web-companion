@@ -1,0 +1,32 @@
+{
+  "protocolVersion": 1,
+  "captureId": "01J7Z0ABCD1234",
+  "trigger": "look_left",
+  "page": {
+    "title": "React 19",
+    "url": "https://react.dev/blog",
+    "domain": "react.dev",
+    "capturedAt": 1789152000000,
+    "hasVideo": false
+  },
+  "content": {
+    "markdown": "# React 19\n\n正文",
+    "truncated": false,
+    "selection": {
+      "text": "重点段落",
+      "selectorHint": "article > p:nth-child(2)"
+    }
+  },
+  "media": {
+    "screenshot": {
+      "mime": "image/png",
+      "base64": "iVBORw0KGgo=",
+      "width": 1280,
+      "height": 800,
+      "bytes": 348211
+    }
+  },
+  "target": {
+    "workspace": "/Users/mac/ai_tools/dsh project"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "type": "hello",
+  "protocolVersion": 1,
+  "extVersion": "0.1.0",
+  "sessionId": "session-1",
+  "workspace": "/w",
+  "capabilities": [
+    "read",
+    "click"
+  ]
+}
