@@ -54,6 +54,18 @@ export function createGuard(pairing) {
     return typeof origin === 'string' && origins.has(origin)
   }
 
+  /**
+   * Form F4 (design §5.4): the DSH page's own client half. A same-origin
+   * request from that page may carry NO `Origin` header at all, so accept either
+   * an absent Origin or one naming this server's own authority — plus the key.
+   */
+  const sameOriginOk = (req) => {
+    const origin = req.headers.origin
+    if (origin === undefined) return true
+    const host = req.headers.host
+    return typeof host === 'string' && origin === `http://${host}`
+  }
+
   return {
     /** Whether the pairing file is complete enough to serve anything. */
     configured: key !== undefined && key.length > 0 && origins.size > 0,
@@ -66,5 +78,8 @@ export function createGuard(pairing) {
 
     /** WebSocket handshake: key and origin. */
     checkUpgrade: (req) => keyOk(req) && originOk(req),
+
+    /** Client-half channel/endpoints: key plus F4 (same-origin, or the extension). */
+    checkClient: (req) => keyOk(req) && (originOk(req) || sameOriginOk(req)),
   }
 }

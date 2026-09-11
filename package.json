@@ -22,10 +22,12 @@
     "protocol:codegen": "node protocol/codegen.mjs",
     "protocol:check": "node protocol/codegen.mjs --check",
     "test:protocol": "node tests/protocol/contract.test.mjs",
-    "check:strict": "npm run protocol:check && npm run graph:sync && npm run graph:check && npm run check:consistency && npm run test:protocol"
+    "check:strict": "npm run protocol:check && npm run graph:sync && npm run graph:check && npm run check:consistency && npm run test:protocol",
+    "probe:attach": "node tests/m0b/attach-probe.mjs"
   },
   "devDependencies": {
-    "@colbymchenry/codegraph": "^1.6.0"
+    "@colbymchenry/codegraph": "^1.6.0",
+    "ws": "^8.21.3"
   },
   "dsh": {
     "note": "This repository hosts three deliverables: extension/ (Chrome MV3), dsh-plugin/ (DSH cordis plugin), native-host/ (native messaging host, M2)."

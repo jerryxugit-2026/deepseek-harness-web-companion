@@ -20,6 +20,9 @@ import { whoamiRoute } from './routes/whoami.js'
 import { registerWsProbe } from './routes/ws-probe.js'
 import { registerWsEcho } from './routes/ws-echo.js'
 import { probePageRoute } from './routes/probe-page.js'
+import { ackRoute, attachRoute, pendingRoute } from './routes/attach.js'
+import { createStore } from './store.js'
+import { createHub } from './hub.js'
 
 export const name = 'dsh-web-companion-bridge'
 export const inject = ['webServer', 'credentials']
@@ -39,7 +42,15 @@ export function apply(ctx, config = {}) {
     cookieMaxAgeDays: config.cookieMaxAgeDays ?? 30,
     cookieMode: config.cookieMode ?? 'none-secure',
     keyFile: config.keyFile ?? companionPath(),
+    attachDir: config.attachDir ?? '网页捕获',
+    attachMaxBytes: config.attachMaxBytes ?? 8 * 1024 * 1024,
+    pendingLimit: config.pendingLimit ?? 32,
+    defaultWorkspace: config.defaultWorkspace,
   }
+
+  const recent = { captures: [], acks: [] }
+  const store = createStore(resolved)
+  const hub = createHub({ log: (line) => ctx.logger?.info?.(`[dsh-web-companion-bridge] ${line}`) })
 
   let pairing = { key: undefined, extensionOrigins: [], source: resolved.keyFile, error: undefined }
   let loadedAt = 0
@@ -56,6 +67,17 @@ export function apply(ctx, config = {}) {
 
   const state = {
     pluginVersion: PLUGIN_VERSION,
+    recordCapture: (event, delivered) => {
+      recent.captures.push({ captureId: event.captureId, fileRef: event.fileRef, delivered, at: Date.now() })
+      if (recent.captures.length > 50) recent.captures.shift()
+      ctx.logger?.info?.(`[dsh-web-companion-bridge] capture ${event.captureId} → ${event.fileRef} (delivered=${String(delivered)})`)
+    },
+    recordAck: (payload) => {
+      recent.acks.push({ ...payload, at: Date.now() })
+      if (recent.acks.length > 50) recent.acks.shift()
+      ctx.logger?.info?.(`[dsh-web-companion-bridge] ack ${payload.captureId} = ${payload.status}`)
+    },
+    recent,
     pairing: () => pairing,
     guard: () => guard,
     credentials: ctx.credentials,
@@ -111,6 +133,51 @@ export function apply(ctx, config = {}) {
     }),
     'dsh-web-companion-bridge: WS /ag/wsecho',
   )
+
+  // --- context channel: captures land on disk, then get pushed ---
+  ctx.effect(
+    () => ctx.webServer.registerUpgrade({
+      path: CHANNEL.client,
+      handler: (req, socket, head) => {
+        if (!state.guard().checkClient(req)) {
+          socket.write('HTTP/1.1 403 Forbidden\r\n\r\n')
+          socket.destroy()
+          return
+        }
+        hub.upgradeClient(req, socket, head)
+      },
+    }),
+    `dsh-web-companion-bridge: WS ${CHANNEL.client}`,
+  )
+
+  ctx.effect(
+    () => ctx.webServer.register({
+      kind: 'exact',
+      path: ROUTE.attach,
+      handler: withPairing(attachRoute({ state, store, hub, config: resolved })),
+    }),
+    `dsh-web-companion-bridge: POST ${ROUTE.attach}`,
+  )
+
+  ctx.effect(
+    () => ctx.webServer.register({
+      kind: 'exact',
+      path: ROUTE.pending,
+      handler: withPairing(pendingRoute({ state, store })),
+    }),
+    `dsh-web-companion-bridge: GET ${ROUTE.pending}`,
+  )
+
+  ctx.effect(
+    () => ctx.webServer.register({
+      kind: 'exact',
+      path: ROUTE.ack,
+      handler: withPairing(ackRoute({ state })),
+    }),
+    `dsh-web-companion-bridge: POST ${ROUTE.ack}`,
+  )
+
+  ctx.effect(() => () => hub.dispose(), 'dsh-web-companion-bridge: hub dispose')
 
   ctx.effect(
     () => ctx.webServer.register({

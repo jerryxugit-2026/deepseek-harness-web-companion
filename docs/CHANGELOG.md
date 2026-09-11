@@ -5,7 +5,37 @@
 
 ---
 
-## v3.10 — 2026-09-11（当前）
+## v3.11 — 2026-09-11（当前）
+
+**触发**：M0b 上下文通道落地——`/ag/attach` 落盘 + `WS /ag/client` 推送 + `/ag/pending` / `/ag/ack`，并用探针逐项取证。
+
+### 交付
+
+| 组件 | 说明 |
+|---|---|
+| `dsh-plugin/src/host/store.js` | 原子落盘（tmp→rename）：`<workspace>/网页捕获/<yyyy-MM-dd-HHmm>-<slug>-<id6>.md`，YAML front-matter（captureId/title/url/domain/capturedAt/trigger/source/screenshot/truncated）+ 用户选区引用块 + 正文；另含离线 pending 队列（上限 32） |
+| `dsh-plugin/src/host/hub.js` | WebSocket hub：`/ag/client`（client 半）与 `/ag/agent`（扩展，M3）分离；20s 心跳 / 30s 判离线；`push()` 广播并返回投递数 |
+| `dsh-plugin/src/host/routes/attach.js` | `POST /ag/attach`（先落盘后推送，推送失败入队）、`GET /ag/pending`（`?peek=1` 只看不取）、`POST /ag/ack`（幂等） |
+| `guard.checkClient` | 新增 F4 判定：key +（同源 Origin **或** Origin 缺失）→ 覆盖 DSH 页面自身的 client 半 |
+
+### 探针取证（`tests/m0b/attach-probe.mjs` → `docs/reviews/probe-attach.json`）
+
+| 断言 | 结果 |
+|---|---|
+| WS `/ag/client` 建连（F4） | ✅ `wsOpen: true` |
+| `POST /ag/attach` 落盘 | ✅ 200；文件**真实存在**；front-matter 五项齐全、含选区块与正文（21 行），文件快照 sha256 已记录 |
+| **推送而非拉取** | ✅ 已连接 client **收到 1 条 `attach` 事件**（含 `fileRef`、`mode: selection+page`、内联图片、summary） |
+| `POST /ag/ack` | ✅ 200 |
+| **离线队列** | ✅ 无 client 时 `deliveredTo: []`；`/ag/pending?peek=1` → 1；drain → 1；再 peek → 0（取出即消费） |
+| 鉴权与校验 | ✅ 无 key 403、错 key 403、仅扩展 Origin 无 key 403、schema 拒绝 400、超限 413 |
+
+### 依赖
+
+根 `package.json` 增加 `ws` devDependency（探针与 hub 都需要；此前只有 `dsh-plugin/node_modules` 里的软链）。
+
+---
+
+## v3.10 — 2026-09-11
 
 **触发**：M1 第①项落地——协议单源 schema + codegen + 契约测试（ADR-9）。
 

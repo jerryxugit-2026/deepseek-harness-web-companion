@@ -1,0 +1,53 @@
+{
+  "probe": "m0b-attach",
+  "dshPort": "3099",
+  "workspace": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a",
+  "results": {
+    "wsOpen": true,
+    "attachStatus": 200,
+    "attachBody": {
+      "ok": true,
+      "captureId": "M0B-PROBE-A",
+      "fileRef": "@网页捕获/2026-09-11-1550-m0b-probe-page-a-ROBE-A.md",
+      "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-11-1550-m0b-probe-page-a-ROBE-A.md",
+      "deliveredTo": [
+        "client:1"
+      ]
+    },
+    "fileExists": true,
+    "frontMatter": {
+      "hasCaptureId": true,
+      "hasUrl": true,
+      "hasTrigger": true,
+      "hasSelectionBlock": true,
+      "hasBody": true,
+      "lines": 21,
+      "snapshotSha256": "13959b7c574e188c"
+    },
+    "pushedEvents": 1,
+    "pushedEventSummary": {
+      "type": "attach",
+      "captureId": "M0B-PROBE-A",
+      "fileRef": "@网页捕获/2026-09-11-1550-m0b-probe-page-a-ROBE-A.md",
+      "mode": "selection+page",
+      "hasImage": true,
+      "summary": {
+        "chars": 32,
+        "truncated": false,
+        "hasSelection": true,
+        "bytes": 366
+      }
+    },
+    "ackStatus": 200,
+    "offlineAttachStatus": 200,
+    "offlineDeliveredTo": [],
+    "pendingPeekCount": 1,
+    "pendingDrainCount": 1,
+    "pendingAfterDrain": 0,
+    "noKey": 403,
+    "wrongKey": 403,
+    "extensionOriginWithoutKey": 403,
+    "schemaRejected": 400,
+    "oversize": 413
+  }
+}
