@@ -5,7 +5,37 @@
 
 ---
 
-## v3.17 — 2026-09-11（当前）
+## v3.18 — 2026-09-11（当前）
+
+**触发**：M2 自动拉起（H4①）——native messaging host 落地。
+
+### 交付
+
+| 组件 | 说明 |
+|---|---|
+| `native-host/launcher.mjs` | 端口探测 → `spawn dsh web --no-open --port <p>`（detached, stdout 管道）→ 解析 `dsh web: <url>` 行拿 token → 写 `$DSH_HOME/web-companion-dsh.json`(0600)；`status`/`stop-dsh` 依据该文件 |
+| `native-host/host.mjs` | stdio 帧循环（4 字节小端长度 + JSON，host→Chrome 上限 1MB）；命令 `ensure-dsh` / `status` / `stop-dsh` / `get-info`；stdout 只走帧，日志写文件 |
+| `native-host/install.mjs` | 写 Chrome 的 `NativeMessagingHosts/com.dsh.web_companion.json`（含 `allowed_origins` 用**从扩展公钥推导**的钉死 ID）+ 生成 `run-host.sh`；支持 `--print` / `--uninstall` |
+| 扩展 `src/sw/native-host.js` | `connectNative` 封装：**短连接**（一次命令一次连接即断，避免常驻端口把 SW 钉住）；错误映射 `E_NATIVE_MISSING` / `E_TIMEOUT` |
+| 扩展 `dsh-session.js` | `/ag/ping` 失败 → 请 native host 拉起 → 轮询重探（≤10s）；未安装 host 时给出可执行提示；state 带 `autoStarted` |
+| `manifest.json` | 补 **`nativeMessaging`** 权限（此前缺失 → `connectNative is not a function`） |
+
+### 已实测
+
+| 项 | 结果 |
+|---|---|
+| 帧协议（`get-info` / `status`） | ✅ 经 `run-host.sh` 直接驱动，响应正确 |
+| **真实拉起** | ✅ `ensure-dsh` 在 **3.3s** 内拉起 DSH，返回 `started:true`、pid、**token 长度 43**、URL host 正确；随后 `status` → `running:true`；`stop-dsh` → `stopped:true`，端口释放 |
+| 安装 | ✅ 清单已写入 `~/Library/Application Support/Google/Chrome/NativeMessagingHosts/`，`allowed_origins` = 钉死扩展 ID；`run-host.sh` 可执行且响应正常 |
+| 修掉的真实 bug | `dsh web` 是 `--profile web` 的别名，**不能再传 `--profile`**（原来报 `unknown option '--profile'`）|
+
+### 未闭环（诚实记录）
+
+**Chrome→host 的实际启动**尚未验证：我的测试 Chrome 由本 agent（沙箱内）启动，`connectNative` 返回 `Specified native messaging host not found.`，而同一清单在用户级目录中结构、权限、`allowed_origins` 均与同目录下可用的其它 host 一致，且脚本可被直接 exec 成功。判断为**测试环境限制**（Chrome 子进程受外层沙箱影响），**需要在用户真实 Chrome 中验证**（这才是决定性实验）。
+
+---
+
+## v3.17 — 2026-09-11
 
 **触发**：用户实测首次抓取失败 —— `Cannot access contents of url "https://bailian.console.aliyun.com/…". Extension manifest must request permission to access this host`。
 这正是 M0a 权限实验预警的那条限制（`activeTab` 只在"用户点扩展那一刻"对当前标签页生效）。本轮把它按设计 §9 方案③ 落地为**一次性授权引导**。

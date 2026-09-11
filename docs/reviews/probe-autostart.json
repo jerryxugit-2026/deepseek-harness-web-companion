@@ -1,0 +1,16 @@
+{
+  "probe": "m2-autostart",
+  "port": "3096",
+  "results": {
+    "dshListeningBefore": false,
+    "nativeHostReply": {
+      "disconnected": "Specified native messaging host not found."
+    },
+    "panelStatus": {
+      "state": "down",
+      "text": "DSH 未连接"
+    },
+    "dshListeningAfter": false,
+    "pingAfter": null
+  }
+}

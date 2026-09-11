@@ -114,8 +114,8 @@
       "path": "docs/CHANGELOG.md",
       "title": "变更记录（CHANGELOG）",
       "version": "v3.0",
-      "lines": 496,
-      "sections": 21,
+      "lines": 526,
+      "sections": 22,
       "codeRefs": 0,
       "docRefs": 1
     },
@@ -123,9 +123,9 @@
       "path": "docs/DOC-GRAPH.md",
       "title": "文档与代码图谱（DOC-GRAPH）",
       "version": null,
-      "lines": 296,
+      "lines": 291,
       "sections": 6,
-      "codeRefs": 195,
+      "codeRefs": 190,
       "docRefs": 0
     },
     {
@@ -257,7 +257,7 @@
     {
       "path": "详细设计文档.md",
       "title": "DSH Web Companion · 详细设计规范说明书",
-      "version": "v3.17",
+      "version": "v3.18",
       "lines": 814,
       "sections": 16,
       "codeRefs": 22,
@@ -265,7 +265,7 @@
     }
   ],
   "code": {
-    "indexedFiles": 116,
+    "indexedFiles": 124,
     "areas": {
       "extension": [
         "docs/01-protocol.md",
@@ -326,10 +326,6 @@
       },
       {
         "doc": "docs/06-test-plan.md",
-        "ref": "extension/src/sw/native-host.js"
-      },
-      {
-        "doc": "docs/06-test-plan.md",
         "ref": "extension/tests/unit/markdown.test.js"
       },
       {
@@ -363,10 +359,6 @@
       {
         "doc": "docs/DOC-GRAPH.md",
         "ref": "extension/src/sw/agent-bridge.js"
-      },
-      {
-        "doc": "docs/DOC-GRAPH.md",
-        "ref": "extension/src/sw/native-host.js"
       },
       {
         "doc": "docs/DOC-GRAPH.md",
@@ -444,10 +436,6 @@
       },
       {
         "doc": "docs/02-extension.md",
-        "ref": "native-host.js"
-      },
-      {
-        "doc": "docs/02-extension.md",
         "ref": "native-host.test.js"
       },
       {
@@ -473,10 +461,6 @@
       {
         "doc": "docs/02-extension.md",
         "ref": "src/sw/agent-bridge.js"
-      },
-      {
-        "doc": "docs/02-extension.md",
-        "ref": "src/sw/native-host.js"
       },
       {
         "doc": "docs/02-extension.md",
@@ -624,15 +608,7 @@
       },
       {
         "doc": "docs/05-native-host.md",
-        "ref": "install.mjs"
-      },
-      {
-        "doc": "docs/05-native-host.md",
         "ref": "install.test.mjs"
-      },
-      {
-        "doc": "docs/05-native-host.md",
-        "ref": "launcher.mjs"
       },
       {
         "doc": "docs/05-native-host.md",
@@ -1240,19 +1216,11 @@
       },
       {
         "doc": "docs/DOC-GRAPH.md",
-        "ref": "install.mjs"
-      },
-      {
-        "doc": "docs/DOC-GRAPH.md",
         "ref": "install.test.mjs"
       },
       {
         "doc": "docs/DOC-GRAPH.md",
         "ref": "intent-sniff.ts"
-      },
-      {
-        "doc": "docs/DOC-GRAPH.md",
-        "ref": "launcher.mjs"
       },
       {
         "doc": "docs/DOC-GRAPH.md",
@@ -1289,10 +1257,6 @@
       {
         "doc": "docs/DOC-GRAPH.md",
         "ref": "media.ts"
-      },
-      {
-        "doc": "docs/DOC-GRAPH.md",
-        "ref": "native-host.js"
       },
       {
         "doc": "docs/DOC-GRAPH.md",
@@ -1449,10 +1413,6 @@
       {
         "doc": "docs/DOC-GRAPH.md",
         "ref": "src/sw/agent-bridge.js"
-      },
-      {
-        "doc": "docs/DOC-GRAPH.md",
-        "ref": "src/sw/native-host.js"
       },
       {
         "doc": "docs/DOC-GRAPH.md",

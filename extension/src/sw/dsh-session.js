@@ -12,6 +12,7 @@
 import { fetchWithTimeout, fail, ok } from '../lib/result.js'
 import { PROTOCOL_VERSION, validateAs } from '../lib/protocol.generated.js'
 import { DEV_CONFIG } from '../lib/dev-config.js'
+import { ensureDsh as nativeEnsureDsh } from './native-host.js'
 
 const DEV_KEY = DEV_CONFIG.key
 import { dshOrigin, dshPort, enterUrl, enterUrlWithTicket, isPaired, pingUrl, ticketUrl } from '../lib/urls.js'
@@ -62,9 +63,34 @@ function TICKET_KEY() {
  * @returns {Promise<{ ok: boolean, url?: string, state: object, error?: object }>}
  */
 export async function ensureReady() {
-  const ping = await probe()
+  let ping = await probe()
+  let started = false
+  let nativeNote
   if (!ping.ok) {
-    return { ok: false, state: { dsh: 'down' }, error: { code: 'E_DSH_DOWN', message: `DSH is not reachable at ${dshOrigin()}` } }
+    // Not listening → ask the native host to start `dsh web`, then probe again.
+    const started_ = await nativeEnsureDsh({ port: dshPort(), timeoutMs: 25000 })
+    if (started_.ok) {
+      started = started_.value?.started === true
+      nativeNote = started_?.value
+      for (let i = 0; i < 20 && !ping.ok; i += 1) {
+        await new Promise((r) => { setTimeout(r, 500) })
+        ping = await probe(1500)
+      }
+    } else {
+      return {
+        ok: false,
+        state: { dsh: 'down', native: started_.error.code },
+        error: {
+          code: started_.error.code === 'E_NATIVE_MISSING' ? 'E_NATIVE_MISSING' : 'E_DSH_DOWN',
+          message: started_.error.code === 'E_NATIVE_MISSING'
+            ? 'DSH 未运行，且未安装 native host。请先运行：node native-host/install.mjs，或手动启动 dsh web。'
+            : `DSH 未运行且自动拉起失败：${started_.error.message}`,
+        },
+      }
+    }
+    if (!ping.ok) {
+      return { ok: false, state: { dsh: 'down', native: nativeNote }, error: { code: 'E_DSH_DOWN', message: `DSH 未能就绪：${dshOrigin()}` } }
+    }
   }
   const info = ping.value
   if (info.protocolVersion !== PROTOCOL_VERSION) {
@@ -86,7 +112,7 @@ export async function ensureReady() {
     return {
       ok: true,
       url: enterUrlWithTicket(ticket.value.ticket),
-      state: { dsh: 'up', port: dshPort(), plugin: info, handshake: 'ticket', ticketExpiresAt: ticket.value.expiresAt },
+      state: { dsh: 'up', port: dshPort(), plugin: info, handshake: 'ticket', ticketExpiresAt: ticket.value.expiresAt, autoStarted: started },
     }
   }
   return {
