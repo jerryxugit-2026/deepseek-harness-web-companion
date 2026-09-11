@@ -5,7 +5,37 @@
 
 ---
 
-## v3.20 — 2026-09-11（当前）
+## v3.21 — 2026-09-11（当前）
+
+**触发**：用户提出"attach 应默认新开会话"（同意并实现）。
+
+### 交付
+
+| 组件 | 说明 |
+|---|---|
+| 协议 | `ClientAttachEvent` 增加 `sessionMode`（`new` / `current`）；codegen 三端同步 |
+| 插件 | 配置 `attachSessionMode`（**默认 `new`**），随 attach 事件下发 |
+| client 半 | `openFreshSession()`：把**页面上报的 cwd** 匹配到工作区注册表拿 **workspaceId**（不是路径）→ `sessions.create({workspaceId})` → `sessions.open(id)` 尝试跳转；插入与胶囊都落在**新会话**；胶囊带 `data-session-mode` |
+| 探针 | `tests/m2/capture-probe.mjs` 增加会话断言，并**自带端口隔离**（临时把构建指向探测端口 + 收尾恢复），避免再往真实工作区写测试文件 |
+
+### 实测（`docs/reviews/probe-capture.json`）
+
+| 断言 | 结果 |
+|---|---|
+| 新建了会话 | ✅ `newSessionCreated: true` |
+| **插入目标是新会话** | ✅ `targetIsFreshSession: true`（不在抓取前的会话集合中） |
+| **shell 自动跳到新会话** | ✅ `shellSwitched: true` |
+| 胶囊 / ack | ✅ `status: "inserted"` + ack `inserted` |
+| 抽取质量未回退 | ✅ 噪音四项全 false、正文与 front-matter 保留 |
+
+### 过程中修掉的两个真实缺陷
+
+1. `sessions.create` 需要 **workspaceId（UUID）**，传路径会 `workspace/not-found`（已改为"路径→注册表匹配 id"，并以首个工作区兜底，避免出现"无工作区会话 → composer 惰性"）。**已实测修复**。
+2. 探针此前会把夹具文件写进**用户真实工作区**（因 dev-config 指回 3080）——已改为自带端口隔离 + 收尾恢复，并清理了误写入的文件。
+
+---
+
+## v3.20 — 2026-09-11
 
 **触发**：用户同意"UI 噪音启发式"；实测来自真实站点（ClawHub）的抓取噪声。
 

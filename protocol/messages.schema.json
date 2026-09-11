@@ -614,6 +614,16 @@
         },
         "summary": {
           "type": "object"
+        },
+        "sessionMode": {
+          "type": "string",
+          "enum": [
+            "new",
+            "current"
+          ]
+        },
+        "sessionLabel": {
+          "type": "string"
         }
       }
     },

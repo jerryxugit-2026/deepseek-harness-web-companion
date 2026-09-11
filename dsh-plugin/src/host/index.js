@@ -48,6 +48,7 @@ export function apply(ctx, config = {}) {
     attachMaxBytes: config.attachMaxBytes ?? 8 * 1024 * 1024,
     pendingLimit: config.pendingLimit ?? 32,
     defaultWorkspace: config.defaultWorkspace,
+    attachSessionMode: config.attachSessionMode ?? 'new',
   }
 
   const recent = { captures: [], acks: [] }

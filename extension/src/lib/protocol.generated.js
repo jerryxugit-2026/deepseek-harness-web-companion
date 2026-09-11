@@ -1,14 +1,14 @@
 /**
  * AUTO-GENERATED — do not edit. Source: protocol/messages.schema.json
  * protocolVersion: 1
- * schemaSha256: 9ee6a89ae5f84614ec6ed4a4f9932b1c7e12e552f1be5aed400de8f57404e1bc
+ * schemaSha256: 93e6d4d06b868181c0b2b426b18af13d003d915123cadc35d9a0ceff42aef2a0
  * platform: chrome-extension (ESM)
  * Runtime: browser (Chrome MV3).
  * Regenerate: node protocol/codegen.mjs   Verify: node protocol/codegen.mjs --check
  */
 
 export const PROTOCOL_VERSION = 1
-export const SCHEMA_SHA256 = '9ee6a89ae5f84614ec6ed4a4f9932b1c7e12e552f1be5aed400de8f57404e1bc'
+export const SCHEMA_SHA256 = '93e6d4d06b868181c0b2b426b18af13d003d915123cadc35d9a0ceff42aef2a0'
 export const SCHEMA_ID = 'https://dsh.local/web-companion/messages.schema.json'
 
 /** Message kinds this protocol defines (from the schema's top-level oneOf). */
@@ -740,6 +740,16 @@ export const MESSAGE_SCHEMA = {
         },
         "summary": {
           "type": "object"
+        },
+        "sessionMode": {
+          "type": "string",
+          "enum": [
+            "new",
+            "current"
+          ]
+        },
+        "sessionLabel": {
+          "type": "string"
         }
       }
     },

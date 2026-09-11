@@ -60,6 +60,7 @@ export function attachRoute({ state, store, hub, config, resolveWorkspace }) {
 
     const event = {
       type: 'attach',
+      sessionMode: config.attachSessionMode ?? 'new',
       protocolVersion: payload.protocolVersion,
       captureId: payload.captureId,
       fileRef: written.fileRef,

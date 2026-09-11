@@ -32,6 +32,7 @@ const DSH_PORT = argOf('port', '3099')
 const FIXTURE_PORT = Number(argOf('fixture-port', '3999'))
 const CDP_PORT = Number(argOf('cdp-port', '9232'))
 const OUT_DIR = resolve(ROOT, argOf('out', 'docs/reviews'))
+const DEV_CONFIG = join(ROOT, 'extension', 'src', 'lib', 'dev-config.js')
 const WORKSPACE = resolve(ROOT, argOf('workspace', '.devhome/workspace-m0a'))
 const EXT_DIST = join(ROOT, 'extension', 'dist')
 const EXT_COPY = join(process.env.TMPDIR ?? '/tmp', 'dshwc-capture-ext')
@@ -77,6 +78,22 @@ async function portBusy(port) {
 }
 if (await portBusy(CDP_PORT)) throw new Error(`CDP port ${String(CDP_PORT)} busy — kill the stale Chrome first`)
 
+/**
+ * Isolation: point the BUILT extension at the probe port (default 3099) for the
+ * duration of the run, then restore and rebuild — otherwise a probe run would
+ * write fixture captures into the user's real workspace.
+ */
+const devConfigOriginal = readFileSync(DEV_CONFIG, 'utf8')
+// the probe instance's OWN pairing key (not the real profile's)
+const pairingFile = resolve(ROOT, argOf('pairing', '.devhome/dsh-web-companion.json'))
+const devKey = JSON.parse(readFileSync(pairingFile, 'utf8')).key
+writeFileSync(DEV_CONFIG, `export const DEV_CONFIG = { port: ${DSH_PORT}, key: '${devKey}' }\n`)
+execFileSync(process.execPath, [join(ROOT, 'extension', 'build.mjs')], { stdio: 'ignore' })
+const restoreDevConfig = () => {
+  try { writeFileSync(DEV_CONFIG, devConfigOriginal) } catch { /* ignore */ }
+  try { execFileSync(process.execPath, [join(ROOT, 'extension', 'build.mjs')], { stdio: 'ignore' }) } catch { /* ignore */ }
+}
+
 rmSync(EXT_COPY, { recursive: true, force: true })
 cpSync(EXT_DIST, EXT_COPY, { recursive: true })
 rmSync(PROFILE, { recursive: true, force: true })
@@ -87,6 +104,7 @@ const chromePid = execFileSync('/usr/bin/env', ['bash', '-c',
 const cleanup = () => {
   try { process.kill(Number(chromePid)) } catch { /* gone */ }
   fixtureServer.close()
+  restoreDevConfig()
 }
 process.on('exit', cleanup)
 process.on('uncaughtException', (error) => { console.error('[capture-probe] fatal:', error); cleanup(); process.exit(1) })
@@ -167,6 +185,23 @@ for (let i = 0; i < 30; i += 1) {
 }
 record('dshFrameUrl', frameReady)
 
+console.log('1b. 记录抓取前的会话状态（用于验证"默认新开会话"）')
+const frameEval = async (expression, timeoutMs = 12000) => {
+  const { targetInfos } = await browser.send('Target.getTargets')
+  const iframe = targetInfos.find((t) => t.type === 'iframe' && t.url.startsWith(ORIGIN))
+  if (iframe === undefined) return { error: 'no dsh frame' }
+  const frameSession = (await browser.send('Target.attachToTarget', { targetId: iframe.targetId, flatten: true })).sessionId
+  await browser.send('Runtime.enable', {}, frameSession)
+  const call = browser.send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true }, frameSession)
+  const result = await Promise.race([call, sleep(timeoutMs).then(() => ({ timedOut: true }))])
+  await browser.send('Target.detachFromTarget', { sessionId: frameSession }).catch(() => {})
+  if (result.timedOut === true) return { timedOut: true }
+  if (result.exceptionDetails !== undefined) return { error: String(result.exceptionDetails.text) }
+  return result.result.value
+}
+const sessionsBefore = await frameEval(`JSON.stringify(globalThis.__AG_CLIENT__?.sessions?.() ?? null)`)
+record('sessionsBefore', typeof sessionsBefore === 'string' ? JSON.parse(sessionsBefore) : sessionsBefore)
+
 console.log('2. 让 fixture 页成为活动标签，然后从面板触发抓取')
 await browser.send('Target.activateTarget', { targetId: fixture.targetId })
 await sleep(600)
@@ -229,6 +264,15 @@ for (let i = 0; i < 25; i += 1) {
   await sleep(800)
 }
 record('chipState', chip)
+
+const sessionsAfter = await frameEval(`JSON.stringify(globalThis.__AG_CLIENT__?.sessions?.() ?? null)`)
+record('sessionsAfter', typeof sessionsAfter === 'string' ? JSON.parse(sessionsAfter) : sessionsAfter)
+const before = typeof sessionsBefore === 'string' ? JSON.parse(sessionsBefore) : sessionsBefore
+const after = typeof sessionsAfter === 'string' ? JSON.parse(sessionsAfter) : sessionsAfter
+record('newSessionCreated', (after?.count ?? 0) > (before?.count ?? 0))
+record('targetIsFreshSession', typeof chip?.lastAttach?.sessionId === 'string' && !(before?.ids ?? []).includes(chip.lastAttach.sessionId))
+record('sessionMode', chip?.lastAttach?.sessionMode ?? null)
+record('shellSwitched', chip?.lastAttach?.switched ?? null)
 
 const report = { probe: 'm2-capture', dshPort: DSH_PORT, workspace: WORKSPACE, extensionId: extId, results }
 writeFileSync(join(OUT_DIR, 'probe-capture.json'), `${JSON.stringify(report, null, 2)}\n`)

@@ -197,6 +197,7 @@ window.__ModuleLoader__.load({
         const label = document.createElement('span')
         label.dataset.agChipLabel = 'true'
         label.textContent = `📄 网页: ${String(item.page?.title ?? '未命名').slice(0, 40)}`
+        chip.dataset.sessionMode = item.sessionMode ?? 'current'
         label.style.cssText = 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap'
         const meta = document.createElement('span')
         meta.dataset.agChipMeta = 'true'
@@ -216,6 +217,46 @@ window.__ModuleLoader__.load({
         return root
       }
 
+      /**
+       * Create a session for this capture and try to make it current.
+       *
+       * Measured: `sessions.create({ workspaceId })` works from a plugin, and
+       * `sessions.open(id)` is the same call the workspace UI uses, so the shell
+       * usually follows. When it does not, we still insert into the NEW session
+       * (never into the user's running one) and the chip offers a manual switch.
+       */
+      async function openFreshSession(workspace) {
+        const sessions = ctx.get('sessions')
+        // `sessions.create` takes a workspace **id**, not a path — passing the
+        // path fails with `workspace/not-found` (measured). Match the announced
+        // cwd against the workspace registry, else fall back to the first
+        // registered workspace so the new session is usable (a workspace-less
+        // session renders an inert composer).
+        const workspaceId = (() => {
+          try {
+            const items = ctx.get('uiWorkspace')?.workspaces?.list?.getSnapshot?.()?.items ?? []
+            if (typeof workspace === 'string' && workspace !== '') {
+              const byPath = items.find((item) => item.path === workspace || item.cwd === workspace)
+              if (byPath !== undefined) return byPath.workspaceId ?? byPath.id
+            }
+            return items[0]?.workspaceId ?? items[0]?.id
+          } catch { return undefined }
+        })()
+        const id = await sessions.create(workspaceId === undefined ? {} : { workspaceId })
+        void id
+        const sessionId = typeof id === 'string' ? id : (id?.id ?? id?.sessionId)
+        let switched = false
+        try {
+          await sessions.open(sessionId)
+          switched = true
+        } catch (error) {
+          log('open(new session) failed', String(error).slice(0, 120))
+        }
+        await sleep(1200)
+        globalThis.__AG_LAST_NEW_SESSION__ = { workspaceId, sessionId, switched }
+        return { sessionId, switched }
+      }
+
       /** Apply one attach event: reference into the draft, chip on screen, ack. */
       async function applyAttach(item) {
         state.deliveries.push({ captureId: item.captureId, fileRef: item.fileRef, at: Date.now() })
@@ -223,11 +264,20 @@ window.__ModuleLoader__.load({
         let detail = ''
         let sessionId
         let preDraft = ''
+        let sessionMode = item.sessionMode ?? 'current'
+        let switched = false
         try {
-          const id = currentSessionId()
-          if (typeof id !== 'string') throw new Error('no current session')
-          sessionId = id
-          const shell = ctx.get('conversation').input.for(ctx.get('sessions').scope(id))
+          if (sessionMode === 'new') {
+            const fresh = await openFreshSession(currentWorkspace() ?? undefined)
+            sessionId = fresh.sessionId
+            switched = fresh.switched
+          } else {
+            const id = currentSessionId()
+            if (typeof id !== 'string') throw new Error('no current session')
+            sessionId = id
+          }
+          if (typeof sessionId !== 'string') throw new Error('no target session')
+          const shell = ctx.get('conversation').input.for(ctx.get('sessions').scope(sessionId))
           preDraft = readDraft(shell)
           const next = preDraft.trim() === '' ? item.fileRef : `${preDraft.trimEnd()}\n${item.fileRef}`
           shell.setDraft(next)
@@ -236,12 +286,12 @@ window.__ModuleLoader__.load({
           detail = String(error).slice(0, 160)
         }
         const root = renderChip(item, dismissCapture)
-        state.chips.set(item.captureId, { sessionId, preDraft, inserted: item.fileRef, root, chip: root.firstElementChild })
+        state.chips.set(item.captureId, { sessionId, preDraft, inserted: item.fileRef, root, chip: root.firstElementChild, sessionMode, switched })
         root.firstElementChild.dataset.status = inserted ? 'inserted' : 'failed'
         send({ type: 'ack', captureId: item.captureId, status: inserted ? 'inserted' : 'failed', ...(detail === '' ? {} : { detail }) })
         state.acks.push({ captureId: item.captureId, status: inserted ? 'inserted' : 'failed' })
-        globalThis.__AG_LAST_ATTACH__ = { captureId: item.captureId, inserted, detail, fileRef: item.fileRef }
-        log('attach applied', item.captureId, inserted ? 'inserted' : `failed: ${detail}`)
+        globalThis.__AG_LAST_ATTACH__ = { captureId: item.captureId, inserted, detail, fileRef: item.fileRef, sessionId, sessionMode, switched }
+        log('attach applied', item.captureId, sessionMode, inserted ? 'inserted' : `failed: ${detail}`, switched ? '(switched)' : '(no-switch)')
         return inserted
       }
 
@@ -338,6 +388,12 @@ window.__ModuleLoader__.load({
           return dismissCapture({ captureId, ...entry })
         },
         reconnect: connect,
+        sessions: () => {
+          try {
+            const snapshot = ctx.get('sessions')?.list?.getSnapshot?.()
+            return { current: currentSessionId() ?? null, ids: snapshot?.ids ?? [], count: (snapshot?.ids ?? []).length }
+          } catch (error) { return { error: String(error).slice(0, 80) } }
+        },
       }
 
       void recordAsync

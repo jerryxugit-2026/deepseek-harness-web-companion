@@ -5,15 +5,20 @@
   "extensionId": "idpgkobbblmpmnonlndopijgfmehfmig",
   "results": {
     "dshFrameUrl": "http://127.0.0.1:3099/",
+    "sessionsBefore": {
+      "current": null,
+      "ids": [],
+      "count": 0
+    },
     "attachReply": {
       "ok": true,
       "value": {
-        "captureId": "cap-mtxf9enx-77fd",
+        "captureId": "cap-mtxg1dnd-01f8",
         "result": {
           "ok": true,
-          "captureId": "cap-mtxf9enx-77fd",
-          "fileRef": "@网页捕获/2026-09-11-1641-m2-抓取夹具页-x-77fd.md",
-          "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-11-1641-m2-抓取夹具页-x-77fd.md",
+          "captureId": "cap-mtxg1dnd-01f8",
+          "fileRef": "@网页捕获/2026-09-11-1703-m2-抓取夹具页-d-01f8.md",
+          "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-11-1703-m2-抓取夹具页-d-01f8.md",
           "deliveredTo": [
             "client:1"
           ]
@@ -31,7 +36,7 @@
         }
       }
     },
-    "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-11-1641-m2-抓取夹具页-x-77fd.md",
+    "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-11-1703-m2-抓取夹具页-d-01f8.md",
     "fileChecks": {
       "hasMarker": true,
       "hasCategoryChips": false,
@@ -52,7 +57,7 @@
       "connected": true,
       "chips": [
         {
-          "captureId": "cap-mtxf9enx-77fd",
+          "captureId": "cap-mtxg1dnd-01f8",
           "status": "inserted",
           "mode": "page",
           "label": "📄 网页: M2 抓取夹具页"
@@ -60,16 +65,50 @@
       ],
       "acks": [
         {
-          "captureId": "cap-mtxf9enx-77fd",
+          "captureId": "cap-mtxg1dnd-01f8",
           "status": "inserted"
         }
       ],
       "lastAttach": {
-        "captureId": "cap-mtxf9enx-77fd",
+        "captureId": "cap-mtxg1dnd-01f8",
         "inserted": true,
         "detail": "",
-        "fileRef": "@网页捕获/2026-09-11-1641-m2-抓取夹具页-x-77fd.md"
+        "fileRef": "@网页捕获/2026-09-11-1703-m2-抓取夹具页-d-01f8.md",
+        "sessionId": "session-d4096dc9-db69-4ef7-bd87-72ab8d5ba566",
+        "sessionMode": "new",
+        "switched": true
       }
-    }
+    },
+    "sessionsAfter": {
+      "current": "session-d4096dc9-db69-4ef7-bd87-72ab8d5ba566",
+      "ids": [
+        "session-d4096dc9-db69-4ef7-bd87-72ab8d5ba566",
+        "session-7bead648-8f07-488b-9647-9168c1edb9f7",
+        "session-07c4c190-11b1-45e4-95fc-ffc42c894077",
+        "session-ca484e67-0faf-4d43-8c2d-db09853dca43",
+        "session-1a344bc5-937a-4de9-8fc7-a9f5e3a9841e",
+        "session-ac22b217-5eed-42a8-9852-b9cf7b319bff",
+        "session-82d8f037-459e-49ba-a18f-264bbd67e0a7",
+        "session-106b5e9a-23da-4bb3-b53e-b8b0016158e7",
+        "session-acfa91d4-e6a8-4e1b-8698-f7665115304d",
+        "session-b351289d-6c43-4a6a-b6ec-31730b6288e3",
+        "session-64f96135-1757-48da-969d-290f5288a064",
+        "session-e22c7cac-9c62-4566-8ab0-273144f07a63",
+        "session-f62ac6b6-b552-48dc-8efd-cc4987f13f62",
+        "session-662762b8-9000-4ef7-b4b3-db302936180b",
+        "session-5db0788a-fc26-472a-8b26-084ecdf1d3ec",
+        "session-e1e916da-2321-4200-aba6-652ecc828e69",
+        "session-2f92c053-f749-4b89-a05c-209230d2c837",
+        "session-2a74d6f1-a3c1-4b96-9731-0eb2372fb90a",
+        "session-6cdd714d-f41b-4bad-9502-0bf4745269be",
+        "session-af4d394f-aeb1-4b76-850b-267a190e00dd",
+        "session-6b8a1366-8e2f-422b-93c5-3d778059a7cc"
+      ],
+      "count": 21
+    },
+    "newSessionCreated": true,
+    "targetIsFreshSession": true,
+    "sessionMode": "new",
+    "shellSwitched": true
   }
 }
