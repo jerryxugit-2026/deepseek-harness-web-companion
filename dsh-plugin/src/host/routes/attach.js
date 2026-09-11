@@ -58,9 +58,14 @@ export function attachRoute({ state, store, hub, config, resolveWorkspace }) {
       })
     }
 
+    // Where the chip lands depends on who asked:
+    //   - the Attach button is a fresh request → a NEW session (config default);
+    //   - a 「看左边」intent was typed INTO an existing conversation → that very
+    //     session, otherwise the user's question and its page would be split up.
+    const sessionMode = payload.trigger === 'look_left' ? 'current' : (config.attachSessionMode ?? 'new')
     const event = {
       type: 'attach',
-      sessionMode: config.attachSessionMode ?? 'new',
+      sessionMode,
       protocolVersion: payload.protocolVersion,
       captureId: payload.captureId,
       fileRef: written.fileRef,

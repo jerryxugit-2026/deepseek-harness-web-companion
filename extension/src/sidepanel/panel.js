@@ -7,6 +7,7 @@
  * handles the session cookie itself.
  */
 import { createStore } from './state.js'
+import { startAgentChannel } from './agent-channel.js'
 
 const els = {
   gate: document.getElementById('gate'),
@@ -26,6 +27,10 @@ const els = {
 
 const store = createStore()
 let currentUrl = ''
+
+/** White-box probe hooks (tests/m2/look-left-e2e-probe.mjs); harmless in production. */
+const probe = { agentConnected: false, frames: [], intents: [], errors: [] }
+globalThis.__AG_PANEL__ = probe
 
 store.subscribe((state) => {
   els.dot.dataset.state = state.dsh
@@ -144,36 +149,89 @@ function explain(error) {
   return message
 }
 
-/** Shared capture trigger; `mode` picks page / selection / screenshot. */
-async function runCapture(mode, button) {
-  if (!(await hasCapturePermission())) {
+/**
+ * Shared capture trigger; `mode` picks page / selection / screenshot.
+ *
+ * `trigger` is the honest provenance of the run: `button` when a click started
+ * it, `look_left` when the DSH page's intent did.
+ *
+ * The gesture-less path must NOT try to prompt — `chrome.permissions.request`
+ * needs a real user gesture and throws otherwise (measured,
+ * tests/m0a/permission-probe.mjs). It also must not pre-emptively refuse: the
+ * required `host_permissions` already cover loopback pages and `activeTab` may
+ * be live, so the honest gate is the browser's own answer. A refusal therefore
+ * surfaces as a mapped E_PERMISSION message telling the user to grant once from
+ * the button.
+ */
+async function runCapture(mode, trigger = 'button') {
+  const gestureless = trigger !== 'button'
+  if (!gestureless && !(await hasCapturePermission())) {
     const granted = await askForPermission()
     if (!granted) {
       els.status.textContent = '未授权：可在目标网页点一次扩展图标（临时授权）后重试'
-      return
+      return { ok: false, error: { code: 'E_PERMISSION', message: 'user denied the capture permission' } }
     }
   }
-  const label = button.textContent
-  button.disabled = true
-  button.textContent = '抓取中…'
-  const result = await ask({ kind: 'capture', mode, trigger: 'button' })
-  button.disabled = false
-  button.textContent = label
+  const result = await ask({ kind: 'capture', mode, trigger })
   if (result.ok) {
     const ref = result.value?.result?.fileRef ?? ''
     els.status.textContent = `已附加：${ref}`
     store.dispatch({ attach: 'attached', lastFileRef: ref })
-    return
+    return result
   }
   const readable = explain(result.error)
   els.status.textContent = `抓取失败：${readable}`
   store.dispatch({ attach: 'failed', message: readable })
+  return { ok: false, error: { ...result.error, message: readable } }
 }
 
-els.attachSelection.addEventListener('click', () => { void runCapture('selection', els.attachSelection) })
+/** Button path: keep the button honest about what it is doing. */
+async function runCaptureFromButton(mode, button) {
+  const label = button.textContent
+  button.disabled = true
+  button.textContent = '抓取中…'
+  try {
+    await runCapture(mode, 'button')
+  } finally {
+    button.disabled = false
+    button.textContent = label
+  }
+}
+
+els.attachSelection.addEventListener('click', () => { void runCaptureFromButton('selection', els.attachSelection) })
 
 els.attach.addEventListener('click', () => {
-  void runCapture('page', els.attach)
+  void runCaptureFromButton('page', els.attach)
 })
+
+/**
+ * `/ag/agent` channel: obeys a 「看左边」the user typed into the DSH composer.
+ * The panel document owns this socket (a recycled service worker would drop it).
+ */
+const agentChannel = startAgentChannel({
+  log: (line) => { console.debug('[ag]', line) },
+  onState: (state) => {
+    store.dispatch({ agent: state })
+    probe.agentConnected = state.connected === true
+    probe.state = state
+  },
+  onFrame: (frame) => {
+    probe.frames.push(frame?.type ?? '?')
+    probe.lastFrame = frame
+  },
+  runCapture: async (mode, reason) => {
+    els.status.textContent = reason === 'look-left' ? '「看左边」→ 正在抓取…' : '正在抓取…'
+    try {
+      const result = await runCapture(mode ?? 'page', 'look_left')
+      probe.intents.push({ mode: mode ?? 'page', reason: reason ?? 'look-left', ok: result?.ok === true, fileRef: result?.value?.result?.fileRef, error: result?.error })
+      if (result?.ok !== true) els.status.textContent = `「看左边」抓取失败：${explain(result?.error)}`
+      return result
+    } catch (error) {
+      probe.errors.push(String(error?.message ?? error))
+      throw error
+    }
+  },
+})
+agentChannel.start()
 
 void connect()

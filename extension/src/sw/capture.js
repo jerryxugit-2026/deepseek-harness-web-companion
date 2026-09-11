@@ -10,6 +10,7 @@
  *                decides whether that permission is available)
  */
 import { extractPage } from '../content/extract.fn.js'
+import { dshOrigin } from '../lib/urls.js'
 
 /** Classify an extension API failure so callers can act on it. */
 function classified(error, fallback) {
@@ -23,11 +24,47 @@ function classified(error, fallback) {
 const MAX_MARKDOWN = 120000
 const MAX_SCREENSHOT_BYTES = 8 * 1024 * 1024
 
-/** Which tab the user is looking at. */
-async function activeTab() {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
-  if (tab?.id === undefined) throw Object.assign(new Error('no active tab'), { code: 'E_TARGET' })
-  return tab
+/** Pages no content script can ever run in (and none the user is "reading"). */
+const UNCAPTURABLE = /^(chrome|edge|about|devtools|view-source|chrome-extension|moz-extension|chrome-search|chrome-untrusted):/u
+
+/**
+ * Whether a tab is one of OUR surfaces rather than the page the user reads.
+ *
+ * Capturing our own side panel (opened as a tab by the probes, and by anyone who
+ * drags it out) or the DSH GUI page is always an `E_NO_PERMISSION` failure — and
+ * a misleading one, because the hint then tells the user to grant a permission
+ * that cannot help. Measured in tests/m2/look-left-e2e-probe.mjs (v3.23 fix).
+ */
+function isOwnSurface(tab) {
+  const url = String(tab.url ?? '')
+  if (url === '') return false
+  if (url.startsWith(`chrome-extension://${chrome.runtime.id}/`)) return true
+  const origin = dshOrigin()
+  return url === origin || url.startsWith(`${origin}/`)
+}
+
+const capturable = (tab) => tab.id !== undefined && !isOwnSurface(tab) && !UNCAPTURABLE.test(String(tab.url ?? ''))
+
+/**
+ * Which tab to capture.
+ *
+ * Normally the page the user is looking at. When that tab is our own surface —
+ * the DSH GUI open in a tab, the panel itself — capturing it is meaningless, so
+ * fall back to the most recently used capturable tab and say so in the log. The
+ * fallback is deliberately ordered by `lastAccessed`, not by tab index, so it
+ * lands on what the user was reading just before.
+ */
+async function activeTab(log = () => {}) {
+  const [active] = await chrome.tabs.query({ active: true, currentWindow: true })
+  if (active !== undefined && capturable(active)) return active
+  const candidates = (await chrome.tabs.query({}))
+    .filter(capturable)
+    .sort((a, b) => (b.lastAccessed ?? 0) - (a.lastAccessed ?? 0))
+  if (candidates.length === 0) {
+    throw Object.assign(new Error('no capturable tab: the active tab is a browser/extension page'), { code: 'E_TARGET' })
+  }
+  log(`active tab is not capturable (${String(active?.url ?? 'none').slice(0, 40)}); fell back to ${String(candidates[0].url).slice(0, 60)}`)
+  return candidates[0]
 }
 
 /** Run the extractor in the page (MAIN world, self-contained function). */

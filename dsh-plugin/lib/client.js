@@ -123,8 +123,12 @@ window.__ModuleLoader__.load({
        * Harness-driven write used by the M0b assertions: only runs once the UI has
        * an ACTIVE composer, writes a marker, verifies it in the live editor's DOM,
        * then restores whatever the user had typed.
+       *
+       * `options.keep` skips the restore — the 「看左边」E2E needs the draft to STAY
+       * written (a restore after 900ms races the 800ms intent sniffer and makes the
+       * test pass by luck rather than by contract).
        */
-      globalThis.__AG_PROBE_WRITE__ = async (marker) => {
+      globalThis.__AG_PROBE_WRITE__ = async (marker, options = {}) => {
         const id = currentSessionId()
         if (typeof id !== 'string') return { error: 'no current session' }
         const shell = ctx.get('conversation').input.for(ctx.get('sessions').scope(id))
@@ -142,7 +146,7 @@ window.__ModuleLoader__.load({
           stateDraft: String(shell.state?.draft ?? '').slice(0, 80),
           lastMirroredDraft: String(shell.lastMirroredDraft ?? '').slice(0, 80),
         }
-        shell.setDraft(pre)
+        if (options.keep !== true) shell.setDraft(pre)
         await sleep(400)
         result.restoredNow = String(shell.state?.draft ?? '').slice(0, 60)
         globalThis.__AG_PROBE_WRITE_RESULT__ = result

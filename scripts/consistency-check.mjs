@@ -129,6 +129,14 @@ const RULES = [
     skip: HISTORY,
   },
   {
+    id: 'validateas-value-misuse',
+    pattern: /validated\.value|validateAs\([^)]*\)\.value/u,
+    reason: '实测缺陷：生成的 validateAs 只在失败时给 error，成功时返回 { ok: true } —— 读 `.value` 得到 undefined；「看左边」链路因此整条静默失效（v3.23 修复）',
+    skip: HISTORY,
+    // 正当引用：缺陷复盘/契约说明里必须能点名这个写法
+    allowIf: NEGATED,
+  },
+  {
     id: 'pending-decision-lingering',
     pattern: /待拍板|待你拍板/u,
     reason: 'BLOCKER-5：H4 已决（默认①）；悬空的双态表述禁止出现',

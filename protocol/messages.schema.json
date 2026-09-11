@@ -54,6 +54,15 @@
       "$ref": "#/$defs/ClientAckEvent"
     },
     {
+      "$ref": "#/$defs/CaptureRequestEvent"
+    },
+    {
+      "$ref": "#/$defs/CaptureResultEvent"
+    },
+    {
+      "$ref": "#/$defs/AgentHello"
+    },
+    {
       "$ref": "#/$defs/ExtensionCaptureRequest"
     },
     {
@@ -802,6 +811,122 @@
         },
         "error": {
           "$ref": "#/$defs/Error"
+        }
+      }
+    },
+    "AgentHello": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "agent-hello"
+        },
+        "protocolVersion": {
+          "type": "number"
+        },
+        "extensionVersion": {
+          "type": "string"
+        },
+        "panel": {
+          "type": "string"
+        }
+      }
+    },
+    "CaptureRequestEvent": {
+      "description": "Bridge → extension (over /ag/agent): please capture and attach. Emitted when the DSH page's client half reports a 「看左边」intent, or when such an intent was queued while the panel was closed.",
+      "type": "object",
+      "required": [
+        "type",
+        "requestId",
+        "mode"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "capture-request"
+        },
+        "protocolVersion": {
+          "type": "number"
+        },
+        "requestId": {
+          "type": "string"
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "page",
+            "selection",
+            "screenshot",
+            "auto"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "look-left",
+            "queued",
+            "manual"
+          ]
+        },
+        "sessionId": {
+          "type": "string"
+        },
+        "draft": {
+          "type": "string"
+        },
+        "at": {
+          "type": "number"
+        }
+      }
+    },
+    "CaptureResultEvent": {
+      "description": "Extension → bridge (over /ag/agent): the outcome of one CaptureRequestEvent. The bridge only logs it — the DSH page learns about the capture through the /ag/client push it already receives.",
+      "type": "object",
+      "required": [
+        "type",
+        "requestId",
+        "ok"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "capture-result"
+        },
+        "protocolVersion": {
+          "type": "number"
+        },
+        "requestId": {
+          "type": "string"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "captureId": {
+          "type": "string"
+        },
+        "fileRef": {
+          "type": "string"
+        },
+        "filePath": {
+          "type": "string"
+        },
+        "error": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          }
+        },
+        "at": {
+          "type": "number"
         }
       }
     }

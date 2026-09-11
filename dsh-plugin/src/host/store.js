@@ -55,6 +55,8 @@ export function renderCapture({ captureId, trigger, page, content, media }) {
 export function createStore(config) {
   /** Captures waiting for a client; newest last. */
   const pending = []
+  /** Capture requests waiting for the extension (its panel was closed). */
+  const pendingIntents = []
 
   return {
     get pendingCount() { return pending.length },
@@ -95,5 +97,25 @@ export function createStore(config) {
     peek() {
       return [...pending]
     },
+
+    /**
+     * Queue a capture request for the extension.
+     *
+     * Separate queue on purpose: `drain()` is consumed by the DSH page half, and
+     * a queued intent must not be handed to it (it would look like a capture to
+     * insert while nothing has been captured yet).
+     */
+    enqueueIntent(event) {
+      pendingIntents.push(event)
+      while (pendingIntents.length > config.pendingLimit) pendingIntents.shift()
+      return pendingIntents.length
+    },
+
+    /** Take (and consume) the queued intents. */
+    drainIntents() {
+      return pendingIntents.splice(0, pendingIntents.length)
+    },
+
+    get intentCount() { return pendingIntents.length },
   }
 }

@@ -1,0 +1,18 @@
+{
+  "probe": "m2/look-left",
+  "port": "3099",
+  "at": "2026-09-11T21:25:44.122Z",
+  "results": {
+    "面板关闭时意图入队并在连接后补发": true,
+    "补发的请求 reason=queued / mode=page": true,
+    "补发请求带 requestId 与 sessionId": true,
+    "面板在线时意图立即转发": true,
+    "转发请求 reason=look-left": true,
+    "失败结果后插件仍存活（/ag/ping 200）": true,
+    "失败结果后 agent 通道仍打开": true,
+    "错误 key 的 /ag/agent 被拒（403）": true,
+    "抓取仍可落盘（POST /ag/attach 200）": true,
+    "抓取推送到达 client 通道（未被 intent 队列吞掉）": true,
+    "推送 mode=page 且带 fileRef": true
+  }
+}

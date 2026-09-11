@@ -7,8 +7,11 @@
  *      iframe can authenticate and open its event stream);
  *   2. keep the pairing state (shared key + trusted extension origins) fresh.
  *
- * Later milestones add `/ag/attach`, `/ag/pending`, `/ag/ack` and the two
- * WebSocket channels (`/ag/agent`, `/ag/client`) — see docs/03-bridge-plugin.md.
+ * `/ag/attach`, `/ag/pending` and `/ag/ack` land captures on disk; `/ag/client`
+ * is spoken by the DSH page's client half (attach pushes, intents, acks) and
+ * `/ag/agent` by the extension, which is what closes the 「看左边」loop: the page
+ * sniffs the intent, the plugin relays it as a capture request — see
+ * docs/03-bridge-plugin.md.
  */
 import { CHANNEL, PROTOCOL_VERSION, ROUTE, validateAs } from '../shared/protocol.generated.js'
 import { companionPath, dshHome } from './paths.js'
@@ -49,6 +52,8 @@ export function apply(ctx, config = {}) {
     pendingLimit: config.pendingLimit ?? 32,
     defaultWorkspace: config.defaultWorkspace,
     attachSessionMode: config.attachSessionMode ?? 'new',
+    intentEnabled: config.intentEnabled ?? true,
+    intentCaptureMode: config.intentCaptureMode ?? 'page',
   }
 
   const recent = { captures: [], acks: [] }
@@ -59,12 +64,69 @@ export function apply(ctx, config = {}) {
   const hub = createHub({
     log: (line) => ctx.logger?.info?.(`[dsh-web-companion-bridge] ${line}`),
     onClientFrame: (frame) => {
-      if (frame?.type !== 'hello') return
-      if (typeof frame.workspace === 'string' && frame.workspace !== '') clientFacts.workspace = frame.workspace
-      if (typeof frame.sessionId === 'string') clientFacts.sessionId = frame.sessionId
-      ctx.logger?.info?.(`[dsh-web-companion-bridge] client hello session=${String(frame.sessionId ?? '?').slice(0, 14)} workspace=${String(clientFacts.workspace ?? '(none)').slice(-28)}`)
+      if (frame?.type === 'hello') {
+        if (typeof frame.workspace === 'string' && frame.workspace !== '') clientFacts.workspace = frame.workspace
+        if (typeof frame.sessionId === 'string') clientFacts.sessionId = frame.sessionId
+        ctx.logger?.info?.(`[dsh-web-companion-bridge] client hello session=${String(frame.sessionId ?? '?').slice(0, 14)} workspace=${String(clientFacts.workspace ?? '(none)').slice(-28)}`)
+        return
+      }
+      // 「看左边」: the DSH page sniffs the composer and asks us to fetch the page.
+      if (frame?.type === 'intent') relayIntent(frame)
+    },
+    // The panel was closed when the intent arrived → deliver it now.
+    onAgentConnect: () => {
+      const queued = store.drainIntents()
+      if (queued.length === 0) return
+      const delivered = hub.pushAgent({ ...queued[queued.length - 1], reason: 'queued' })
+      ctx.logger?.info?.(`[dsh-web-companion-bridge] replayed ${String(queued.length)} queued intent(s) → ${String(delivered)} agent socket(s)`)
+    },
+    onAgentFrame: (frame) => {
+      if (frame?.type !== 'capture-result') return
+      const validated = validateAs('CaptureResultEvent', frame)
+      if (!validated.ok) {
+        ctx.logger?.warn?.(`[dsh-web-companion-bridge] capture-result rejected: ${validated.error.message}`)
+        return
+      }
+      state.recordCaptureResult(frame)
     },
   })
+
+  /**
+   * Turn a client 「看左边」intent into a capture request for the extension.
+   *
+   * Sniffing deliberately lives in the DSH page's client half (ADR-11): the
+   * extension never reads the composer. The request is queued when no panel is
+   * connected, so the intent is not lost — it is replayed by `onAgentConnect`.
+   */
+  let intentSeq = 0
+  const relayIntent = (frame) => {
+    if (resolved.intentEnabled !== true) {
+      ctx.logger?.info?.('[dsh-web-companion-bridge] intent ignored (intentEnabled=false)')
+      return
+    }
+    const validated = validateAs('ClientIntentEvent', frame)
+    if (!validated.ok) {
+      ctx.logger?.warn?.(`[dsh-web-companion-bridge] intent rejected: ${validated.error.message}`)
+      return
+    }
+    intentSeq += 1
+    const event = {
+      type: 'capture-request',
+      protocolVersion: PROTOCOL_VERSION,
+      requestId: `int-${Date.now().toString(36)}-${String(intentSeq)}`,
+      mode: resolved.intentCaptureMode,
+      reason: 'look-left',
+      ...(frame.sessionId === undefined ? {} : { sessionId: frame.sessionId }),
+      ...(frame.draft === undefined ? {} : { draft: frame.draft }),
+      at: Date.now(),
+    }
+    if (hub.agentCount > 0) {
+      ctx.logger?.info?.(`[dsh-web-companion-bridge] intent → extension ${event.requestId} (${String(hub.pushAgent(event))} socket(s))`)
+      return
+    }
+    store.enqueueIntent(event)
+    ctx.logger?.info?.(`[dsh-web-companion-bridge] intent queued ${event.requestId} (no panel connected, queue=${String(store.intentCount)})`)
+  }
 
   let pairing = { key: undefined, extensionOrigins: [], source: resolved.keyFile, error: undefined }
   let loadedAt = 0
@@ -83,6 +145,15 @@ export function apply(ctx, config = {}) {
     pluginVersion: PLUGIN_VERSION,
     liveTickets: () => tickets.liveCount,
     connectedClients: () => hub.clientCount,
+    connectedAgents: () => hub.agentCount,
+    queuedIntents: () => store.intentCount,
+    recordCaptureResult: (frame) => {
+      ctx.logger?.info?.(
+        `[dsh-web-companion-bridge] capture-result ${frame.requestId} ok=${String(frame.ok)}` +
+        (frame.fileRef === undefined ? '' : ` → ${frame.fileRef}`) +
+        (frame.error === undefined ? '' : ` error=${frame.error.code ?? '?'} ${frame.error.message ?? ''}`),
+      )
+    },
     clientWorkspace: () => clientFacts.workspace,
     recordCapture: (event, delivered) => {
       recent.captures.push({ captureId: event.captureId, fileRef: event.fileRef, delivered, at: Date.now() })
@@ -207,6 +278,22 @@ export function apply(ctx, config = {}) {
       handler: withPairing(ackRoute({ state })),
     }),
     `dsh-web-companion-bridge: POST ${ROUTE.ack}`,
+  )
+
+  // --- agent channel: the extension half (capture requests now, tools at M3) ---
+  ctx.effect(
+    () => ctx.webServer.registerUpgrade({
+      path: CHANNEL.agent,
+      handler: (req, socket, head) => {
+        if (!state.guard().checkUpgrade(req)) {
+          socket.write('HTTP/1.1 403 Forbidden\r\n\r\n')
+          socket.destroy()
+          return
+        }
+        hub.upgradeAgent(req, socket, head)
+      },
+    }),
+    `dsh-web-companion-bridge: WS ${CHANNEL.agent}`,
   )
 
   ctx.effect(() => () => hub.dispose(), 'dsh-web-companion-bridge: hub dispose')

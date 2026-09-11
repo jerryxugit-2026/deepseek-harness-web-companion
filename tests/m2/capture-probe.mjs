@@ -220,6 +220,7 @@ if (existsSync(attachDir)) {
   latest = files[0] ?? null
 }
 record('filePath', latest)
+const pagePathFromReply = (typeof attachResult === 'string' ? JSON.parse(attachResult) : attachResult)?.value?.result?.filePath
 if (latest !== null) {
   const text = readFileSync(latest, 'utf8')
   record('fileChecks', {
@@ -271,8 +272,10 @@ if (typeof selPath === 'string' && existsSync(selPath)) {
   })
 }
 record('hardeningChecks', (() => {
-  // check the PAGE capture from this run (the newest file may be the selection one)
-  const pagePath = typeof filePath === 'string' && existsSync(filePath) ? filePath : undefined
+  // check the PAGE capture from THIS run — `latest` is the newest file at that
+  // moment; reading `filePath` (undefined) silently turned this into `null`,
+  // i.e. a green-looking probe that verified nothing.
+  const pagePath = typeof pagePathFromReply === 'string' && existsSync(pagePathFromReply) ? pagePathFromReply : (typeof latest === 'string' ? latest : undefined)
   if (pagePath === undefined) return null
   const body = readFileSync(pagePath, 'utf8')
   return {

@@ -5,7 +5,43 @@
 
 ---
 
-## v3.22 — 2026-09-11（当前）
+## v3.23 — 2026-09-11（当前）
+
+**触发**：把「看左边」的**最后一跳**接通 —— 之前止步于桥接插件收到 intent。
+
+### 交付（代码）
+
+| 位置 | 变更 |
+|---|---|
+| 协议 | 新增 `AgentHello`、`CaptureRequestEvent`（桥接插件→扩展）、`CaptureResultEvent`（扩展→桥接插件）；`oneOf` 收录，三份生成物同步 |
+| 桥接插件 | 注册 `WS /ag/agent`（F3 形态鉴权，见 §5.4）；`hub` 支持 agent 推送/计数/连接回调；`relayIntent()` 把 client 的 `intent` 组成 `capture-request`，agent 不在线时进**独立 intent 队列**，连接后补发（`reason: queued`）；`capture-result` 只记日志 |
+| 抓取落点 | `trigger === 'look_left'` → `sessionMode: 'current'`；按钮路径保持默认 `new` |
+| 扩展 | 新 `sidepanel/agent-channel.js`：面板文档持有 WS、`agent-hello`、20s 心跳、指数退避重连、`capture-request` → 复用面板既有 `runCapture`、异常兜底回执 |
+| 抓取目标 | `activeTab()` 拒绝把**自身界面**（`chrome-extension://<自己>`、DSH 自身 origin）当目标，按 `lastAccessed` 回退到最近使用的普通网页；无候选 → `E_TARGET` |
+| 面板 | 无手势路径不再"先问权限再抓"（`permissions.request` 无手势必抛）——直接抓，让浏览器给答案，失败再映射成可执行的提示 |
+| 探针 | `__AG_PROBE_WRITE__` 支持 `{keep:true}`；面板新增 `__AG_PANEL__` 白盒探针（`agentConnected/frames/intents`） |
+
+### 实测
+
+| 断言 | 结果 |
+|---|---|
+| `probe:look-left`（桥接跳，11 条） | ✅ 全绿：入队/补发、在线直推、失败回执后存活、错误 key 403、抓取推送未被队列吞掉 |
+| `probe:look-left-e2e`（全链路，16 条） | ✅ 全绿：无 `<all_urls>` 授权下面板建链 → 嗅探 → 转发 → 抓取落盘（`trigger: look_left`）→ 回推 → 胶囊 + 引用写入 → `sessionMode=current`/`switched=false` |
+| `probe:capture` 回归（按钮路径） | ✅ `sessionMode: "new"`、`shellSwitched: true`；选区/整页/硬化断言全绿（硬化断言此前因读错文件恒为 `null`，已修正） |
+
+### 过程中定位并修掉的真缺陷
+
+1. **`validateAs()` 契约误用（致命且静默）**：生成的校验器成功时只返回 `{ ok: true }`，没有 `value`。`agent-channel.js` 写成 `validated.value.requestId` → `TypeError` → 面板抛错、桥接插件永远等不到回执 → 整条意图链路"看起来没反应"。修法：改用传入的 frame 本体；新增一致性规则 `validateas-value-misuse`（第 18 条）防复发；异常路径无条件回 `capture-result(ok:false)`。
+2. **自身界面被当作抓取目标**：面板作为标签页被激活时，意图路径 100% `E_NO_PERMISSION`，且提示误导用户去授权。修法见上表"抓取目标"。
+3. **探针自身两处失真**：①E2E 未等 client 半通道就绪就写草稿（嗅探器还没启动 → 假阴性）；②`__AG_PROBE_WRITE__` 900ms 后恢复草稿，与 800ms 嗅探轮询**赛跑**（靠运气通过）→ 新增 `{keep:true}`；③`capture-probe` 的硬化断言引用了不存在的变量，恒为 `null`（"绿的但什么都没验证"）。
+
+### 顺带澄清
+
+- 「看左边」在**哪个会话**落地：用户是在当前会话里打的这句话，所以附件回到**当前会话**（`current`），不新开；按钮路径保持"默认新开会话"（v3.21 用户提议）。
+
+---
+
+## v3.22 — 2026-09-11
 
 **触发**：竞品调研后的第一批优化 —— 抓取硬化 + 划词入口。
 

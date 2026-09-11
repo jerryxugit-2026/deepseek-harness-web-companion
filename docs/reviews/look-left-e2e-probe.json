@@ -1,0 +1,51 @@
+{
+  "probe": "m2/look-left-e2e",
+  "port": "3099",
+  "fixturePort": 3998,
+  "at": "2026-09-11T21:25:18.982Z",
+  "results": {
+    "DSH iframe 已加载": true,
+    "面板 agent 通道已连接（无手势）": true,
+    "抓取前无 <all_urls> 授权（证明意图路径不依赖它）": true,
+    "DSH 客户端半通道已就绪（WS + 当前会话）": true,
+    "DSH 客户端探针可用": true,
+    "已写入意图草稿并留在输入框": true,
+    "客户端嗅探到意图（否则与面板无关）": true,
+    "面板收到 intent 路径的抓取（不是按钮路径）": true,
+    "抓取成功且落到工作区": true,
+    "抓取模式为 page（意图默认整页）": true,
+    "新增抓取文件数 = 1": true,
+    "文件含夹具正文标记": true,
+    "front-matter trigger=look_left": true,
+    "客户端半通道收到推送": true,
+    "推送 fileRef 与落盘一致": true,
+    "引用写入输入框成功（inserted=true）": true,
+    "写入的就是落盘的那份文件": true,
+    "意图路径落回当前会话（sessionMode=current）": true,
+    "意图路径不切换会话外壳（switched=false）": true,
+    "输入框里出现文件引用（硬要求）": true,
+    "触发草稿是否保留（观察）: \"看左边\\n\\n@网页捕获/2026-09-11-1725-看左边夹具页-w-3e98.md\"": true,
+    "屏幕上出现 chip": true
+  },
+  "intent": {
+    "mode": "page",
+    "reason": "look-left",
+    "ok": true,
+    "fileRef": "@网页捕获/2026-09-11-1725-看左边夹具页-w-3e98.md"
+  },
+  "newFiles": [
+    "2026-09-11-1725-看左边夹具页-w-3e98.md"
+  ],
+  "draftAfter": "看左边\n\n@网页捕获/2026-09-11-1725-看左边夹具页-w-3e98.md",
+  "applied": {
+    "captureId": "cap-mtxgt7mw-3e98",
+    "inserted": true,
+    "detail": "",
+    "fileRef": "@网页捕获/2026-09-11-1725-看左边夹具页-w-3e98.md",
+    "sessionId": "session-cac2bcf5-7ffa-458d-8d9e-f8075376fff6",
+    "sessionMode": "current",
+    "switched": false
+  },
+  "deliveries": 1,
+  "chips": "[{\"captureId\":\"cap-mtxgt7mw-3e98\",\"status\":\"inserted\",\"mode\":\"page\",\"label\":\"📄 网页: 看左边夹具页\"}]"
+}

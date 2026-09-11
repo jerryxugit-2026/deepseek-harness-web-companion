@@ -1,14 +1,14 @@
 /**
  * AUTO-GENERATED — do not edit. Source: protocol/messages.schema.json
  * protocolVersion: 1
- * schemaSha256: 93e6d4d06b868181c0b2b426b18af13d003d915123cadc35d9a0ceff42aef2a0
+ * schemaSha256: c541bb80937fb561802a87770a8154a2d9be8941abda5c8a179dcca2db2a98c5
  * platform: native-host (ESM)
  * Runtime: native messaging host (Node, stdio frames).
  * Regenerate: node protocol/codegen.mjs   Verify: node protocol/codegen.mjs --check
  */
 
 export const PROTOCOL_VERSION = 1
-export const SCHEMA_SHA256 = '93e6d4d06b868181c0b2b426b18af13d003d915123cadc35d9a0ceff42aef2a0'
+export const SCHEMA_SHA256 = 'c541bb80937fb561802a87770a8154a2d9be8941abda5c8a179dcca2db2a98c5'
 export const SCHEMA_ID = 'https://dsh.local/web-companion/messages.schema.json'
 
 /** Message kinds this protocol defines (from the schema's top-level oneOf). */
@@ -29,6 +29,9 @@ export const MESSAGE_KIND = Object.freeze({
   "ClientAttachEvent": "ClientAttachEvent",
   "ClientIntentEvent": "ClientIntentEvent",
   "ClientAckEvent": "ClientAckEvent",
+  "CaptureRequestEvent": "CaptureRequestEvent",
+  "CaptureResultEvent": "CaptureResultEvent",
+  "AgentHello": "AgentHello",
   "ExtensionCaptureRequest": "ExtensionCaptureRequest",
   "ExtensionCaptureResponse": "ExtensionCaptureResponse",
   "NativeEnsureDsh": "NativeEnsureDsh",
@@ -97,6 +100,9 @@ export const ENUM = Object.freeze({
     "ClientAttachEvent",
     "ClientIntentEvent",
     "ClientAckEvent",
+    "CaptureRequestEvent",
+    "CaptureResultEvent",
+    "AgentHello",
     "ExtensionCaptureRequest",
     "ExtensionCaptureResponse",
     "NativeEnsureDsh",
@@ -178,6 +184,15 @@ export const MESSAGE_SCHEMA = {
     },
     {
       "$ref": "#/$defs/ClientAckEvent"
+    },
+    {
+      "$ref": "#/$defs/CaptureRequestEvent"
+    },
+    {
+      "$ref": "#/$defs/CaptureResultEvent"
+    },
+    {
+      "$ref": "#/$defs/AgentHello"
     },
     {
       "$ref": "#/$defs/ExtensionCaptureRequest"
@@ -928,6 +943,122 @@ export const MESSAGE_SCHEMA = {
         },
         "error": {
           "$ref": "#/$defs/Error"
+        }
+      }
+    },
+    "AgentHello": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "agent-hello"
+        },
+        "protocolVersion": {
+          "type": "number"
+        },
+        "extensionVersion": {
+          "type": "string"
+        },
+        "panel": {
+          "type": "string"
+        }
+      }
+    },
+    "CaptureRequestEvent": {
+      "description": "Bridge → extension (over /ag/agent): please capture and attach. Emitted when the DSH page's client half reports a 「看左边」intent, or when such an intent was queued while the panel was closed.",
+      "type": "object",
+      "required": [
+        "type",
+        "requestId",
+        "mode"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "capture-request"
+        },
+        "protocolVersion": {
+          "type": "number"
+        },
+        "requestId": {
+          "type": "string"
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "page",
+            "selection",
+            "screenshot",
+            "auto"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "look-left",
+            "queued",
+            "manual"
+          ]
+        },
+        "sessionId": {
+          "type": "string"
+        },
+        "draft": {
+          "type": "string"
+        },
+        "at": {
+          "type": "number"
+        }
+      }
+    },
+    "CaptureResultEvent": {
+      "description": "Extension → bridge (over /ag/agent): the outcome of one CaptureRequestEvent. The bridge only logs it — the DSH page learns about the capture through the /ag/client push it already receives.",
+      "type": "object",
+      "required": [
+        "type",
+        "requestId",
+        "ok"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "capture-result"
+        },
+        "protocolVersion": {
+          "type": "number"
+        },
+        "requestId": {
+          "type": "string"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "captureId": {
+          "type": "string"
+        },
+        "fileRef": {
+          "type": "string"
+        },
+        "filePath": {
+          "type": "string"
+        },
+        "error": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          }
+        },
+        "at": {
+          "type": "number"
         }
       }
     }
