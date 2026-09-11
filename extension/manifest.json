@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "Antigravity Web Companion",
+  "version": "0.1.0",
+  "description": "Chrome side panel that embeds the local DeepSeek Harness agent GUI and attaches the current page to it.",
+  "minimum_chrome_version": "116",
+  "background": {
+    "service_worker": "src/sw/index.js",
+    "type": "module"
+  },
+  "side_panel": {
+    "default_path": "src/sidepanel/panel.html"
+  },
+  "action": {
+    "default_title": "Antigravity Companion"
+  },
+  "permissions": [
+    "sidePanel",
+    "storage",
+    "cookies",
+    "scripting",
+    "activeTab",
+    "tabs",
+    "alarms"
+  ],
+  "host_permissions": [
+    "http://127.0.0.1/*",
+    "http://localhost/*"
+  ],
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAonQO/qw/n2HDm6Ciy3sTumRuNlqLFCIgj+LPevItCSJOhI5f56CXCPRxiO/6aIZmcLE/vHRyqc/w0NSReUXg9Ke4B26UDTObYntEEt/kNsQCdiMr4uUPRcJ4uoDMieX2ICOP2eb5YoH7kWITfaVOErFKdcpcBgjWKcgcSMU8i003dFXtZmqN0tNCZaifSS4GnY1zWe8NKqWaSP1kXIZtMSEuLb+Uenz17dJOkxY5Q6Unt3NoIGRLxYYgUGbly7T9MmNYCVCPGgWUTNv7jvsYpgExRIBFoBvTHOgNEsHpyle4eox7mB9C7PZrM6DWYYQ5gN9SZebwqr50Uo9EvrXOTQIDAQAB"
+}

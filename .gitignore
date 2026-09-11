@@ -1,0 +1,18 @@
+# Local, machine-specific and generated artifacts — never indexed, never committed.
+
+# dependency trees
+node_modules/
+
+# tooling caches
+.cache/
+
+# isolated DSH home used for dev/e2e (a copied DSH install, hundreds of MB)
+.devhome/
+
+# generated pairing key material
+scripts/.dev-extension-key.json
+extension/src/lib/dev-config.js
+
+# test run outputs
+spike/out/
+tests/e2e/out/

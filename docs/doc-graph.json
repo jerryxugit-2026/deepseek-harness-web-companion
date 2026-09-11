@@ -1,0 +1,2007 @@
+{
+  "generatedBy": "scripts/doc-graph.mjs",
+  "project": "dsh-web-companion",
+  "docs": [
+    {
+      "path": "DESIGN.md",
+      "title": "DSH Web Companion — 设计摘要（DESIGN）",
+      "version": "v3.1",
+      "lines": 106,
+      "sections": 9,
+      "codeRefs": 0,
+      "docRefs": 5
+    },
+    {
+      "path": "FINDINGS.md",
+      "title": "dsh-chrome 可行性验证结果（FINDINGS）",
+      "version": null,
+      "lines": 81,
+      "sections": 7,
+      "codeRefs": 4,
+      "docRefs": 0
+    },
+    {
+      "path": "PRD_需求定义说明书.md",
+      "title": "DeepSeek Harness Web Companion (DSH 浏览器智能侧伴侣)",
+      "version": "v3.0.0",
+      "lines": 137,
+      "sections": 8,
+      "codeRefs": 0,
+      "docRefs": 2
+    },
+    {
+      "path": "README.md",
+      "title": "DSH Web Companion (DeepSeek Harness 网页侧边栏智能伴侣)",
+      "version": null,
+      "lines": 48,
+      "sections": 3,
+      "codeRefs": 0,
+      "docRefs": 12
+    },
+    {
+      "path": "docs/01-protocol.md",
+      "title": "01 · 协议契约（Protocol）",
+      "version": null,
+      "lines": 229,
+      "sections": 8,
+      "codeRefs": 6,
+      "docRefs": 1
+    },
+    {
+      "path": "docs/02-extension.md",
+      "title": "02 · Chrome 扩展设计（`extension/`）",
+      "version": null,
+      "lines": 295,
+      "sections": 8,
+      "codeRefs": 39,
+      "docRefs": 0
+    },
+    {
+      "path": "docs/03-bridge-plugin.md",
+      "title": "03 · DSH 桥接插件（host 半）设计：`dsh-plugin/`",
+      "version": null,
+      "lines": 332,
+      "sections": 9,
+      "codeRefs": 20,
+      "docRefs": 0
+    },
+    {
+      "path": "docs/04-client-plugin.md",
+      "title": "04 · DSH 客户端插件设计（`dsh-plugin/src/client/`）",
+      "version": null,
+      "lines": 169,
+      "sections": 8,
+      "codeRefs": 12,
+      "docRefs": 0
+    },
+    {
+      "path": "docs/05-native-host.md",
+      "title": "05 · Native Messaging Host 设计（`native-host/`）",
+      "version": null,
+      "lines": 140,
+      "sections": 6,
+      "codeRefs": 9,
+      "docRefs": 0
+    },
+    {
+      "path": "docs/06-test-plan.md",
+      "title": "06 · 测试方案（单测矩阵 + E2E）",
+      "version": null,
+      "lines": 128,
+      "sections": 8,
+      "codeRefs": 36,
+      "docRefs": 0
+    },
+    {
+      "path": "docs/07-implementation-plan.md",
+      "title": "07 · 实现计划（任务分解与完成判据）",
+      "version": null,
+      "lines": 87,
+      "sections": 7,
+      "codeRefs": 39,
+      "docRefs": 0
+    },
+    {
+      "path": "docs/08-security.md",
+      "title": "08 · 安全与威胁模型",
+      "version": null,
+      "lines": 73,
+      "sections": 6,
+      "codeRefs": 1,
+      "docRefs": 0
+    },
+    {
+      "path": "docs/CHANGELOG.md",
+      "title": "变更记录（CHANGELOG）",
+      "version": "v3.0",
+      "lines": 63,
+      "sections": 4,
+      "codeRefs": 5,
+      "docRefs": 1
+    },
+    {
+      "path": "docs/DOC-GRAPH.md",
+      "title": "文档与代码图谱（DOC-GRAPH）",
+      "version": null,
+      "lines": 295,
+      "sections": 6,
+      "codeRefs": 205,
+      "docRefs": 0
+    },
+    {
+      "path": "docs/REVIEW-v3.0.md",
+      "title": "详细设计 v3.0 评审报告（Review of v3.0 → 修正为 v3.1）",
+      "version": "v3.0",
+      "lines": 68,
+      "sections": 5,
+      "codeRefs": 9,
+      "docRefs": 1
+    },
+    {
+      "path": "docs/research/01-dsh-plugin-authoring.md",
+      "title": "01 — Writing, building, installing and testing a THIRD-PARTY DSH plugin (host half + browser/client half)",
+      "version": null,
+      "lines": 1137,
+      "sections": 18,
+      "codeRefs": 42,
+      "docRefs": 0
+    },
+    {
+      "path": "docs/research/02-dsh-client-composer-attach.md",
+      "title": "02 — DSH Web GUI 客户端插件「插入 composer 内容 + 附件 + 上下文 chip」seam 调研",
+      "version": null,
+      "lines": 1446,
+      "sections": 22,
+      "codeRefs": 21,
+      "docRefs": 0
+    },
+    {
+      "path": "docs/research/03-chrome-extension-constraints.md",
+      "title": "03 — Chrome (Manifest V3) platform constraints & APIs for the side-panel + local-app extension",
+      "version": null,
+      "lines": 591,
+      "sections": 11,
+      "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
+      "path": "docs/reviews/pimoa-adversarial-v3.0.md",
+      "title": "PiMoa 对抗性审核结果",
+      "version": null,
+      "lines": 71,
+      "sections": 4,
+      "codeRefs": 7,
+      "docRefs": 0
+    },
+    {
+      "path": "scripts/review-prompts/design-adversarial.md",
+      "title": "scripts/review-prompts/design-adversarial.md",
+      "version": null,
+      "lines": 27,
+      "sections": 4,
+      "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
+      "path": "详细设计文档.md",
+      "title": "DSH Web Companion · 详细设计规范说明书",
+      "version": "v3.1",
+      "lines": 717,
+      "sections": 16,
+      "codeRefs": 15,
+      "docRefs": 4
+    }
+  ],
+  "code": {
+    "indexedFiles": 31,
+    "areas": {
+      "extension": [
+        "docs/01-protocol.md",
+        "docs/06-test-plan.md",
+        "docs/DOC-GRAPH.md"
+      ],
+      "dsh-plugin": [
+        "docs/01-protocol.md",
+        "docs/DOC-GRAPH.md"
+      ],
+      "native-host": [
+        "docs/01-protocol.md",
+        "docs/DOC-GRAPH.md"
+      ],
+      "protocol": [
+        "docs/01-protocol.md",
+        "docs/06-test-plan.md",
+        "docs/DOC-GRAPH.md",
+        "docs/REVIEW-v3.0.md",
+        "docs/reviews/pimoa-adversarial-v3.0.md",
+        "详细设计文档.md"
+      ],
+      "scripts": [
+        "docs/05-native-host.md",
+        "docs/06-test-plan.md",
+        "docs/07-implementation-plan.md",
+        "docs/CHANGELOG.md",
+        "docs/DOC-GRAPH.md",
+        "docs/REVIEW-v3.0.md",
+        "docs/reviews/pimoa-adversarial-v3.0.md",
+        "scripts/review-prompts/design-adversarial.md",
+        "详细设计文档.md"
+      ],
+      "tests/e2e": [
+        "docs/06-test-plan.md",
+        "docs/DOC-GRAPH.md"
+      ],
+      "spike": [
+        "FINDINGS.md",
+        "docs/06-test-plan.md",
+        "docs/DOC-GRAPH.md",
+        "详细设计文档.md"
+      ]
+    }
+  },
+  "plannedReferences": {
+    "inArea": [
+      {
+        "doc": "FINDINGS.md",
+        "ref": "spike/out/embed-report.json"
+      },
+      {
+        "doc": "docs/01-protocol.md",
+        "ref": "dsh-plugin/src/shared/protocol.generated.ts"
+      },
+      {
+        "doc": "docs/01-protocol.md",
+        "ref": "extension/src/lib/protocol.generated.js"
+      },
+      {
+        "doc": "docs/01-protocol.md",
+        "ref": "native-host/protocol.generated.mjs"
+      },
+      {
+        "doc": "docs/01-protocol.md",
+        "ref": "protocol/codegen.mjs"
+      },
+      {
+        "doc": "docs/01-protocol.md",
+        "ref": "protocol/messages.schema.json"
+      },
+      {
+        "doc": "docs/06-test-plan.md",
+        "ref": "extension/src/content/extract.fn.js"
+      },
+      {
+        "doc": "docs/06-test-plan.md",
+        "ref": "extension/src/content/markdown.js"
+      },
+      {
+        "doc": "docs/06-test-plan.md",
+        "ref": "extension/src/lib/cookie.js"
+      },
+      {
+        "doc": "docs/06-test-plan.md",
+        "ref": "extension/src/sw/agent-bridge.js"
+      },
+      {
+        "doc": "docs/06-test-plan.md",
+        "ref": "extension/src/sw/attach-sender.js"
+      },
+      {
+        "doc": "docs/06-test-plan.md",
+        "ref": "extension/src/sw/capture.js"
+      },
+      {
+        "doc": "docs/06-test-plan.md",
+        "ref": "extension/src/sw/native-host.js"
+      },
+      {
+        "doc": "docs/06-test-plan.md",
+        "ref": "extension/tests/unit/markdown.test.js"
+      },
+      {
+        "doc": "docs/06-test-plan.md",
+        "ref": "protocol/tests/sync.test.mjs"
+      },
+      {
+        "doc": "docs/06-test-plan.md",
+        "ref": "spike/out/embed-report.json"
+      },
+      {
+        "doc": "docs/06-test-plan.md",
+        "ref": "tests/e2e/out/report.json"
+      },
+      {
+        "doc": "docs/07-implementation-plan.md",
+        "ref": "scripts/setup.mjs"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "dsh-plugin/src/shared/protocol.generated.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "extension/src/content/extract.fn.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "extension/src/content/markdown.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "extension/src/lib/cookie.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "extension/src/lib/protocol.generated.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "extension/src/sw/agent-bridge.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "extension/src/sw/attach-sender.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "extension/src/sw/capture.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "extension/src/sw/native-host.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "extension/tests/unit/markdown.test.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "native-host/protocol.generated.mjs"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "protocol/codegen.mjs"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "protocol/messages.schema.json"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "protocol/tests/sync.test.mjs"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "scripts/install-plugin.mjs"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "scripts/setup.mjs"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "spike/out/embed-report.json"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "tests/e2e/out/report.json"
+      },
+      {
+        "doc": "docs/REVIEW-v3.0.md",
+        "ref": "protocol/messages.schema.json"
+      },
+      {
+        "doc": "docs/REVIEW-v3.0.md",
+        "ref": "scripts/install-plugin.mjs"
+      },
+      {
+        "doc": "docs/reviews/pimoa-adversarial-v3.0.md",
+        "ref": "protocol/messages.schema.json"
+      },
+      {
+        "doc": "docs/reviews/pimoa-adversarial-v3.0.md",
+        "ref": "scripts/install-plugin.mjs"
+      },
+      {
+        "doc": "详细设计文档.md",
+        "ref": "protocol/codegen.mjs"
+      },
+      {
+        "doc": "详细设计文档.md",
+        "ref": "protocol/messages.schema.json"
+      }
+    ],
+    "bare": [
+      {
+        "doc": "docs/01-protocol.md",
+        "ref": "codegen.mjs"
+      },
+      {
+        "doc": "docs/02-extension.md",
+        "ref": "agent-bridge.test.js"
+      },
+      {
+        "doc": "docs/02-extension.md",
+        "ref": "attach-sender.test.js"
+      },
+      {
+        "doc": "docs/02-extension.md",
+        "ref": "build.mjs"
+      },
+      {
+        "doc": "docs/02-extension.md",
+        "ref": "capture.test.js"
+      },
+      {
+        "doc": "docs/02-extension.md",
+        "ref": "click.js"
+      },
+      {
+        "doc": "docs/02-extension.md",
+        "ref": "content.js"
+      },
+      {
+        "doc": "docs/02-extension.md",
+        "ref": "content/markdown.js"
+      },
+      {
+        "doc": "docs/02-extension.md",
+        "ref": "cookie.test.js"
+      },
+      {
+        "doc": "docs/02-extension.md",
+        "ref": "extract.fn.js"
+      },
+      {
+        "doc": "docs/02-extension.md",
+        "ref": "extract.test.js"
+      },
+      {
+        "doc": "docs/02-extension.md",
+        "ref": "iframe-host.js"
+      },
+      {
+        "doc": "docs/02-extension.md",
+        "ref": "lib/cookie.js"
+      },
+      {
+        "doc": "docs/02-extension.md",
+        "ref": "lib/protocol.generated.js"
+      },
+      {
+        "doc": "docs/02-extension.md",
+        "ref": "markdown.js"
+      },
+      {
+        "doc": "docs/02-extension.md",
+        "ref": "markdown.test.js"
+      },
+      {
+        "doc": "docs/02-extension.md",
+        "ref": "native-host.js"
+      },
+      {
+        "doc": "docs/02-extension.md",
+        "ref": "native-host.test.js"
+      },
+      {
+        "doc": "docs/02-extension.md",
+        "ref": "navigate.js"
+      },
+      {
+        "doc": "docs/02-extension.md",
+        "ref": "ops-click.test.js"
+      },
+      {
+        "doc": "docs/02-extension.md",
+        "ref": "protocol-sync.test.js"
+      },
+      {
+        "doc": "docs/02-extension.md",
+        "ref": "read.js"
+      },
+      {
+        "doc": "docs/02-extension.md",
+        "ref": "screenshot.js"
+      },
+      {
+        "doc": "docs/02-extension.md",
+        "ref": "src/sw/agent-bridge.js"
+      },
+      {
+        "doc": "docs/02-extension.md",
+        "ref": "src/sw/attach-sender.js"
+      },
+      {
+        "doc": "docs/02-extension.md",
+        "ref": "src/sw/capture.js"
+      },
+      {
+        "doc": "docs/02-extension.md",
+        "ref": "src/sw/native-host.js"
+      },
+      {
+        "doc": "docs/02-extension.md",
+        "ref": "src/sw/panel-control.js"
+      },
+      {
+        "doc": "docs/02-extension.md",
+        "ref": "state.test.js"
+      },
+      {
+        "doc": "docs/02-extension.md",
+        "ref": "tabs.js"
+      },
+      {
+        "doc": "docs/02-extension.md",
+        "ref": "tests/fakes/chrome.js"
+      },
+      {
+        "doc": "docs/02-extension.md",
+        "ref": "toolbar.js"
+      },
+      {
+        "doc": "docs/02-extension.md",
+        "ref": "type.js"
+      },
+      {
+        "doc": "docs/02-extension.md",
+        "ref": "wait.js"
+      },
+      {
+        "doc": "docs/03-bridge-plugin.md",
+        "ref": "ack.ts"
+      },
+      {
+        "doc": "docs/03-bridge-plugin.md",
+        "ref": "attach.ts"
+      },
+      {
+        "doc": "docs/03-bridge-plugin.md",
+        "ref": "config.test.ts"
+      },
+      {
+        "doc": "docs/03-bridge-plugin.md",
+        "ref": "cookie.ts"
+      },
+      {
+        "doc": "docs/03-bridge-plugin.md",
+        "ref": "cookie.vector.test.ts"
+      },
+      {
+        "doc": "docs/03-bridge-plugin.md",
+        "ref": "enter.ts"
+      },
+      {
+        "doc": "docs/03-bridge-plugin.md",
+        "ref": "guard.test.ts"
+      },
+      {
+        "doc": "docs/03-bridge-plugin.md",
+        "ref": "hub.test.ts"
+      },
+      {
+        "doc": "docs/03-bridge-plugin.md",
+        "ref": "hub.ts"
+      },
+      {
+        "doc": "docs/03-bridge-plugin.md",
+        "ref": "lib/client.js"
+      },
+      {
+        "doc": "docs/03-bridge-plugin.md",
+        "ref": "pending.ts"
+      },
+      {
+        "doc": "docs/03-bridge-plugin.md",
+        "ref": "protocol-sync.test.ts"
+      },
+      {
+        "doc": "docs/03-bridge-plugin.md",
+        "ref": "routes.attach.test.ts"
+      },
+      {
+        "doc": "docs/03-bridge-plugin.md",
+        "ref": "routes.enter.test.ts"
+      },
+      {
+        "doc": "docs/03-bridge-plugin.md",
+        "ref": "store.test.ts"
+      },
+      {
+        "doc": "docs/03-bridge-plugin.md",
+        "ref": "store.ts"
+      },
+      {
+        "doc": "docs/03-bridge-plugin.md",
+        "ref": "tests/host/cookie.vector.test.ts"
+      },
+      {
+        "doc": "docs/03-bridge-plugin.md",
+        "ref": "tests/host/integration.test.ts"
+      },
+      {
+        "doc": "docs/03-bridge-plugin.md",
+        "ref": "tool-bridge.test.ts"
+      },
+      {
+        "doc": "docs/03-bridge-plugin.md",
+        "ref": "tool-bridge.ts"
+      },
+      {
+        "doc": "docs/04-client-plugin.md",
+        "ref": "attach-store.test.ts"
+      },
+      {
+        "doc": "docs/04-client-plugin.md",
+        "ref": "bridge-client.test.ts"
+      },
+      {
+        "doc": "docs/04-client-plugin.md",
+        "ref": "chip.test.tsx"
+      },
+      {
+        "doc": "docs/04-client-plugin.md",
+        "ref": "chip.tsx"
+      },
+      {
+        "doc": "docs/04-client-plugin.md",
+        "ref": "composer-insert.test.ts"
+      },
+      {
+        "doc": "docs/04-client-plugin.md",
+        "ref": "composer-insert.ts"
+      },
+      {
+        "doc": "docs/04-client-plugin.md",
+        "ref": "contract/slots.d.ts"
+      },
+      {
+        "doc": "docs/04-client-plugin.md",
+        "ref": "lib/client.js"
+      },
+      {
+        "doc": "docs/04-client-plugin.md",
+        "ref": "protocol-sync.test.ts"
+      },
+      {
+        "doc": "docs/04-client-plugin.md",
+        "ref": "slots.d.ts"
+      },
+      {
+        "doc": "docs/05-native-host.md",
+        "ref": "framing.test.mjs"
+      },
+      {
+        "doc": "docs/05-native-host.md",
+        "ref": "install.mjs"
+      },
+      {
+        "doc": "docs/05-native-host.md",
+        "ref": "install.test.mjs"
+      },
+      {
+        "doc": "docs/05-native-host.md",
+        "ref": "launcher.mjs"
+      },
+      {
+        "doc": "docs/05-native-host.md",
+        "ref": "launcher.test.mjs"
+      },
+      {
+        "doc": "docs/05-native-host.md",
+        "ref": "run.sh"
+      },
+      {
+        "doc": "docs/05-native-host.md",
+        "ref": "runtime-config.json"
+      },
+      {
+        "doc": "docs/06-test-plan.md",
+        "ref": ".../agent-bridge.test.js"
+      },
+      {
+        "doc": "docs/06-test-plan.md",
+        "ref": ".../attach-sender.test.js"
+      },
+      {
+        "doc": "docs/06-test-plan.md",
+        "ref": ".../capture.test.js"
+      },
+      {
+        "doc": "docs/06-test-plan.md",
+        "ref": ".../cookie.test.js"
+      },
+      {
+        "doc": "docs/06-test-plan.md",
+        "ref": ".../dsh-session.test.js"
+      },
+      {
+        "doc": "docs/06-test-plan.md",
+        "ref": ".../extract.test.js"
+      },
+      {
+        "doc": "docs/06-test-plan.md",
+        "ref": ".../hub.test.ts"
+      },
+      {
+        "doc": "docs/06-test-plan.md",
+        "ref": ".../native-host.test.js"
+      },
+      {
+        "doc": "docs/06-test-plan.md",
+        "ref": ".../state.test.js"
+      },
+      {
+        "doc": "docs/06-test-plan.md",
+        "ref": ".../store.test.ts"
+      },
+      {
+        "doc": "docs/06-test-plan.md",
+        "ref": ".../tool-bridge.test.ts"
+      },
+      {
+        "doc": "docs/06-test-plan.md",
+        "ref": "markdown.js"
+      },
+      {
+        "doc": "docs/06-test-plan.md",
+        "ref": "out/e2e1.json"
+      },
+      {
+        "doc": "docs/06-test-plan.md",
+        "ref": "out/e2e3.json"
+      },
+      {
+        "doc": "docs/06-test-plan.md",
+        "ref": "out/e2e4.json"
+      },
+      {
+        "doc": "docs/06-test-plan.md",
+        "ref": "out/e2e6.json"
+      },
+      {
+        "doc": "docs/06-test-plan.md",
+        "ref": "out/e2e8.json"
+      },
+      {
+        "doc": "docs/06-test-plan.md",
+        "ref": "out/e2e9.json"
+      },
+      {
+        "doc": "docs/06-test-plan.md",
+        "ref": "uninstall.mjs"
+      },
+      {
+        "doc": "docs/07-implementation-plan.md",
+        "ref": "E2E/cases/e2e1-embed.mjs"
+      },
+      {
+        "doc": "docs/07-implementation-plan.md",
+        "ref": "E2E/cases/e2e10-regression-baseline.mjs"
+      },
+      {
+        "doc": "docs/07-implementation-plan.md",
+        "ref": "EXT/manifest.json"
+      },
+      {
+        "doc": "docs/07-implementation-plan.md",
+        "ref": "EXT/src/content/content.js"
+      },
+      {
+        "doc": "docs/07-implementation-plan.md",
+        "ref": "EXT/src/content/extract.fn.js"
+      },
+      {
+        "doc": "docs/07-implementation-plan.md",
+        "ref": "EXT/src/sidepanel/iframe-host.js"
+      },
+      {
+        "doc": "docs/07-implementation-plan.md",
+        "ref": "EXT/src/sidepanel/toolbar.js"
+      },
+      {
+        "doc": "docs/07-implementation-plan.md",
+        "ref": "EXT/src/sw/agent-bridge.js"
+      },
+      {
+        "doc": "docs/07-implementation-plan.md",
+        "ref": "EXT/src/sw/attach-sender.js"
+      },
+      {
+        "doc": "docs/07-implementation-plan.md",
+        "ref": "EXT/src/sw/capture.js"
+      },
+      {
+        "doc": "docs/07-implementation-plan.md",
+        "ref": "EXT/src/sw/commands.js"
+      },
+      {
+        "doc": "docs/07-implementation-plan.md",
+        "ref": "EXT/src/sw/dsh-session.js"
+      },
+      {
+        "doc": "docs/07-implementation-plan.md",
+        "ref": "EXT/src/sw/index.js"
+      },
+      {
+        "doc": "docs/07-implementation-plan.md",
+        "ref": "EXT/src/sw/panel-control.js"
+      },
+      {
+        "doc": "docs/07-implementation-plan.md",
+        "ref": "NH/install.mjs"
+      },
+      {
+        "doc": "docs/07-implementation-plan.md",
+        "ref": "PLUG/build.mjs"
+      },
+      {
+        "doc": "docs/07-implementation-plan.md",
+        "ref": "PLUG/package.json"
+      },
+      {
+        "doc": "docs/07-implementation-plan.md",
+        "ref": "PLUG/src/host/cookie.ts"
+      },
+      {
+        "doc": "docs/07-implementation-plan.md",
+        "ref": "PLUG/src/host/hub.ts"
+      },
+      {
+        "doc": "docs/07-implementation-plan.md",
+        "ref": "PLUG/src/host/routes/attach.ts"
+      },
+      {
+        "doc": "docs/07-implementation-plan.md",
+        "ref": "PLUG/src/host/tool-bridge.ts"
+      },
+      {
+        "doc": "docs/07-implementation-plan.md",
+        "ref": "PLUG/tests/host/cookie.vector.test.ts"
+      },
+      {
+        "doc": "docs/07-implementation-plan.md",
+        "ref": "PROTO/codegen.mjs"
+      },
+      {
+        "doc": "docs/07-implementation-plan.md",
+        "ref": "PROTO/messages.schema.json"
+      },
+      {
+        "doc": "docs/07-implementation-plan.md",
+        "ref": "agent-bridge.test.js"
+      },
+      {
+        "doc": "docs/07-implementation-plan.md",
+        "ref": "capture.js"
+      },
+      {
+        "doc": "docs/07-implementation-plan.md",
+        "ref": "extract.test.js"
+      },
+      {
+        "doc": "docs/07-implementation-plan.md",
+        "ref": "hub.test.ts"
+      },
+      {
+        "doc": "docs/07-implementation-plan.md",
+        "ref": "markdown.js"
+      },
+      {
+        "doc": "docs/07-implementation-plan.md",
+        "ref": "markdown.test.js"
+      },
+      {
+        "doc": "docs/07-implementation-plan.md",
+        "ref": "ops/screenshot.js"
+      },
+      {
+        "doc": "docs/07-implementation-plan.md",
+        "ref": "routes.attach.test.ts"
+      },
+      {
+        "doc": "docs/07-implementation-plan.md",
+        "ref": "routes/enter.ts"
+      },
+      {
+        "doc": "docs/07-implementation-plan.md",
+        "ref": "routes/ping.ts"
+      },
+      {
+        "doc": "docs/07-implementation-plan.md",
+        "ref": "settings.js"
+      },
+      {
+        "doc": "docs/07-implementation-plan.md",
+        "ref": "store.test.ts"
+      },
+      {
+        "doc": "docs/07-implementation-plan.md",
+        "ref": "store.ts"
+      },
+      {
+        "doc": "docs/07-implementation-plan.md",
+        "ref": "tool-bridge.test.ts"
+      },
+      {
+        "doc": "docs/08-security.md",
+        "ref": "log.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": ".../agent-bridge.test.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": ".../apps/web/package.json"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": ".../apps/web/tests/scaffold.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": ".../apps/web/tests/support.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": ".../apps/web/vite.config.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": ".../attach-sender.test.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": ".../capture.test.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": ".../cookie.test.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": ".../dsh-session.test.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": ".../extract.test.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": ".../hub.test.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": ".../native-host.test.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": ".../package.json"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": ".../packages/client/tsdown.client.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": ".../packages/client/web/src/platform.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": ".../packages/client/web/src/seed.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": ".../state.test.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": ".../store.test.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": ".../tool-bridge.test.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": ".../tsdown.config.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": ".../vitest.config.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "../../scripts/client-build-environment.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "./package.json"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": ".d.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": ".e2e.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": ".expected.e2e.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": ".perf.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": ".snapshot.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": ".spec.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "E2E/cases/e2e1-embed.mjs"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "E2E/cases/e2e10-regression-baseline.mjs"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "EXT/manifest.json"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "EXT/src/content/content.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "EXT/src/content/extract.fn.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "EXT/src/sidepanel/iframe-host.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "EXT/src/sidepanel/toolbar.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "EXT/src/sw/agent-bridge.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "EXT/src/sw/attach-sender.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "EXT/src/sw/capture.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "EXT/src/sw/commands.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "EXT/src/sw/dsh-session.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "EXT/src/sw/index.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "EXT/src/sw/panel-control.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "NH/install.mjs"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "PLUG/build.mjs"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "PLUG/package.json"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "PLUG/src/host/cookie.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "PLUG/src/host/hub.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "PLUG/src/host/routes/attach.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "PLUG/src/host/tool-bridge.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "PLUG/tests/host/cookie.vector.test.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "PROTO/codegen.mjs"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "PROTO/messages.schema.json"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "ack.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "agent-bridge.test.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "antigravity-companion.json"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "apps/web/tests/scaffold.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "apps/web/vite.config.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "attach-sender.test.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "attach-store.test.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "attach.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "bridge-client.test.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "build.mjs"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "capture.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "capture.test.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "chip.test.tsx"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "chip.tsx"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "click.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "client.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "codegen.mjs"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "composer-insert.test.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "composer-insert.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "config.test.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "content.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "content/intent-sniff.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "content/markdown.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "contract/slots.d.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "cookie.test.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "cookie.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "cookie.vector.test.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "enter.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "extract.fn.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "extract.test.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "extractor.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "facade.d.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "facade.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "framing.test.mjs"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "guard.test.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "hub.d.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "hub.test.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "hub.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "iframe-host.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "index.d.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "install.mjs"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "install.test.mjs"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "intent-sniff.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "launcher.mjs"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "launcher.test.mjs"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "lib/client.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "lib/cookie.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "lib/index.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "lib/protocol.generated.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "lib/types/client/index.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "lib/types/invariant.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "log.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "markdown.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "markdown.test.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "media.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "native-host.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "native-host.test.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "navigate.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "ops-click.test.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "ops/screenshot.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "out/e2e1.json"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "out/e2e3.json"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "out/e2e4.json"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "out/e2e6.json"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "out/e2e8.json"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "out/e2e9.json"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "packages/client/tsdown.client.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "packages/client/ui-goal/tsdown.config.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "packages/client/ui-slots/package.json"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "packages/client/web/src/seed.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "panel.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "pending.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "protocol-sync.test.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "protocol-sync.test.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "protocol.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "read.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "routes.attach.test.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "routes.enter.test.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "routes/enter.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "routes/ping.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "run.sh"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "runtime-config.json"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "scaffold.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "screenshot.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "service.d.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "settings.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "slots.d.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "src/client/index.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "src/css-modules.d.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "src/index.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "src/invariant.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "src/sw/agent-bridge.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "src/sw/attach-sender.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "src/sw/capture.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "src/sw/native-host.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "src/sw/panel-control.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "state.test.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "store.test.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "store.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "tabs.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "tests/fakes/chrome.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "tests/host/cookie.vector.test.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "tests/host/integration.test.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "tool-bridge.test.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "tool-bridge.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "toolbar.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "tsconfig.base.client.json"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "tsconfig.json"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "tsdown.config.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "type.js"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "ui-slots/src/index.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "uninstall.mjs"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "vitest.config.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "vitest.e2e.config.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "vitest.shared.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "vitest.web.config.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": "wait.js"
+      },
+      {
+        "doc": "docs/REVIEW-v3.0.md",
+        "ref": "antigravity-companion.json"
+      },
+      {
+        "doc": "docs/REVIEW-v3.0.md",
+        "ref": "content/intent-sniff.ts"
+      },
+      {
+        "doc": "docs/REVIEW-v3.0.md",
+        "ref": "intent-sniff.ts"
+      },
+      {
+        "doc": "docs/REVIEW-v3.0.md",
+        "ref": "panel.ts"
+      },
+      {
+        "doc": "docs/research/01-dsh-plugin-authoring.md",
+        "ref": ".../apps/web/package.json"
+      },
+      {
+        "doc": "docs/research/01-dsh-plugin-authoring.md",
+        "ref": ".../apps/web/tests/scaffold.ts"
+      },
+      {
+        "doc": "docs/research/01-dsh-plugin-authoring.md",
+        "ref": ".../apps/web/tests/support.ts"
+      },
+      {
+        "doc": "docs/research/01-dsh-plugin-authoring.md",
+        "ref": ".../apps/web/vite.config.ts"
+      },
+      {
+        "doc": "docs/research/01-dsh-plugin-authoring.md",
+        "ref": ".../package.json"
+      },
+      {
+        "doc": "docs/research/01-dsh-plugin-authoring.md",
+        "ref": ".../packages/client/tsdown.client.ts"
+      },
+      {
+        "doc": "docs/research/01-dsh-plugin-authoring.md",
+        "ref": ".../packages/client/web/src/platform.ts"
+      },
+      {
+        "doc": "docs/research/01-dsh-plugin-authoring.md",
+        "ref": ".../packages/client/web/src/seed.ts"
+      },
+      {
+        "doc": "docs/research/01-dsh-plugin-authoring.md",
+        "ref": ".../tsdown.config.ts"
+      },
+      {
+        "doc": "docs/research/01-dsh-plugin-authoring.md",
+        "ref": ".../vitest.config.ts"
+      },
+      {
+        "doc": "docs/research/01-dsh-plugin-authoring.md",
+        "ref": "../../scripts/client-build-environment.ts"
+      },
+      {
+        "doc": "docs/research/01-dsh-plugin-authoring.md",
+        "ref": "./package.json"
+      },
+      {
+        "doc": "docs/research/01-dsh-plugin-authoring.md",
+        "ref": ".e2e.ts"
+      },
+      {
+        "doc": "docs/research/01-dsh-plugin-authoring.md",
+        "ref": ".expected.e2e.ts"
+      },
+      {
+        "doc": "docs/research/01-dsh-plugin-authoring.md",
+        "ref": ".perf.ts"
+      },
+      {
+        "doc": "docs/research/01-dsh-plugin-authoring.md",
+        "ref": ".snapshot.ts"
+      },
+      {
+        "doc": "docs/research/01-dsh-plugin-authoring.md",
+        "ref": ".spec.ts"
+      },
+      {
+        "doc": "docs/research/01-dsh-plugin-authoring.md",
+        "ref": "apps/web/tests/scaffold.ts"
+      },
+      {
+        "doc": "docs/research/01-dsh-plugin-authoring.md",
+        "ref": "apps/web/vite.config.ts"
+      },
+      {
+        "doc": "docs/research/01-dsh-plugin-authoring.md",
+        "ref": "lib/client.js"
+      },
+      {
+        "doc": "docs/research/01-dsh-plugin-authoring.md",
+        "ref": "lib/index.js"
+      },
+      {
+        "doc": "docs/research/01-dsh-plugin-authoring.md",
+        "ref": "lib/types/client/index.js"
+      },
+      {
+        "doc": "docs/research/01-dsh-plugin-authoring.md",
+        "ref": "lib/types/invariant.js"
+      },
+      {
+        "doc": "docs/research/01-dsh-plugin-authoring.md",
+        "ref": "packages/client/tsdown.client.ts"
+      },
+      {
+        "doc": "docs/research/01-dsh-plugin-authoring.md",
+        "ref": "packages/client/ui-goal/tsdown.config.ts"
+      },
+      {
+        "doc": "docs/research/01-dsh-plugin-authoring.md",
+        "ref": "packages/client/ui-slots/package.json"
+      },
+      {
+        "doc": "docs/research/01-dsh-plugin-authoring.md",
+        "ref": "packages/client/web/src/seed.ts"
+      },
+      {
+        "doc": "docs/research/01-dsh-plugin-authoring.md",
+        "ref": "scaffold.ts"
+      },
+      {
+        "doc": "docs/research/01-dsh-plugin-authoring.md",
+        "ref": "src/client/index.ts"
+      },
+      {
+        "doc": "docs/research/01-dsh-plugin-authoring.md",
+        "ref": "src/css-modules.d.ts"
+      },
+      {
+        "doc": "docs/research/01-dsh-plugin-authoring.md",
+        "ref": "src/index.ts"
+      },
+      {
+        "doc": "docs/research/01-dsh-plugin-authoring.md",
+        "ref": "src/invariant.ts"
+      },
+      {
+        "doc": "docs/research/01-dsh-plugin-authoring.md",
+        "ref": "tsconfig.base.client.json"
+      },
+      {
+        "doc": "docs/research/01-dsh-plugin-authoring.md",
+        "ref": "tsconfig.json"
+      },
+      {
+        "doc": "docs/research/01-dsh-plugin-authoring.md",
+        "ref": "tsdown.config.ts"
+      },
+      {
+        "doc": "docs/research/01-dsh-plugin-authoring.md",
+        "ref": "vitest.config.ts"
+      },
+      {
+        "doc": "docs/research/01-dsh-plugin-authoring.md",
+        "ref": "vitest.e2e.config.ts"
+      },
+      {
+        "doc": "docs/research/01-dsh-plugin-authoring.md",
+        "ref": "vitest.shared.ts"
+      },
+      {
+        "doc": "docs/research/01-dsh-plugin-authoring.md",
+        "ref": "vitest.web.config.ts"
+      },
+      {
+        "doc": "docs/research/02-dsh-client-composer-attach.md",
+        "ref": ".d.ts"
+      },
+      {
+        "doc": "docs/research/02-dsh-client-composer-attach.md",
+        "ref": "client.js"
+      },
+      {
+        "doc": "docs/research/02-dsh-client-composer-attach.md",
+        "ref": "facade.d.ts"
+      },
+      {
+        "doc": "docs/research/02-dsh-client-composer-attach.md",
+        "ref": "facade.ts"
+      },
+      {
+        "doc": "docs/research/02-dsh-client-composer-attach.md",
+        "ref": "hub.d.ts"
+      },
+      {
+        "doc": "docs/research/02-dsh-client-composer-attach.md",
+        "ref": "index.d.ts"
+      },
+      {
+        "doc": "docs/research/02-dsh-client-composer-attach.md",
+        "ref": "lib/client.js"
+      },
+      {
+        "doc": "docs/research/02-dsh-client-composer-attach.md",
+        "ref": "service.d.ts"
+      },
+      {
+        "doc": "docs/research/02-dsh-client-composer-attach.md",
+        "ref": "ui-slots/src/index.ts"
+      },
+      {
+        "doc": "docs/reviews/pimoa-adversarial-v3.0.md",
+        "ref": "antigravity-companion.json"
+      },
+      {
+        "doc": "docs/reviews/pimoa-adversarial-v3.0.md",
+        "ref": "content/intent-sniff.ts"
+      },
+      {
+        "doc": "docs/reviews/pimoa-adversarial-v3.0.md",
+        "ref": "intent-sniff.ts"
+      },
+      {
+        "doc": "docs/reviews/pimoa-adversarial-v3.0.md",
+        "ref": "src/client/index.js"
+      },
+      {
+        "doc": "详细设计文档.md",
+        "ref": "background/service-worker.ts"
+      },
+      {
+        "doc": "详细设计文档.md",
+        "ref": "contract/slots.d.ts"
+      },
+      {
+        "doc": "详细设计文档.md",
+        "ref": "extractor.ts"
+      },
+      {
+        "doc": "详细设计文档.md",
+        "ref": "intent-sniff.ts"
+      },
+      {
+        "doc": "详细设计文档.md",
+        "ref": "media.ts"
+      },
+      {
+        "doc": "详细设计文档.md",
+        "ref": "panel.ts"
+      },
+      {
+        "doc": "详细设计文档.md",
+        "ref": "selection.ts"
+      }
+    ]
+  },
+  "externalReferences": [
+    {
+      "doc": "FINDINGS.md",
+      "ref": "dsh-client-connection/lib/index.js"
+    },
+    {
+      "doc": "docs/02-extension.md",
+      "ref": "dsh-session.test.js"
+    },
+    {
+      "doc": "docs/04-client-plugin.md",
+      "ref": "@deepseek-ai/dsh-client-ui-conversation/lib/types/client/contract/input.d.ts"
+    },
+    {
+      "doc": "docs/DOC-GRAPH.md",
+      "ref": "./lib/client.js"
+    },
+    {
+      "doc": "docs/DOC-GRAPH.md",
+      "ref": "/Users/mac/.dsh/profiles/web/package.json"
+    },
+    {
+      "doc": "docs/DOC-GRAPH.md",
+      "ref": "@deepseek-ai/dsh-client-ui-conversation/lib/types/client/contract/input.d.ts"
+    },
+    {
+      "doc": "docs/DOC-GRAPH.md",
+      "ref": "dsh-api-gateway/lib/types/client/index.d.ts"
+    },
+    {
+      "doc": "docs/DOC-GRAPH.md",
+      "ref": "dsh-api-session-controller/lib/types/client/contract/session.d.ts"
+    },
+    {
+      "doc": "docs/DOC-GRAPH.md",
+      "ref": "dsh-api-session-controller/lib/types/client/contract/sessions.d.ts"
+    },
+    {
+      "doc": "docs/DOC-GRAPH.md",
+      "ref": "dsh-client-connection/lib/index.js"
+    },
+    {
+      "doc": "docs/DOC-GRAPH.md",
+      "ref": "dsh-client-connection/lib/types/api-path.d.ts"
+    },
+    {
+      "doc": "docs/DOC-GRAPH.md",
+      "ref": "dsh-client-ui-agent-preset/package.json"
+    },
+    {
+      "doc": "docs/DOC-GRAPH.md",
+      "ref": "dsh-client-ui-conversation/lib/client.js"
+    },
+    {
+      "doc": "docs/DOC-GRAPH.md",
+      "ref": "dsh-client-ui-input-trigger/lib/client.js"
+    },
+    {
+      "doc": "docs/DOC-GRAPH.md",
+      "ref": "dsh-client-ui-renderer/lib/types/client/registry.d.ts"
+    },
+    {
+      "doc": "docs/DOC-GRAPH.md",
+      "ref": "dsh-file-reference/lib/types/grammar.js"
+    },
+    {
+      "doc": "docs/DOC-GRAPH.md",
+      "ref": "dsh-host-webserver/lib/index.js"
+    },
+    {
+      "doc": "docs/DOC-GRAPH.md",
+      "ref": "dsh-session.test.js"
+    },
+    {
+      "doc": "docs/DOC-GRAPH.md",
+      "ref": "dsh-web-companion.json"
+    },
+    {
+      "doc": "docs/DOC-GRAPH.md",
+      "ref": "ui-input-trigger/lib/client.js"
+    },
+    {
+      "doc": "docs/REVIEW-v3.0.md",
+      "ref": "dsh-web-companion.json"
+    },
+    {
+      "doc": "docs/research/01-dsh-plugin-authoring.md",
+      "ref": "./lib/client.js"
+    },
+    {
+      "doc": "docs/research/01-dsh-plugin-authoring.md",
+      "ref": "/Users/mac/.dsh/profiles/web/package.json"
+    },
+    {
+      "doc": "docs/research/02-dsh-client-composer-attach.md",
+      "ref": "dsh-api-gateway/lib/types/client/index.d.ts"
+    },
+    {
+      "doc": "docs/research/02-dsh-client-composer-attach.md",
+      "ref": "dsh-api-session-controller/lib/types/client/contract/session.d.ts"
+    },
+    {
+      "doc": "docs/research/02-dsh-client-composer-attach.md",
+      "ref": "dsh-api-session-controller/lib/types/client/contract/sessions.d.ts"
+    },
+    {
+      "doc": "docs/research/02-dsh-client-composer-attach.md",
+      "ref": "dsh-client-connection/lib/types/api-path.d.ts"
+    },
+    {
+      "doc": "docs/research/02-dsh-client-composer-attach.md",
+      "ref": "dsh-client-ui-agent-preset/package.json"
+    },
+    {
+      "doc": "docs/research/02-dsh-client-composer-attach.md",
+      "ref": "dsh-client-ui-conversation/lib/client.js"
+    },
+    {
+      "doc": "docs/research/02-dsh-client-composer-attach.md",
+      "ref": "dsh-client-ui-input-trigger/lib/client.js"
+    },
+    {
+      "doc": "docs/research/02-dsh-client-composer-attach.md",
+      "ref": "dsh-client-ui-renderer/lib/types/client/registry.d.ts"
+    },
+    {
+      "doc": "docs/research/02-dsh-client-composer-attach.md",
+      "ref": "dsh-file-reference/lib/types/grammar.js"
+    },
+    {
+      "doc": "docs/research/02-dsh-client-composer-attach.md",
+      "ref": "dsh-host-webserver/lib/index.js"
+    },
+    {
+      "doc": "docs/research/02-dsh-client-composer-attach.md",
+      "ref": "ui-input-trigger/lib/client.js"
+    },
+    {
+      "doc": "详细设计文档.md",
+      "ref": "dsh-client-ui-conversation/lib/types/client/contract/input.d.ts"
+    }
+  ],
+  "issues": []
+}

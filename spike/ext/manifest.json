@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "DSH Panel Spike",
+  "version": "0.0.2",
+  "description": "Spike: embed the local DSH web GUI in an extension-page iframe and observe auth behavior.",
+  "minimum_chrome_version": "116",
+  "host_permissions": ["http://127.0.0.1:3080/*"],
+  "permissions": ["cookies", "tabs"],
+  "background": { "service_worker": "sw.js" }
+}

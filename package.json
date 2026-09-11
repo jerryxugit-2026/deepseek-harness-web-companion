@@ -1,0 +1,21 @@
+{
+  "name": "dsh-web-companion",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DSH Web Companion — Chrome side panel that embeds the local DeepSeek Harness agent GUI and attaches pages to it",
+  "type": "module",
+  "scripts": {
+    "graph:init": "codegraph init -i",
+    "graph:sync": "codegraph sync",
+    "graph:status": "codegraph status",
+    "graph:query": "codegraph query",
+    "graph:docs": "node scripts/doc-graph.mjs",
+    "graph:check": "node scripts/doc-graph.mjs --check"
+  },
+  "devDependencies": {
+    "@colbymchenry/codegraph": "^1.6.0"
+  },
+  "dsh": {
+    "note": "This repository hosts three deliverables: extension/ (Chrome MV3), dsh-plugin/ (DSH cordis plugin), native-host/ (native messaging host, M2)."
+  }
+}

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Antigravity Companion</title>
+    <link rel="stylesheet" href="panel.css" />
+  </head>
+  <body>
+    <header id="bar">
+      <span id="status-dot" data-state="unknown" title="DSH 状态"></span>
+      <span id="status-text">准备中…</span>
+      <span class="spacer"></span>
+      <button id="attach-page" data-ag-action="attach-page" title="Attach 当前网页（整页 Markdown）">Attach 网页</button>
+      <button id="open-window" hidden title="在独立窗口打开">独立窗口</button>
+    </header>
+    <main id="host">
+      <section id="notice" hidden>
+        <p id="notice-text"></p>
+        <button id="retry">重试</button>
+      </section>
+      <iframe id="dsh" hidden title="DeepSeek Harness"></iframe>
+    </main>
+    <script type="module" src="panel.js"></script>
+  </body>
+</html>
