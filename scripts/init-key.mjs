@@ -66,8 +66,17 @@ const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
 manifest.key = manifestKey
 writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
 
-// 2. pairing file for the bridge plugin
-const bridgeKey = randomBytes(32).toString('base64').replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/u, '')
+// 2. pairing file for the bridge plugin — reuse the existing key unless
+//    --rotate is passed, so re-provisioning a different port never silently
+//    invalidates a running DSH instance or an already-loaded extension.
+const COMPANION_FILE = 'dsh-web-companion.json'
+const companionPathEarly = join(dshHome, COMPANION_FILE)
+const existingKey = (() => {
+  try { return JSON.parse(readFileSync(companionPathEarly, 'utf8')).key } catch { return undefined }
+})()
+const bridgeKey = (hasFlag('rotate') || typeof existingKey !== 'string' || existingKey === '')
+  ? randomBytes(32).toString('base64').replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/u, '')
+  : existingKey
 const companion = {
   version: 1,
   key: bridgeKey,
@@ -76,7 +85,7 @@ const companion = {
   createdAt: new Date().toISOString(),
 }
 mkdirSync(dshHome, { recursive: true })
-const companionPath = join(dshHome, 'dsh-web-companion.json')
+const companionPath = join(dshHome, COMPANION_FILE)
 writeFileSync(companionPath, `${JSON.stringify(companion, null, 2)}\n`, { mode: 0o600 })
 chmodSync(companionPath, 0o600)
 

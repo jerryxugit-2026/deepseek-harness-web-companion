@@ -15,7 +15,7 @@ import { WebSocketServer } from 'ws'
 const HEARTBEAT_MS = 20000
 const OFFLINE_AFTER_MS = 30000
 
-export function createHub({ log = () => {} } = {}) {
+export function createHub({ log = () => {}, onClientFrame = () => {} } = {}) {
   const servers = { client: new WebSocketServer({ noServer: true }), agent: new WebSocketServer({ noServer: true }) }
   const sockets = { client: new Set(), agent: new Set() }
   const heartbeat = setInterval(() => {
@@ -42,6 +42,8 @@ export function createHub({ log = () => {} } = {}) {
         const text = String(data)
         if (text.includes('"pong"')) return
         try { log(`hub: ${channel} ← ${text.slice(0, 160)}`) } catch { /* ignore */ }
+        if (channel !== 'client') return
+        try { onClientFrame(JSON.parse(text), entry) } catch { /* not JSON */ }
       })
       ws.on('close', () => { sockets[channel].delete(entry); log(`hub: ${channel} peer closed (${String(sockets[channel].size)})`) })
       ws.on('error', () => { sockets[channel].delete(entry) })

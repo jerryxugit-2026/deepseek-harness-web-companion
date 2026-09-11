@@ -28,7 +28,8 @@
     "test:unit": "node tests/unit/tickets.test.mjs",
     "build:ext": "node extension/build.mjs",
     "size:ext": "node extension/build.mjs --report-only",
-    "probe:panel": "node tests/m1/panel-probe.mjs"
+    "probe:panel": "node tests/m1/panel-probe.mjs",
+    "probe:capture": "node tests/m2/capture-probe.mjs"
   },
   "devDependencies": {
     "@colbymchenry/codegraph": "^1.6.0",

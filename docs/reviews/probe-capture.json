@@ -1,0 +1,70 @@
+{
+  "probe": "m2-capture",
+  "dshPort": "3099",
+  "workspace": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a",
+  "extensionId": "idpgkobbblmpmnonlndopijgfmehfmig",
+  "results": {
+    "dshFrameUrl": "http://127.0.0.1:3099/",
+    "attachReply": {
+      "ok": true,
+      "value": {
+        "captureId": "cap-mtxe2kci-0fd6",
+        "result": {
+          "ok": true,
+          "captureId": "cap-mtxe2kci-0fd6",
+          "fileRef": "@网页捕获/2026-09-11-1608-m2-抓取夹具页-i-0fd6.md",
+          "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-11-1608-m2-抓取夹具页-i-0fd6.md",
+          "deliveredTo": [
+            "client:1"
+          ]
+        },
+        "meta": {
+          "chars": 161,
+          "description": "用于验证正文抽取的夹具页面",
+          "headings": [
+            "M2 抓取夹具",
+            "小节标题"
+          ],
+          "lang": "zh",
+          "ogTitle": null
+        }
+      }
+    },
+    "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-11-1608-m2-抓取夹具页-i-0fd6.md",
+    "fileChecks": {
+      "hasMarker": true,
+      "hasTitle": true,
+      "hasNavNoise": false,
+      "hasFooterNoise": false,
+      "hasHeading": true,
+      "hasListItem": true,
+      "hasCodeBlock": true,
+      "hasAbsoluteLink": true,
+      "frontMatter": true,
+      "chars": 336
+    },
+    "chipState": {
+      "connected": true,
+      "chips": [
+        {
+          "captureId": "cap-mtxe2kci-0fd6",
+          "status": "inserted",
+          "mode": "page",
+          "label": "📄 网页: M2 抓取夹具页"
+        }
+      ],
+      "acks": [
+        {
+          "captureId": "cap-mtxe2kci-0fd6",
+          "status": "inserted"
+        }
+      ],
+      "lastAttach": {
+        "captureId": "cap-mtxe2kci-0fd6",
+        "inserted": true,
+        "detail": "",
+        "fileRef": "@网页捕获/2026-09-11-1608-m2-抓取夹具页-i-0fd6.md"
+      }
+    }
+  }
+}

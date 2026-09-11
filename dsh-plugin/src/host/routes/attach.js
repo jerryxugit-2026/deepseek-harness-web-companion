@@ -23,7 +23,7 @@ async function readBody(req, limit) {
   return Buffer.concat(chunks).toString('utf8')
 }
 
-export function attachRoute({ state, store, hub, config }) {
+export function attachRoute({ state, store, hub, config, resolveWorkspace }) {
   return async (req, res) => {
     const send = (status, payload) => {
       res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' })
@@ -41,13 +41,20 @@ export function attachRoute({ state, store, hub, config }) {
     const validated = validateAs('AttachRequest', payload)
     if (!validated.ok) return send(400, { ok: false, error: validated.error })
 
+    // Workspace resolution (design §7): explicit target → the workspace the
+    // connected DSH page announced → plugin config default. Never guess silently:
+    // failing with E_NO_WORKSPACE is better than writing into the wrong repo.
+    const workspace = payload.target?.workspace ?? resolveWorkspace?.() ?? config.defaultWorkspace
     let written
     try {
-      written = await store.write(payload)
+      written = await store.write({ ...payload, target: { ...(payload.target ?? {}), ...(workspace === undefined ? {} : { workspace }) } })
     } catch (error) {
+      const hint = error.code === 'E_NO_WORKSPACE'
+        ? `no workspace resolved (request=${String(payload.target?.workspace ?? 'none')}, client=${String(resolveWorkspace?.() ?? 'none')}, config=${String(config.defaultWorkspace ?? 'none')})`
+        : String(error.message ?? error)
       return send(error.code === 'E_NO_WORKSPACE' ? 409 : 500, {
         ok: false,
-        error: { code: error.code ?? 'E_STORAGE', message: String(error.message ?? error) },
+        error: { code: error.code ?? 'E_STORAGE', message: hint },
       })
     }
 

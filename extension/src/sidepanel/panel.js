@@ -85,8 +85,19 @@ els.openWindow.addEventListener('click', () => {
 })
 
 els.attach.addEventListener('click', () => {
-  void ask({ kind: 'capture', mode: 'page' }).then((result) => {
-    if (!result.ok) store.dispatch({ attach: 'failed', message: result.error.message })
+  els.attach.disabled = true
+  els.attach.textContent = '抓取中…'
+  void ask({ kind: 'capture', mode: 'page', trigger: 'button' }).then((result) => {
+    els.attach.disabled = false
+    els.attach.textContent = 'Attach 网页'
+    if (result.ok) {
+      const ref = result.value?.result?.fileRef ?? ''
+      els.status.textContent = `已附加：${ref}`
+      store.dispatch({ attach: 'attached', lastFileRef: ref })
+      return
+    }
+    els.status.textContent = `抓取失败：${result.error.message}`
+    store.dispatch({ attach: 'failed', message: result.error.message })
   })
 })
 

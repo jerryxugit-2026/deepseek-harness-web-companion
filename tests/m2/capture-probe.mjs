@@ -1,0 +1,223 @@
+#!/usr/bin/env node
+/**
+ * M2 · capture probe (design docs/06 §8.2 E2E-2).
+ *
+ * Drives the BUILT extension end to end for the capture path:
+ *
+ *   fixture page (127.0.0.1, covered by host_permissions)
+ *     → service worker builds the capture (MAIN-world extraction → Markdown)
+ *     → POST /ag/attach (key + extension Origin)
+ *     → file lands in the workspace with front-matter
+ *     → the DSH page inside the panel's iframe receives the push and renders a chip
+ *
+ * Only the text path is asserted here: `captureVisibleTab` needs `<all_urls>` or
+ * `activeTab`, and a headless run cannot produce the required user gesture (the
+ * exact error text is captured by tests/m0a/permission-probe.mjs).
+ *
+ * Usage: node tests/m2/capture-probe.mjs [--port 3099] [--fixture-port 3999]
+ */
+import { createServer } from 'node:http'
+import { execFileSync } from 'node:child_process'
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const HERE = dirname(fileURLToPath(import.meta.url))
+const ROOT = resolve(HERE, '..', '..')
+const argOf = (name, fallback) => {
+  const at = process.argv.indexOf(`--${name}`)
+  return at === -1 ? fallback : process.argv[at + 1]
+}
+const DSH_PORT = argOf('port', '3099')
+const FIXTURE_PORT = Number(argOf('fixture-port', '3999'))
+const CDP_PORT = Number(argOf('cdp-port', '9232'))
+const OUT_DIR = resolve(ROOT, argOf('out', 'docs/reviews'))
+const WORKSPACE = resolve(ROOT, argOf('workspace', '.devhome/workspace-m0a'))
+const EXT_DIST = join(ROOT, 'extension', 'dist')
+const EXT_COPY = join(process.env.TMPDIR ?? '/tmp', 'dshwc-capture-ext')
+const PROFILE = join(process.env.TMPDIR ?? '/tmp', 'dshwc-capture-profile')
+const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+const ORIGIN = `http://127.0.0.1:${DSH_PORT}`
+const MARKER = 'FIXTURE-ARTICLE-MARKER-77'
+const sleep = (ms) => new Promise((r) => { setTimeout(r, ms) })
+mkdirSync(OUT_DIR, { recursive: true })
+
+/** A page shaped like real documentation: nav noise + article + code block. */
+const fixtureServer = createServer((_req, res) => {
+  res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
+  res.end(`<!doctype html><html lang="zh"><head><meta charset="utf-8">
+<title>M2 抓取夹具页</title>
+<meta name="description" content="用于验证正文抽取的夹具页面">
+</head><body>
+<nav>导航噪音 导航噪音</nav>
+<article>
+  <h1>M2 抓取夹具</h1>
+  <p>${MARKER} 这是主内容第一段，用于验证抽取与落盘。</p>
+  <h2>小节标题</h2>
+  <ul><li>要点一</li><li>要点二</li></ul>
+  <pre><code class="language-js">const answer = 42</code></pre>
+  <p>外部链接：<a href="/relative/path">相对链接</a></p>
+</article>
+<footer>页脚噪音</footer>
+</body></html>`)
+})
+await new Promise((r) => { fixtureServer.listen(FIXTURE_PORT, '127.0.0.1', r) })
+
+async function portBusy(port) {
+  try { return (await fetch(`http://127.0.0.1:${String(port)}/json/version`)).ok } catch { return false }
+}
+if (await portBusy(CDP_PORT)) throw new Error(`CDP port ${String(CDP_PORT)} busy — kill the stale Chrome first`)
+
+rmSync(EXT_COPY, { recursive: true, force: true })
+cpSync(EXT_DIST, EXT_COPY, { recursive: true })
+rmSync(PROFILE, { recursive: true, force: true })
+
+const chromePid = execFileSync('/usr/bin/env', ['bash', '-c',
+  `"${CHROME}" --user-data-dir="${PROFILE}" --remote-debugging-port=${CDP_PORT} --no-first-run --no-default-browser-check --no-sandbox --disable-gpu --headless=new --enable-unsafe-extension-debugging --window-size=520,900 about:blank >/tmp/m2-capture-chrome.log 2>&1 & echo $!`,
+], { encoding: 'utf8' }).trim()
+const cleanup = () => {
+  try { process.kill(Number(chromePid)) } catch { /* gone */ }
+  fixtureServer.close()
+}
+process.on('exit', cleanup)
+process.on('uncaughtException', (error) => { console.error('[capture-probe] fatal:', error); cleanup(); process.exit(1) })
+
+class Cdp {
+  #socket
+  #id = 1
+  #pending = new Map()
+  static async connect(url) {
+    const c = new Cdp()
+    c.#socket = new WebSocket(url)
+    await new Promise((res, rej) => {
+      c.#socket.addEventListener('open', res, { once: true })
+      c.#socket.addEventListener('error', () => rej(new Error('cdp socket error')), { once: true })
+    })
+    c.#socket.addEventListener('message', (event) => {
+      const m = JSON.parse(event.data)
+      if (m.id === undefined) return
+      const p = c.#pending.get(m.id)
+      c.#pending.delete(m.id)
+      if (m.error !== undefined) p?.reject(new Error(`${p.method}: ${m.error.message}`))
+      else p?.resolve(m.result)
+    })
+    return c
+  }
+  send(method, params = {}, sessionId) {
+    const id = this.#id++
+    this.#socket.send(JSON.stringify({ id, method, params, ...(sessionId === undefined ? {} : { sessionId }) }))
+    return new Promise((resolve, reject) => { this.#pending.set(id, { resolve, reject, method }) })
+  }
+}
+
+let browserWs
+for (let i = 0; i < 40; i += 1) {
+  try { browserWs = (await (await fetch(`http://127.0.0.1:${String(CDP_PORT)}/json/version`)).json()).webSocketDebuggerUrl; break } catch { await sleep(500) }
+}
+if (browserWs === undefined) throw new Error('chrome devtools never came up')
+const browser = await Cdp.connect(browserWs)
+const { id: extId } = await browser.send('Extensions.loadUnpacked', { path: EXT_COPY })
+console.log(`[capture-probe] extension id=${extId}`)
+
+const open = async (url) => {
+  const { targetId } = await browser.send('Target.createTarget', { url, newWindow: false })
+  await browser.send('Target.activateTarget', { targetId })
+  const { sessionId } = await browser.send('Target.attachToTarget', { targetId, flatten: true })
+  await browser.send('Runtime.enable', {}, sessionId)
+  return { targetId, sessionId }
+}
+const evaluate = async (sessionId, expression, timeoutMs = 12000) => {
+  const call = browser.send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true }, sessionId)
+  const timeout = sleep(timeoutMs).then(() => ({ timedOut: true }))
+  const result = await Promise.race([call, timeout])
+  if (result.timedOut === true) return { timedOut: true }
+  if (result.exceptionDetails !== undefined) return { error: String(result.exceptionDetails.text) }
+  return result.result.value
+}
+
+const results = {}
+const record = (name, value) => {
+  results[name] = value
+  console.log(`  ${name}: ${(JSON.stringify(value) ?? String(value)).slice(0, 260)}`)
+}
+
+// 1. fixture page first (it must be the ACTIVE tab for the capture)
+const fixture = await open(`http://127.0.0.1:${String(FIXTURE_PORT)}/`)
+await sleep(800)
+// 2. the panel document (installs the panel + iframe → DSH client half)
+const panel = await open(`chrome-extension://${extId}/src/sidepanel/panel.html`)
+await sleep(1000)
+
+console.log('1. 面板已连上 DSH（等待 iframe 内的 DSH GUI）')
+let frameReady = null
+for (let i = 0; i < 30; i += 1) {
+  const { targetInfos } = await browser.send('Target.getTargets')
+  const iframe = targetInfos.find((t) => t.type === 'iframe' && t.url.startsWith(ORIGIN))
+  if (iframe !== undefined) { frameReady = iframe.url; break }
+  await sleep(1000)
+}
+record('dshFrameUrl', frameReady)
+
+console.log('2. 让 fixture 页成为活动标签，然后从面板触发抓取')
+await browser.send('Target.activateTarget', { targetId: fixture.targetId })
+await sleep(600)
+const attachResult = await evaluate(panel.sessionId, `(async () => {
+  const reply = await chrome.runtime.sendMessage({ kind: 'capture', mode: 'page', trigger: 'button' })
+  return JSON.stringify(reply ?? null)
+})()`, 40000)
+record('attachReply', typeof attachResult === 'string' ? JSON.parse(attachResult) : attachResult)
+
+console.log('3. 落盘文件校验')
+const attachDir = join(WORKSPACE, '网页捕获')
+let latest = null
+if (existsSync(attachDir)) {
+  const files = readdirSync(attachDir).map((f) => join(attachDir, f)).filter((f) => statSync(f).isFile()).sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs)
+  latest = files[0] ?? null
+}
+record('filePath', latest)
+if (latest !== null) {
+  const text = readFileSync(latest, 'utf8')
+  record('fileChecks', {
+    hasMarker: text.includes(MARKER),
+    hasTitle: text.includes('M2 抓取夹具'),
+    hasNavNoise: text.includes('导航噪音'),
+    hasFooterNoise: text.includes('页脚噪音'),
+    hasHeading: text.includes('## 小节标题'),
+    hasListItem: text.includes('- 要点一'),
+    hasCodeBlock: text.includes('```js'),
+    hasAbsoluteLink: /\]\(http:\/\/127\.0\.0\.1:3999\/relative\/path\)/u.test(text),
+    frontMatter: text.startsWith('---'),
+    chars: text.length,
+  })
+}
+
+console.log('4. 面板 iframe 内的 DSH 页面是否收到推送并渲染胶囊')
+let chip = null
+for (let i = 0; i < 25; i += 1) {
+  const { targetInfos } = await browser.send('Target.getTargets')
+  const iframe = targetInfos.find((t) => t.type === 'iframe' && t.url.startsWith(ORIGIN))
+  if (iframe !== undefined) {
+    const frameSession = (await browser.send('Target.attachToTarget', { targetId: iframe.targetId, flatten: true })).sessionId
+    await browser.send('Runtime.enable', {}, frameSession)
+    const raw = await browser.send('Runtime.evaluate', {
+      expression: `JSON.stringify(globalThis.__AG_CLIENT__ === undefined ? null : {
+        connected: globalThis.__AG_CLIENT__.state.connected,
+        chips: globalThis.__AG_CLIENT__.chips(),
+        acks: globalThis.__AG_CLIENT__.state.acks,
+        lastAttach: globalThis.__AG_LAST_ATTACH__ ?? null,
+      })`,
+      returnByValue: true,
+    }, frameSession)
+    await browser.send('Target.detachFromTarget', { sessionId: frameSession }).catch(() => {})
+    chip = typeof raw.result?.value === 'string' && raw.result.value !== 'null' ? JSON.parse(raw.result.value) : null
+    if ((chip?.chips ?? []).length > 0) break
+  }
+  await sleep(800)
+}
+record('chipState', chip)
+
+const report = { probe: 'm2-capture', dshPort: DSH_PORT, workspace: WORKSPACE, extensionId: extId, results }
+writeFileSync(join(OUT_DIR, 'probe-capture.json'), `${JSON.stringify(report, null, 2)}\n`)
+console.log('\n写入 docs/reviews/probe-capture.json')
+cleanup()
+process.exit(0)

@@ -114,8 +114,8 @@
       "path": "docs/CHANGELOG.md",
       "title": "变更记录（CHANGELOG）",
       "version": "v3.0",
-      "lines": 444,
-      "sections": 19,
+      "lines": 475,
+      "sections": 20,
       "codeRefs": 0,
       "docRefs": 1
     },
@@ -123,9 +123,9 @@
       "path": "docs/DOC-GRAPH.md",
       "title": "文档与代码图谱（DOC-GRAPH）",
       "version": null,
-      "lines": 303,
+      "lines": 296,
       "sections": 6,
-      "codeRefs": 202,
+      "codeRefs": 195,
       "docRefs": 0
     },
     {
@@ -257,7 +257,7 @@
     {
       "path": "详细设计文档.md",
       "title": "DSH Web Companion · 详细设计规范说明书",
-      "version": "v3.15",
+      "version": "v3.16",
       "lines": 814,
       "sections": 16,
       "codeRefs": 22,
@@ -265,7 +265,7 @@
     }
   ],
   "code": {
-    "indexedFiles": 109,
+    "indexedFiles": 114,
     "areas": {
       "extension": [
         "docs/01-protocol.md",
@@ -314,10 +314,6 @@
       },
       {
         "doc": "docs/06-test-plan.md",
-        "ref": "extension/src/content/extract.fn.js"
-      },
-      {
-        "doc": "docs/06-test-plan.md",
         "ref": "extension/src/content/markdown.js"
       },
       {
@@ -327,14 +323,6 @@
       {
         "doc": "docs/06-test-plan.md",
         "ref": "extension/src/sw/agent-bridge.js"
-      },
-      {
-        "doc": "docs/06-test-plan.md",
-        "ref": "extension/src/sw/attach-sender.js"
-      },
-      {
-        "doc": "docs/06-test-plan.md",
-        "ref": "extension/src/sw/capture.js"
       },
       {
         "doc": "docs/06-test-plan.md",
@@ -366,10 +354,6 @@
       },
       {
         "doc": "docs/DOC-GRAPH.md",
-        "ref": "extension/src/content/extract.fn.js"
-      },
-      {
-        "doc": "docs/DOC-GRAPH.md",
         "ref": "extension/src/content/markdown.js"
       },
       {
@@ -379,14 +363,6 @@
       {
         "doc": "docs/DOC-GRAPH.md",
         "ref": "extension/src/sw/agent-bridge.js"
-      },
-      {
-        "doc": "docs/DOC-GRAPH.md",
-        "ref": "extension/src/sw/attach-sender.js"
-      },
-      {
-        "doc": "docs/DOC-GRAPH.md",
-        "ref": "extension/src/sw/capture.js"
       },
       {
         "doc": "docs/DOC-GRAPH.md",
@@ -448,10 +424,6 @@
       },
       {
         "doc": "docs/02-extension.md",
-        "ref": "extract.fn.js"
-      },
-      {
-        "doc": "docs/02-extension.md",
         "ref": "extract.test.js"
       },
       {
@@ -501,14 +473,6 @@
       {
         "doc": "docs/02-extension.md",
         "ref": "src/sw/agent-bridge.js"
-      },
-      {
-        "doc": "docs/02-extension.md",
-        "ref": "src/sw/attach-sender.js"
-      },
-      {
-        "doc": "docs/02-extension.md",
-        "ref": "src/sw/capture.js"
       },
       {
         "doc": "docs/02-extension.md",
@@ -860,10 +824,6 @@
       },
       {
         "doc": "docs/07-implementation-plan.md",
-        "ref": "capture.js"
-      },
-      {
-        "doc": "docs/07-implementation-plan.md",
         "ref": "extract.test.js"
       },
       {
@@ -1168,10 +1128,6 @@
       },
       {
         "doc": "docs/DOC-GRAPH.md",
-        "ref": "capture.js"
-      },
-      {
-        "doc": "docs/DOC-GRAPH.md",
         "ref": "capture.test.js"
       },
       {
@@ -1237,10 +1193,6 @@
       {
         "doc": "docs/DOC-GRAPH.md",
         "ref": "enter.ts"
-      },
-      {
-        "doc": "docs/DOC-GRAPH.md",
-        "ref": "extract.fn.js"
       },
       {
         "doc": "docs/DOC-GRAPH.md",
@@ -1497,14 +1449,6 @@
       {
         "doc": "docs/DOC-GRAPH.md",
         "ref": "src/sw/agent-bridge.js"
-      },
-      {
-        "doc": "docs/DOC-GRAPH.md",
-        "ref": "src/sw/attach-sender.js"
-      },
-      {
-        "doc": "docs/DOC-GRAPH.md",
-        "ref": "src/sw/capture.js"
       },
       {
         "doc": "docs/DOC-GRAPH.md",

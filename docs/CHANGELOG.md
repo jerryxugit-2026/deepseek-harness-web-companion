@@ -5,7 +5,38 @@
 
 ---
 
-## v3.15 — 2026-09-11（当前）
+## v3.16 — 2026-09-11（当前）
+
+**触发**：M2 抓取侧落地，并用构建产物端到端取证 —— 「Attach 网页」按钮真正可用。
+
+### 交付
+
+| 组件 | 说明 |
+|---|---|
+| `extension/src/content/extract.fn.js` | **自包含**注入函数（`scripting.executeScript` 序列化要求）：主内容根识别（article/main/#content…）→ 噪音剔除（nav/footer/aside/script/表单/广告…）→ 单遍节点遍历转 Markdown（标题层级、嵌套列表、代码块带语言、表格、引用、链接**绝对化**、图片 alt）→ 选区 + 元数据（description/og:title/headings/chars）→ 120k 字符截断 |
+| `extension/src/sw/capture.js` | 抓取编排：定位活动标签 → MAIN world 抽取 → 可选视口截图（受 `captureVisibleTab` 权限约束，失败标记 `dropped`+原因而不阻断正文）→ 组装 schema 合规的 `/ag/attach` 请求体 |
+| `extension/src/sw/attach-sender.js` | 投递：key + 扩展 Origin（F2）；超时 8s；**仅对可重试错误**退避重试（300/900ms），4xx 直接上抛 |
+| SW / 面板 | 新增 `capture` 消息路由与 UI 反馈（按钮进入"抓取中…"，成功显示 `已附加：@…`，失败显示可读原因） |
+| **工作区解析（真实修复）** | 三级：请求体 `target.workspace` → **DSH 页面上报的工作区**（client 半 `hello` 携带当前会话 `cwd`，并在会话切换后重新上报）→ 插件配置 `defaultWorkspace`；解析失败返回 `E_NO_WORKSPACE` 并附带三级候选的诊断文本 |
+| `scripts/init-key.mjs` | **幂等化**：已有配对文件即复用其 key（仅 `--rotate` 更换），避免"换端口重新生成 key"静默作废运行中的实例与已加载扩展 |
+
+### 实测（`tests/m2/capture-probe.mjs` → `docs/reviews/probe-capture.json`）
+
+在隔离实例上用构造夹具页（含导航/页脚噪音、标题、列表、代码块、相对链接）驱动**构建产物**：
+
+| 断言 | 结果 |
+|---|---|
+| 面板触发抓取 | ✅ `ok: true`，`@网页捕获/2026-09-11-1608-m2-抓取夹具页-i-0fd6.md` |
+| 落盘内容 | ✅ 正文含标记、标题、`## 小节标题`、`- 要点一`、```js 代码块；**导航/页脚噪音已被剔除**；相对链接已绝对化；front-matter 齐全 |
+| 面板 iframe 内的 DSH 页面 | ✅ 收到推送并渲染胶囊：`{status: "inserted", mode: "page", label: "📄 网页: M2 抓取夹具页"}` + ack `inserted` |
+
+### 体积
+
+43.0 KB（gzip 0.4 KB），G6 判据仍通过；引入 Readability 类依赖后再复测。
+
+---
+
+## v3.15 — 2026-09-11
 
 **触发**：**E2E-1 在真实扩展 + 真实实例上跑通**（用户已在自己的 Chrome 里加载扩展，ID `idpgkob…` 与配对文件一致）。
 

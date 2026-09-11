@@ -95,6 +95,21 @@ window.__ModuleLoader__.load({
       globalThis.__AG_PROBE__ = steps
       record('probe-done', { steps: steps.length })
 
+      /** The current session's working directory — the capture target workspace. */
+      const currentWorkspace = () => {
+        try {
+          const uiSession = ctx.get('uiSession')
+          const sessions = ctx.get('sessions')
+          const id = uiSession?.currentBinding?.props?.sessionId
+          if (typeof id !== 'string') return undefined
+          const snapshot = sessions?.list?.getSnapshot?.()
+          const item = snapshot?.byId?.[id] ?? (snapshot?.ids ?? []).map((key) => snapshot?.byId?.[key]).find((entry) => entry?.id === id)
+          if (typeof item?.cwd === 'string') return item.cwd
+          const binding = uiSession?.currentBinding?.props
+          return typeof binding?.workspace === 'string' ? binding.workspace : undefined
+        } catch { return undefined }
+      }
+
       /** Which session does the SHELL consider current? Drives the real composer. */
       const currentSessionId = () => {
         try {
@@ -276,7 +291,9 @@ window.__ModuleLoader__.load({
         try { socket = new WebSocket(`${scheme}//${location.host}${CHANNEL}`) } catch (error) { log('ws throw', String(error)); return }
         socket.addEventListener('open', () => {
           state.connected = true
-          send({ type: 'hello', protocolVersion: 1, extVersion: 'client', sessionId: currentSessionId() })
+          const sessionId = currentSessionId()
+          const workspace = currentWorkspace()
+          send({ type: 'hello', protocolVersion: 1, extVersion: 'client', ...(sessionId === undefined ? {} : { sessionId }), ...(workspace === undefined ? {} : { workspace }) })
           send({ type: 'request-pending' })
           log('ws open')
         })
@@ -294,6 +311,20 @@ window.__ModuleLoader__.load({
       connect()
       heartbeat = setInterval(() => { send({ type: 'ping' }) }, HEARTBEAT_MS)
       stopIntent = watchIntent()
+
+      // Re-announce when the user picks another session/workspace, so captures
+      // land in what they are actually looking at (design §7 resolution order).
+      let announcedWorkspace
+      const announceTimer = setInterval(() => {
+        if (socket === undefined || socket.readyState !== 1) return
+        const workspace = currentWorkspace()
+        if (workspace === undefined || workspace === announcedWorkspace) return
+        announcedWorkspace = workspace
+        const sessionId = currentSessionId()
+        send({ type: 'hello', protocolVersion: 1, extVersion: 'client', ...(sessionId === undefined ? {} : { sessionId }), workspace })
+        log('re-announced workspace', workspace.slice(-32))
+      }, 3000)
+      stopIntent = ((inner) => () => { clearInterval(announceTimer); inner() })(stopIntent)
 
       globalThis.__AG_CLIENT__ = {
         state,

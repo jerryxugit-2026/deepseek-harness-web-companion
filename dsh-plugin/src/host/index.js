@@ -53,7 +53,17 @@ export function apply(ctx, config = {}) {
   const recent = { captures: [], acks: [] }
   const store = createStore(resolved)
   const tickets = createTicketStore({ ttlMs: config.ticketTtlMs ?? 30000 })
-  const hub = createHub({ log: (line) => ctx.logger?.info?.(`[dsh-web-companion-bridge] ${line}`) })
+  /** Last workspace a connected DSH page announced — the default capture target. */
+  const clientFacts = { workspace: undefined, sessionId: undefined }
+  const hub = createHub({
+    log: (line) => ctx.logger?.info?.(`[dsh-web-companion-bridge] ${line}`),
+    onClientFrame: (frame) => {
+      if (frame?.type !== 'hello') return
+      if (typeof frame.workspace === 'string' && frame.workspace !== '') clientFacts.workspace = frame.workspace
+      if (typeof frame.sessionId === 'string') clientFacts.sessionId = frame.sessionId
+      ctx.logger?.info?.(`[dsh-web-companion-bridge] client hello session=${String(frame.sessionId ?? '?').slice(0, 14)} workspace=${String(clientFacts.workspace ?? '(none)').slice(-28)}`)
+    },
+  })
 
   let pairing = { key: undefined, extensionOrigins: [], source: resolved.keyFile, error: undefined }
   let loadedAt = 0
@@ -72,6 +82,7 @@ export function apply(ctx, config = {}) {
     pluginVersion: PLUGIN_VERSION,
     liveTickets: () => tickets.liveCount,
     connectedClients: () => hub.clientCount,
+    clientWorkspace: () => clientFacts.workspace,
     recordCapture: (event, delivered) => {
       recent.captures.push({ captureId: event.captureId, fileRef: event.fileRef, delivered, at: Date.now() })
       if (recent.captures.length > 50) recent.captures.shift()
@@ -168,7 +179,13 @@ export function apply(ctx, config = {}) {
     () => ctx.webServer.register({
       kind: 'exact',
       path: ROUTE.attach,
-      handler: withPairing(attachRoute({ state, store, hub, config: resolved })),
+      handler: withPairing(attachRoute({
+        state,
+        store,
+        hub,
+        config: resolved,
+        resolveWorkspace: () => clientFacts.workspace ?? resolved.defaultWorkspace,
+      })),
     }),
     `dsh-web-companion-bridge: POST ${ROUTE.attach}`,
   )
