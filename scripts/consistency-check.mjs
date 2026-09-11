@@ -30,6 +30,11 @@ const ROOT = resolve(HERE, '..')
 
 /** 历史与审计文件允许保留旧说法（它们记录"当时是什么样"）。 */
 const HISTORY = ['FINDINGS.md', 'docs/CHANGELOG.md', 'docs/REVIEW-', 'docs/reviews/', 'docs/research/']
+/**
+ * 反例向量故意包含被禁的值（例如 `image/webp`、未知错误码）——它们的用途正是
+ * 证明 schema 会拒绝这些输入，因此不参与"废弃说法"扫描。
+ */
+const NEGATIVE_VECTORS = 'protocol/vectors/invalid/'
 /** 生成物：内容完全来自其它文档，检查源文档即可。 */
 const GENERATED = ['docs/DOC-GRAPH.md', 'docs/doc-graph.json']
 /** 正当的"已废弃/已否决"叙述。 */
@@ -176,6 +181,7 @@ if (process.argv.includes('--list')) {
 }
 
 const skipped = (rule, file) =>
+  file.startsWith(NEGATIVE_VECTORS) ||
   (rule.only !== undefined && !rule.only.includes(file)) ||
   (rule.skip ?? []).some((prefix) => file.startsWith(prefix) || file.includes(prefix))
 
