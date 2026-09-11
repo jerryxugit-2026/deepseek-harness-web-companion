@@ -25,6 +25,7 @@ export function pingRoute({ state, protocolVersion }) {
       dsh: { home: state.dshHome, port: state.port() },
       capabilities: state.capabilities(),
       liveTickets: typeof state.liveTickets === 'function' ? state.liveTickets() : undefined,
+      connectedClients: typeof state.connectedClients === 'function' ? state.connectedClients() : undefined,
     }
     // Fail loudly on drift: a payload the schema rejects must never ship.
     const validated = validateAs('PingResponse', payload)

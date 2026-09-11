@@ -71,6 +71,7 @@ export function apply(ctx, config = {}) {
   const state = {
     pluginVersion: PLUGIN_VERSION,
     liveTickets: () => tickets.liveCount,
+    connectedClients: () => hub.clientCount,
     recordCapture: (event, delivered) => {
       recent.captures.push({ captureId: event.captureId, fileRef: event.fileRef, delivered, at: Date.now() })
       if (recent.captures.length > 50) recent.captures.shift()

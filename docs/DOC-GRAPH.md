@@ -1,7 +1,7 @@
 # 文档与代码图谱（DOC-GRAPH）
 
 > **自动生成，请勿手改**：`node scripts/doc-graph.mjs`（校验：`node scripts/doc-graph.mjs --check`）
-> 生成时间：2026-09-11T20:00:00.276Z
+> 生成时间：2026-09-11T20:00:33.656Z
 >
 > **更新时机（随项目进展）**：
 > 1. 任一 `*.md` 或代码文件增删改后 → `npm run graph:sync`（代码图谱增量重建）+ `npm run graph:docs`（本文件重生成）；
@@ -24,7 +24,7 @@
 | `docs/06-test-plan.md` | 06 · 测试方案（单测矩阵 + E2E） | — | 128 | 8 | 36 |
 | `docs/07-implementation-plan.md` | 07 · 实现计划（任务分解与完成判据） | — | 87 | 7 | 39 |
 | `docs/08-security.md` | 08 · 安全与威胁模型 | — | 73 | 6 | 1 |
-| `docs/CHANGELOG.md` | 变更记录（CHANGELOG） | v3.0 | 413 | 17 | 0 |
+| `docs/CHANGELOG.md` | 变更记录（CHANGELOG） | v3.0 | 422 | 18 | 0 |
 | `docs/DOC-GRAPH.md` | 文档与代码图谱（DOC-GRAPH） | — | 303 | 6 | 202 |
 | `docs/REVIEW-v3.0.md` | 详细设计 v3.0 评审报告（Review of v3.0 → 修正为 v3.1） | v3.0 | 68 | 5 | 0 |
 | `docs/research/01-dsh-plugin-authoring.md` | 01 — Writing, building, installing and testing a THIRD-PARTY DSH plugin (host half + browser/client half) | — | 1137 | 18 | 0 |

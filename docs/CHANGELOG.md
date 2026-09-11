@@ -5,7 +5,16 @@
 
 ---
 
-## v3.14 — 2026-09-11（当前）
+## v3.14.1 — 2026-09-11（当前）
+
+**触发**：把诊断字段补齐到协议（`/ag/ping` 暴露 `liveTickets` 与 `connectedClients`），使其成为**可验证的观测面**：
+下次重启真实实例后，`connectedClients ≥ 1` 即证明浏览器里的界面已连上我们的上下文通道（client 半加载成功）。
+
+- `protocol/messages.schema.json`：`PingResponse` 增加 `liveTickets` / `connectedClients`（均为 number）
+- 插件 `/ag/ping` 输出 `connectedClients`（来自 hub 的 client 连接数）
+- 协议契约测试重跑通过（21 正 / 11 反 / 3 产物）
+
+## v3.14 — 2026-09-11
 
 **触发**：M1③ 扩展构建链与体积报告（G6「扩展 ≤1MB」的可证伪依据）。
 

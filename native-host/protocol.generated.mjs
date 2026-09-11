@@ -1,14 +1,14 @@
 /**
  * AUTO-GENERATED — do not edit. Source: protocol/messages.schema.json
  * protocolVersion: 1
- * schemaSha256: 0b03470c387e565e6fcaaf408d4de1177b46b3c43c2af8c9956a2271ca1b5e8f
+ * schemaSha256: 9ee6a89ae5f84614ec6ed4a4f9932b1c7e12e552f1be5aed400de8f57404e1bc
  * platform: native-host (ESM)
  * Runtime: native messaging host (Node, stdio frames).
  * Regenerate: node protocol/codegen.mjs   Verify: node protocol/codegen.mjs --check
  */
 
 export const PROTOCOL_VERSION = 1
-export const SCHEMA_SHA256 = '0b03470c387e565e6fcaaf408d4de1177b46b3c43c2af8c9956a2271ca1b5e8f'
+export const SCHEMA_SHA256 = '9ee6a89ae5f84614ec6ed4a4f9932b1c7e12e552f1be5aed400de8f57404e1bc'
 export const SCHEMA_ID = 'https://dsh.local/web-companion/messages.schema.json'
 
 /** Message kinds this protocol defines (from the schema's top-level oneOf). */
@@ -361,6 +361,12 @@ export const MESSAGE_SCHEMA = {
           "items": {
             "type": "string"
           }
+        },
+        "liveTickets": {
+          "type": "number"
+        },
+        "connectedClients": {
+          "type": "number"
         }
       }
     },
