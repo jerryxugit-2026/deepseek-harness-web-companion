@@ -17,7 +17,8 @@
     "probe:permission": "node tests/m0a/permission-probe.mjs",
     "search": "semble search",
     "probe:composer": "node tests/m0a/composer-probe.mjs",
-    "probe:cookies": "node tests/m0a/cookie-matrix.mjs"
+    "probe:cookies": "node tests/m0a/cookie-matrix.mjs",
+    "probe:keepalive": "node tests/m0a/keepalive-probe.mjs"
   },
   "devDependencies": {
     "@colbymchenry/codegraph": "^1.6.0"

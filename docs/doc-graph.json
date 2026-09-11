@@ -114,8 +114,8 @@
       "path": "docs/CHANGELOG.md",
       "title": "变更记录（CHANGELOG）",
       "version": "v3.0",
-      "lines": 230,
-      "sections": 10,
+      "lines": 245,
+      "sections": 11,
       "codeRefs": 0,
       "docRefs": 1
     },
@@ -123,7 +123,7 @@
       "path": "docs/DOC-GRAPH.md",
       "title": "文档与代码图谱（DOC-GRAPH）",
       "version": null,
-      "lines": 309,
+      "lines": 310,
       "sections": 6,
       "codeRefs": 210,
       "docRefs": 0
@@ -219,6 +219,15 @@
       "docRefs": 0
     },
     {
+      "path": "docs/reviews/probe-keepalive.md",
+      "title": "M0a 探针报告 · 空闲 WebSocket 保活（probe-keepalive / Q8）",
+      "version": null,
+      "lines": 29,
+      "sections": 4,
+      "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
       "path": "docs/reviews/probe-permission.md",
       "title": "M0a 探针报告 · 权限实验（probe-permission）",
       "version": null,
@@ -239,7 +248,7 @@
     {
       "path": "详细设计文档.md",
       "title": "DSH Web Companion · 详细设计规范说明书",
-      "version": "v3.7",
+      "version": "v3.8",
       "lines": 814,
       "sections": 16,
       "codeRefs": 21,
@@ -247,7 +256,7 @@
     }
   ],
   "code": {
-    "indexedFiles": 49,
+    "indexedFiles": 55,
     "areas": {
       "extension": [
         "docs/01-protocol.md",

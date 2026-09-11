@@ -17,6 +17,7 @@ import { pingRoute } from './routes/ping.js'
 import { enterRoute } from './routes/enter.js'
 import { whoamiRoute } from './routes/whoami.js'
 import { registerWsProbe } from './routes/ws-probe.js'
+import { registerWsEcho } from './routes/ws-echo.js'
 import { probePageRoute } from './routes/probe-page.js'
 
 export const name = 'dsh-web-companion-bridge'
@@ -100,6 +101,14 @@ export function apply(ctx, config = {}) {
       handler: withPairing(whoamiRoute({ state })),
     }),
     'dsh-web-companion-bridge: GET /ag/whoami',
+  )
+
+  ctx.effect(
+    () => ctx.webServer.registerUpgrade({
+      path: '/ag/wsecho',
+      handler: registerWsEcho(),
+    }),
+    'dsh-web-companion-bridge: WS /ag/wsecho',
   )
 
   ctx.effect(

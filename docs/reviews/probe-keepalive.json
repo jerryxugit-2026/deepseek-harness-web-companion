@@ -1,0 +1,140 @@
+{
+  "probe": "m0a-keepalive",
+  "chrome": "150.0.7871.125",
+  "observedSeconds": 90,
+  "extensionId": "khbmjmpfdoklfkkbfpclfahpljiandhk",
+  "samples": [
+    {
+      "atSeconds": 0,
+      "sw": {
+        "swAlive": false
+      },
+      "pageLog": null
+    },
+    {
+      "atSeconds": 10,
+      "sw": {
+        "swAlive": true,
+        "reply": "{\"error\":\"Error: Could not establish connection. Receiving end does not exist.\"}"
+      },
+      "pageLog": "1789152143919 page-boot  | 1789152143922 ws-open  | 1789152143922 ws-message {\"kind\":\"wsecho-hello\",\"at\":1789152143921,\"origin\""
+    },
+    {
+      "atSeconds": 20,
+      "sw": {
+        "swAlive": true,
+        "reply": "{\"error\":\"Error: Could not establish connection. Receiving end does not exist.\"}"
+      },
+      "pageLog": "1789152143919 page-boot  | 1789152143922 ws-open  | 1789152143922 ws-message {\"kind\":\"wsecho-hello\",\"at\":1789152143921,\"origin\""
+    },
+    {
+      "atSeconds": 30,
+      "sw": {
+        "swAlive": true,
+        "reply": "{\"error\":\"Error: Could not establish connection. Receiving end does not exist.\"}"
+      },
+      "pageLog": "1789152143919 page-boot  | 1789152143922 ws-open  | 1789152143922 ws-message {\"kind\":\"wsecho-hello\",\"at\":1789152143921,\"origin\""
+    },
+    {
+      "atSeconds": 40,
+      "sw": {
+        "swAlive": true,
+        "reply": "{\"error\":\"Error: Could not establish connection. Receiving end does not exist.\"}"
+      },
+      "pageLog": "1789152143919 page-boot  | 1789152143922 ws-open  | 1789152143922 ws-message {\"kind\":\"wsecho-hello\",\"at\":1789152143921,\"origin\""
+    },
+    {
+      "atSeconds": 50,
+      "sw": {
+        "swAlive": true,
+        "reply": "{\"error\":\"Error: Could not establish connection. Receiving end does not exist.\"}"
+      },
+      "pageLog": "1789152143919 page-boot  | 1789152143922 ws-open  | 1789152143922 ws-message {\"kind\":\"wsecho-hello\",\"at\":1789152143921,\"origin\""
+    },
+    {
+      "atSeconds": 60,
+      "sw": {
+        "swAlive": true,
+        "reply": "{\"error\":\"Error: Could not establish connection. Receiving end does not exist.\"}"
+      },
+      "pageLog": "1789152143919 page-boot  | 1789152143922 ws-open  | 1789152143922 ws-message {\"kind\":\"wsecho-hello\",\"at\":1789152143921,\"origin\""
+    },
+    {
+      "atSeconds": 70,
+      "sw": {
+        "swAlive": true,
+        "reply": "{\"error\":\"Error: Could not establish connection. Receiving end does not exist.\"}"
+      },
+      "pageLog": "1789152143919 page-boot  | 1789152143922 ws-open  | 1789152143922 ws-message {\"kind\":\"wsecho-hello\",\"at\":1789152143921,\"origin\""
+    },
+    {
+      "atSeconds": 80,
+      "sw": {
+        "swAlive": true,
+        "reply": "{\"error\":\"Error: Could not establish connection. Receiving end does not exist.\"}"
+      },
+      "pageLog": "1789152143919 page-boot  | 1789152143922 ws-open  | 1789152143922 ws-message {\"kind\":\"wsecho-hello\",\"at\":1789152143921,\"origin\""
+    }
+  ],
+  "console": {
+    "99256768": [
+      "[keepalive-sw] 1789152144013 sw-boot socket=true",
+      "[keepalive-sw] 1789152144015 ws-open ",
+      "[keepalive-sw] 1789152144015 ws-message {\"kind\":\"wsecho-hello\",\"at\":1789152144014,\"origin\":\"chrome-e"
+    ],
+    "E42AD192": [
+      "[keepalive-page] 1789152143919 page-boot ",
+      "[keepalive-page] 1789152143922 ws-open ",
+      "[keepalive-page] 1789152143922 ws-message {\"kind\":\"wsecho-hello\",\"at\":1789152143921,\"origin\""
+    ],
+    "63738A96": [
+      "[keepalive-page] 1789152143919 page-boot ",
+      "[keepalive-page] 1789152143922 ws-open ",
+      "[keepalive-page] 1789152143922 ws-message {\"kind\":\"wsecho-hello\",\"at\":1789152143921,\"origin\""
+    ],
+    "3B3ACAD0": [
+      "[keepalive-sw] 1789152144013 sw-boot socket=true",
+      "[keepalive-sw] 1789152144015 ws-open ",
+      "[keepalive-sw] 1789152144015 ws-message {\"kind\":\"wsecho-hello\",\"at\":1789152144014,\"origin\":\"chrome-e"
+    ],
+    "784D7B10": [
+      "[keepalive-sw] 1789152144013 sw-boot socket=true",
+      "[keepalive-sw] 1789152144015 ws-open ",
+      "[keepalive-sw] 1789152144015 ws-message {\"kind\":\"wsecho-hello\",\"at\":1789152144014,\"origin\":\"chrome-e"
+    ],
+    "4A64D278": [
+      "[keepalive-sw] 1789152144013 sw-boot socket=true",
+      "[keepalive-sw] 1789152144015 ws-open ",
+      "[keepalive-sw] 1789152144015 ws-message {\"kind\":\"wsecho-hello\",\"at\":1789152144014,\"origin\":\"chrome-e"
+    ],
+    "4E22E8CE": [
+      "[keepalive-sw] 1789152144013 sw-boot socket=true",
+      "[keepalive-sw] 1789152144015 ws-open ",
+      "[keepalive-sw] 1789152144015 ws-message {\"kind\":\"wsecho-hello\",\"at\":1789152144014,\"origin\":\"chrome-e"
+    ],
+    "7D371A25": [
+      "[keepalive-sw] 1789152144013 sw-boot socket=true",
+      "[keepalive-sw] 1789152144015 ws-open ",
+      "[keepalive-sw] 1789152144015 ws-message {\"kind\":\"wsecho-hello\",\"at\":1789152144014,\"origin\":\"chrome-e"
+    ],
+    "43E74216": [
+      "[keepalive-sw] 1789152144013 sw-boot socket=true",
+      "[keepalive-sw] 1789152144015 ws-open ",
+      "[keepalive-sw] 1789152144015 ws-message {\"kind\":\"wsecho-hello\",\"at\":1789152144014,\"origin\":\"chrome-e"
+    ],
+    "CCA827DC": [
+      "[keepalive-sw] 1789152144013 sw-boot socket=true",
+      "[keepalive-sw] 1789152144015 ws-open ",
+      "[keepalive-sw] 1789152144015 ws-message {\"kind\":\"wsecho-hello\",\"at\":1789152144014,\"origin\":\"chrome-e"
+    ],
+    "DF93AD41": [
+      "[keepalive-sw] 1789152144013 sw-boot socket=true",
+      "[keepalive-sw] 1789152144015 ws-open ",
+      "[keepalive-sw] 1789152144015 ws-message {\"kind\":\"wsecho-hello\",\"at\":1789152144014,\"origin\":\"chrome-e"
+    ]
+  },
+  "interpretation": {
+    "swSocket": "see [keepalive-sw] lines: ws-open / ws-close timestamps",
+    "pageSocket": "see [keepalive-page] lines and the page log samples"
+  }
+}

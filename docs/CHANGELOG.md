@@ -5,7 +5,22 @@
 
 ---
 
-## v3.7 — 2026-09-11（当前）
+## v3.8 — 2026-09-11（当前）
+
+**触发**：M0a 第五个实验——空闲 WebSocket 保活（Q8 / D10）。
+
+### 实测结论
+
+| 持有者 | 90s 空闲后 | 判定 |
+|---|---|---|
+| 扩展文档（侧边栏文档形态） | WS 全程 `ws-open`，**无 `ws-close`** | ✅ D10 主方案成立 |
+| MV3 Service Worker | 目标仍在但 `sendMessage` 返回 `Could not establish connection. Receiving end does not exist.`；**未捕获 close 事件** | ⚠️ SW 不能作为长期持有者（不宣称 socket 收到过 close） |
+
+D10 结论不变并补上实测依据；兜底方案（SW + `chrome.alarms` + 重连）保留。局限已记录：观察窗仅 90s、未模拟侧边栏隐藏/关闭、未做"有心跳流量时是否保活"的对照。
+
+---
+
+## v3.7 — 2026-09-11
 
 **触发**：M0a 第三、四个实验（cookie 矩阵 Q1/Q2 + 客户端 composer 契约已于 v3.6 记录）。
 

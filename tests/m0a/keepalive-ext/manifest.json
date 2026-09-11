@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "M0a Keepalive Probe",
+  "version": "0.0.1",
+  "description": "M0a Q8: compare WebSocket survival held by the MV3 service worker vs by an extension document.",
+  "minimum_chrome_version": "116",
+  "background": { "service_worker": "sw.js", "type": "module" },
+  "permissions": ["tabs", "storage"],
+  "host_permissions": ["http://127.0.0.1/*"]
+}
