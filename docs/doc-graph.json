@@ -114,8 +114,8 @@
       "path": "docs/CHANGELOG.md",
       "title": "变更记录（CHANGELOG）",
       "version": "v3.0",
-      "lines": 329,
-      "sections": 14,
+      "lines": 355,
+      "sections": 15,
       "codeRefs": 0,
       "docRefs": 1
     },
@@ -201,6 +201,15 @@
       "docRefs": 0
     },
     {
+      "path": "docs/reviews/probe-chip.md",
+      "title": "M0b 探针报告 · E2E-0 完整闭环（probe-chip）",
+      "version": null,
+      "lines": 42,
+      "sections": 6,
+      "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
       "path": "docs/reviews/probe-composer.md",
       "title": "M0a 探针报告 · composer / client 插件契约（probe-composer）",
       "version": null,
@@ -248,7 +257,7 @@
     {
       "path": "详细设计文档.md",
       "title": "DSH Web Companion · 详细设计规范说明书",
-      "version": "v3.11",
+      "version": "v3.12",
       "lines": 814,
       "sections": 16,
       "codeRefs": 22,
@@ -256,7 +265,7 @@
     }
   ],
   "code": {
-    "indexedFiles": 98,
+    "indexedFiles": 100,
     "areas": {
       "extension": [
         "docs/01-protocol.md",

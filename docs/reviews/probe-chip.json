@@ -1,0 +1,62 @@
+{
+  "probe": "m0b-chip",
+  "dshPort": "3099",
+  "captureId": "M0B-CHIP-mtxdig60",
+  "workspace": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a",
+  "results": {
+    "clientConnected": true,
+    "uiClicks": [
+      [
+        "选择工作区",
+        false
+      ],
+      [
+        "m0a-workspace",
+        true
+      ],
+      [
+        "新会话",
+        true
+      ]
+    ],
+    "composerActive": true,
+    "attachStatus": 200,
+    "attachDeliveredTo": [
+      "client:1"
+    ],
+    "chipCount": 1,
+    "chip": {
+      "captureId": "M0B-CHIP-mtxdig60",
+      "status": "inserted",
+      "mode": "selection+page",
+      "label": "📄 网页: M0B 胶囊探针页"
+    },
+    "lastAttach": {
+      "captureId": "M0B-CHIP-mtxdig60",
+      "inserted": true,
+      "detail": "",
+      "fileRef": "@网页捕获/2026-09-11-1552-m0b-胶囊探针页-xdig60.md"
+    },
+    "draftContainsFileRef": true,
+    "draftText": "@网页捕获/2026-09-11-1552-m0b-胶囊探针页-xdig60.md",
+    "acksAfterInsert": [
+      {
+        "captureId": "M0B-CHIP-mtxdig60",
+        "status": "inserted"
+      }
+    ],
+    "chipCountAfterDismiss": 0,
+    "draftAfterDismiss": "\n",
+    "acksTotal": [
+      {
+        "captureId": "M0B-CHIP-mtxdig60",
+        "status": "inserted"
+      },
+      {
+        "captureId": "M0B-CHIP-mtxdig60",
+        "status": "dismissed"
+      }
+    ],
+    "screenshot": "/Users/mac/ai_tools/dsh project/网页插件/docs/reviews/probe-chip.png"
+  }
+}

@@ -79,7 +79,14 @@ export function createGuard(pairing) {
     /** WebSocket handshake: key and origin. */
     checkUpgrade: (req) => keyOk(req) && originOk(req),
 
-    /** Client-half channel/endpoints: key plus F4 (same-origin, or the extension). */
-    checkClient: (req) => keyOk(req) && (originOk(req) || sameOriginOk(req)),
+    /**
+     * Client-half channel/endpoints (form F4).
+     *
+     * The DSH page's own client half holds no key on purpose — the key never
+     * belongs in page JavaScript. Same-origin is the credential: a foreign page
+     * can neither be served by this server nor forge a matching `Origin`/`Host`
+     * pair for loopback, so "same-origin, or key+extension-origin" is the gate.
+     */
+    checkClient: (req) => sameOriginOk(req) || (keyOk(req) && originOk(req)),
   }
 }

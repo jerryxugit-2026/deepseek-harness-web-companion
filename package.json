@@ -23,7 +23,8 @@
     "protocol:check": "node protocol/codegen.mjs --check",
     "test:protocol": "node tests/protocol/contract.test.mjs",
     "check:strict": "npm run protocol:check && npm run graph:sync && npm run graph:check && npm run check:consistency && npm run test:protocol",
-    "probe:attach": "node tests/m0b/attach-probe.mjs"
+    "probe:attach": "node tests/m0b/attach-probe.mjs",
+    "probe:chip": "node tests/m0b/chip-probe.mjs"
   },
   "devDependencies": {
     "@colbymchenry/codegraph": "^1.6.0",

@@ -5,7 +5,33 @@
 
 ---
 
-## v3.11 — 2026-09-11（当前）
+## v3.12 — 2026-09-11（当前）
+
+**触发**：client 半落地 + **E2E-0 最小闭环自动跑通**（M0b 收尾）。
+
+### 交付
+
+| 组件 | 说明 |
+|---|---|
+| `dsh-plugin/lib/client.js`（重写） | 真正的 client 半：持有 `WS /ag/client`（同源，无需 key）；收 `attach` → 注入 `@fileRef` 到草稿 → 渲染可删胶囊 → ack；「看左边」意图嗅探（草稿正则 → `intent` 帧）；20s 心跳；卸载时清定时器与连接。同时保留 M0a 白盒探针入口（`__AG_PROBE__` / `__AG_PROBE_WRITE__`） |
+| `guard.checkClient` | F4 判定放宽为"**同源即通过**（key 可选）"——key 不该出现在页面 JS 里；外部页面既无法被本服务提供、也无法伪造 loopback 的 `Origin`/`Host` 组合 |
+| `tests/m0b/chip-probe.mjs` | E2E-0 闭环探针：自签 cookie → 无头 Chrome → 驱动 UI 选中会话 → POST attach → 断言胶囊/草稿/ack → ✕ 撤销 → 断言清理 |
+
+### E2E-0 实测（`docs/reviews/probe-chip.{md,json}`）
+
+client 连接 ✅ → composer 激活 ✅ → `/ag/attach` 200 且 `deliveredTo:["client:1"]` ✅ → **胶囊出现**（`status: inserted`、label 含页面标题）✅ → **草稿含 `@网页捕获/…md`** ✅ → ack `inserted` ✅ → **✕ 撤销**：胶囊清零、**草稿还原为 `"\n"`**、ack `dismissed` ✅。
+
+### 修掉的真实缺陷
+
+首轮 `✕` 只删胶囊、未清草稿引用：`shell.state.draft` 写入后常为空串，权威内容在活动编辑器 DOM。新增 `readDraft()` 三级回退（state → lastMirroredDraft → DOM），插入与撤销统一走它。
+
+### 记录的偏差
+
+胶囊目前为 **DOM 注入**（`[data-ag-chip]` 锚定在 composer 上方），尚未走 `conversation.input.dock` 插槽——插槽版需 React 组件与 props 契约，列为 M1/M2 打磨项；可观察契约一致。
+
+---
+
+## v3.11 — 2026-09-11
 
 **触发**：M0b 上下文通道落地——`/ag/attach` 落盘 + `WS /ag/client` 推送 + `/ag/pending` / `/ag/ack`，并用探针逐项取证。
 

@@ -1,18 +1,26 @@
 /**
- * DSH Web Companion — client half (M0a probe build).
+ * DSH Web Companion — client half.
  *
- * Loaded by the DSH web shell through `window.__ModuleLoader__.load({...})`:
- * the bundle must be a CommonJS closure factory whose module exports the plugin
- * face (`apply` / optional `name` / `inject`). The host discovers this file via
- * this package's `exports["./client"]` + `dsh.client.platform === "web"`.
+ * Loaded by the DSH web shell through `window.__ModuleLoader__.load({...})`: the
+ * bundle must be a CommonJS closure factory whose module exports the plugin face
+ * (`apply` / `name` / `inject`). This package declares it via
+ * `exports["./client"]` + `dsh.client.platform === "web"`.
  *
- * M0a scope: probe what a third-party client plugin can actually reach —
- *   Q3 how a plugin obtains the composer contract (services, draft read/write,
- *      image admission, module-loader seed/externals)
- *   Q4 the real signature/semantics of `setDraft` and friends
+ * Two jobs, both verified against the live shell:
  *
- * Evidence is published on `window.__AG_PROBE__` and the console so the CDP
- * harness can read it verbatim. No React, no externals: everything is inlined.
+ *   A. **Context channel (M0b)** — hold `WS /ag/client` (same-origin, so no key
+ *      ever appears in page JavaScript), receive `attach` events, insert the
+ *      `@fileRef` reference into the composer draft, render a removable chip,
+ *      ack every capture, and report the 「看左边」intent upstream.
+ *
+ *   B. **White-box probe (M0a)** — publish what a third-party plugin can reach
+ *      (`window.__AG_PROBE__`, `__AG_PROBE_ASYNC__`, `__AG_PROBE_WRITE__`) so the
+ *      CDP harness can assert on it verbatim.
+ *
+ * Chip rendering note: the chip is a DOM strip anchored above the composer
+ * (`[data-ag-chip]`), not yet the `conversation.input.dock` slot — the slot-based
+ * rendering is the next refinement (docs/04 §5); the observable contract
+ * (present / removable / acked) is identical.
  */
 window.__ModuleLoader__.load({
   id: 'dsh-web-companion-bridge',
@@ -20,14 +28,19 @@ window.__ModuleLoader__.load({
     var module = { exports: {} }
     var exports = module.exports
 
-    /** Everything the probe learns, in order. */
-    const steps = []
-    const record = (step, value) => {
-      steps.push({ step, value })
-      try { console.log('[ag-probe]', step, JSON.stringify(value)) } catch { console.log('[ag-probe]', step, String(value)) }
-    }
+    const CHANNEL = '/ag/client'
+    const HEARTBEAT_MS = 20000
+    const INTENT_PATTERN = /^\s*(看左边|look left)/imu
+    const PROBE_CANDIDATES = [
+      'conversation', 'sessions', 'uiConversation', 'uiSession', 'slots', 'connection',
+      'workspaces', 'uiWorkspace', 'modules',
+    ]
 
-    /** Describe a value without leaking functions' internals. */
+    const log = (...args) => { try { console.log('[ag-client]', ...args) } catch { /* ignore */ } }
+    const sleep = (ms) => new Promise((r) => { setTimeout(r, ms) })
+    const composerElement = () => document.querySelector('[contenteditable="true"], textarea')
+
+    /** Compact, non-leaking description of a value's shape. */
     const describe = (value) => {
       if (value === undefined) return 'undefined'
       if (value === null) return 'null'
@@ -39,271 +52,72 @@ window.__ModuleLoader__.load({
         for (const key of Object.getOwnPropertyNames(cursor)) keys.add(key)
         cursor = Object.getPrototypeOf(cursor)
       }
-      return { type, keys: [...keys].filter((k) => k !== 'constructor').sort().slice(0, 80) }
+      return { type, keys: [...keys].filter((k) => k !== 'constructor').sort().slice(0, 60) }
     }
 
-    /** Services worth probing, in the order the design depends on them. */
-    const CANDIDATES = [
-      'conversation', 'sessions', 'uiConversation', 'uiSession', 'slots', 'connection',
-      'workspace', 'workspaces', 'uiWorkspace', 'workspaceRegistry',
-      'sessionController', 'session', 'agent', 'agents', 'clientModules', 'modules',
-    ]
-
     function apply(ctx) {
-      record('boot', {
-        href: typeof location === 'undefined' ? null : location.href,
-        moduleLoader: typeof globalThis.__ModuleLoader__,
-        bootKeys: globalThis.__DSH_BOOT__ !== null && typeof globalThis.__DSH_BOOT__ === 'object' ? Object.keys(globalThis.__DSH_BOOT__) : typeof globalThis.__DSH_BOOT__,
-        bootEntryIds: (() => {
-          const wire = globalThis.__DSH_BOOT__
-          const entries = wire?.entries ?? wire?.plugins ?? wire?.rows
-          if (!Array.isArray(entries)) return null
-          return entries.map((e) => e?.id ?? e?.name ?? String(e)).slice(0, 60)
-        })(),
-        // service registry visibility (cordis keeps the store on the root reflect)
-        reflectKeys: (() => {
-          try { return Object.keys(ctx.reflect ?? {}).slice(0, 20) } catch { return null }
-        })(),
-        storeServices: (() => {
-          try {
-            const store = ctx.reflect?.store
-            if (store === undefined || store === null) return null
-            return [...(store.keys?.() ?? [])].slice(0, 60)
-          } catch (error) { return `threw:${String(error).slice(0, 60)}` }
-        })(),
-      })
-
-      // ---- which services resolve at all (Q3) ----
-      const resolved = {}
-      for (const candidate of CANDIDATES) {
-        try {
-          const service = ctx.get(candidate)
-          resolved[candidate] = service === undefined ? 'undefined' : describe(service)
-        } catch (error) {
-          resolved[candidate] = `threw:${String(error).slice(0, 80)}`
-        }
-      }
-      record('services', resolved)
-
-      // ---- composer contract (Q3/Q4) ----
-      try {
-        const conversation = ctx.get('conversation')
-        const sessions = ctx.get('sessions')
-        const probe = {
-          conversationKeys: conversation === undefined ? null : describe(conversation),
-          hasCreateDraftImages: typeof conversation?.createDraftImages === 'function',
-          hasCreateDraftAttachments: typeof conversation?.createDraftAttachments === 'function',
-          sessionsKeys: sessions === undefined ? null : describe(sessions),
-          hasScope: typeof sessions?.scope === 'function',
-        }
-        // what sessions does the plugin see?
-        try {
-          const list = sessions?.list?.() ?? sessions?.all?.()
-          probe.sessionsListType = Array.isArray(list) ? `array(${String(list.length)})` : describe(list)
-          if (Array.isArray(list) && list.length > 0) probe.firstSession = describe(list[0])
-          globalThis.__AG_PROBE_SESSIONS__ = list
-        } catch (error) {
-          probe.sessionsListError = String(error).slice(0, 120)
-        }
-        record('composer-contract', probe)
-      } catch (error) {
-        record('composer-contract', { threw: String(error) })
-      }
-
-      // ---- draft read/write attempt (Q4 + M0b assertion #2) ----
-      // Runs asynchronously so it can wait for a session to exist; results land
-      // in `window.__AG_PROBE_ASYNC__` for the CDP harness.
+      // ---------------------------------------------------------------- probe --
+      const steps = []
       const asyncSteps = []
+      const record = (step, value) => {
+        steps.push({ step, value })
+        try { console.log('[ag-probe]', step, JSON.stringify(value)) } catch { /* ignore */ }
+      }
       const recordAsync = (step, value) => {
         asyncSteps.push({ step, value })
         globalThis.__AG_PROBE_ASYNC__ = asyncSteps
         try { console.log('[ag-probe-async]', step, JSON.stringify(value)) } catch { /* ignore */ }
       }
 
-      /** Harness-callable probe: run once a composer actually exists. */
-      const runDraftProbe = async () => {
-        asyncSteps.length = 0
-        const sessions = ctx.get('sessions')
-        const conversation = ctx.get('conversation')
-        const sleep = (ms) => new Promise((r) => { setTimeout(r, ms) })
+      record('boot', {
+        href: typeof location === 'undefined' ? null : location.href,
+        moduleLoader: typeof globalThis.__ModuleLoader__,
+        bootKeys: globalThis.__DSH_BOOT__ !== null && typeof globalThis.__DSH_BOOT__ === 'object' ? Object.keys(globalThis.__DSH_BOOT__) : typeof globalThis.__DSH_BOOT__,
+      })
 
-        // --- how does the shell itself make a composer exist? follow its own path ---
-        const uiSession = ctx.get('uiSession')
-        const uiWorkspace = ctx.get('uiWorkspace')
-
-        /** Which session does the SHELL consider current? (drives the real composer) */
-        const currentSessionId = (() => {
-          try {
-            const fromBinding = uiSession?.currentBinding?.props?.sessionId ?? uiSession?.currentBinding?.props?.session?.id
-            if (typeof fromBinding === 'string') return fromBinding
-            const snapshot = uiSession?.pendingSnapshot?.() ?? uiSession?.resolveCurrent?.()
-            const fromSnapshot = snapshot?.sessionId ?? snapshot?.session?.id
-            if (typeof fromSnapshot === 'string') return fromSnapshot
-          } catch (error) {
-            recordAsync('current-session', { threw: String(error).slice(0, 120) })
-          }
-          return undefined
-        })()
-        recordAsync('current-session', { sessionId: currentSessionId === undefined ? null : currentSessionId.slice(0, 14), bindingProps: describe(uiSession?.currentBinding?.props) })
-        recordAsync('shell-services', {
-          uiSessionKeys: uiSession === undefined ? null : describe(uiSession).keys?.slice(0, 24) ?? null,
-          currentBinding: describe(uiSession?.currentBinding),
-          uiWorkspaceKeys: uiWorkspace === undefined ? null : describe(uiWorkspace).keys?.slice(0, 30) ?? null,
-          hasConnectWorkspace: typeof uiWorkspace?.connectWorkspace === 'function',
-          hasList: typeof uiWorkspace?.list,
-        })
-
-        // resolve a workspace id exactly the way the shell does:
-        // uiWorkspace.workspaces.list.getSnapshot().items (see dsh-client-ui-workspace)
-        let workspaceId
+      const services = {}
+      for (const name of PROBE_CANDIDATES) {
         try {
-          const snapshot = uiWorkspace?.workspaces?.list?.getSnapshot?.()
-          const items = snapshot?.items
-          const first = Array.isArray(items) ? items[0] : undefined
-          workspaceId = first?.workspaceId ?? first?.id
-          recordAsync('workspace-list', {
-            items: Array.isArray(items) ? items.length : typeof items,
-            first: first === undefined ? null : { workspaceId: String(first.workspaceId ?? first.id).slice(0, 12), title: first.title ?? null },
-          })
-        } catch (error) {
-          recordAsync('workspace-list', { threw: String(error).slice(0, 160) })
-        }
-        recordAsync('workspace-id', { workspaceId: workspaceId === undefined ? null : String(workspaceId) })
-
-        // IMPORTANT: never create or switch sessions here. Doing so fights the
-        // UI (the shell follows us to a workspace-less session and the composer
-        // goes inert). This probe only OBSERVES the session the shell currently
-        // has; writes are driven by __AG_PROBE_WRITE__ after the UI is ready.
-        const sessionId = currentSessionId
-        recordAsync('session-source', { source: typeof sessionId === 'string' ? 'shell-current' : 'none', id: typeof sessionId === 'string' ? sessionId.slice(0, 14) : null })
-
-        if (typeof sessionId !== 'string') {
-          recordAsync('draft-write', { skipped: 'shell has no current session; waiting for the UI to select one' })
-          return asyncSteps
-        }
-
-        // --- ask the shell to make this session current (the UI's own selection face) ---
-        try {
-          if (typeof sessionId === 'string' && uiSession !== undefined) {
-            const binding = uiSession.createMaterializedBinding?.(sessionId) ?? uiSession.resolve?.(sessionId)
-            recordAsync('uiSession.binding', { created: describe(binding) })
-            if (binding !== undefined) {
-              const published = uiSession.publishCurrent?.(binding)
-              recordAsync('uiSession.publishCurrent', { returned: describe(published) })
-            }
-            await sleep(1500)
-            const composer = document.querySelector('[contenteditable]')
-            recordAsync('composer-after-publish', {
-              contentEditable: composer?.getAttribute?.('contenteditable') ?? null,
-              ariaLabel: composer?.getAttribute?.('aria-label') ?? null,
-            })
-          }
-        } catch (error) {
-          recordAsync('uiSession.binding', { threw: String(error).slice(0, 200) })
-        }
-
-        // --- diagnosis: what does the shell actually render after connectWorkspace? ---
-        await sleep(1200)
-        recordAsync('dom-diagnosis', {
-          currentBinding: describe(uiSession?.currentBinding),
-          pendingSnapshot: typeof uiSession?.pendingSnapshot,
-          editableCount: document.querySelectorAll('[contenteditable]').length,
-          textboxCount: document.querySelectorAll('[role="textbox"]').length,
-          textareaCount: document.querySelectorAll('textarea').length,
-          lexicalCount: document.querySelectorAll('[data-lexical-editor]').length,
-          mainHead: (document.querySelector('main')?.innerHTML ?? '').replace(/\s+/g, ' ').slice(0, 240),
-          bodyText: (document.body.innerText ?? '').replace(/\s+/g, ' ').slice(0, 200),
-        })
-
-        for (let attempt = 0; attempt < 10; attempt += 1) {
-          try {
-            const actx = sessions.scope(sessionId)
-            const shell = conversation.input.for(actx)
-            if (shell === undefined || shell === null) { await sleep(600); continue }
-            const marker = `M0A-MARKER-${Date.now().toString(36)}`
-            recordAsync('shell', { keys: Object.keys(shell).slice(0, 40), setDraftArity: typeof shell.setDraft === 'function' ? shell.setDraft.length : null })
-            const preDraft = typeof shell.state?.draft === 'string'
-              ? shell.state.draft
-              : (typeof shell.lastMirroredDraft === 'string' ? shell.lastMirroredDraft : '')
-            const wrote = shell.setDraft(marker)
-            await sleep(1200)
-            // read-back sources that do NOT depend on the DOM rendering
-            const readBack = {
-              lastMirroredDraft: typeof shell.lastMirroredDraft === 'string' ? shell.lastMirroredDraft.slice(0, 60) : describe(shell.lastMirroredDraft),
-              stateDraft: (() => {
-                try {
-                  const st = shell.state
-                  if (st === null || st === undefined) return null
-                  const text = st.draft ?? st.text ?? st.value ?? st.getSnapshot?.()?.draft
-                  return typeof text === 'string' ? text.slice(0, 60) : describe(st).keys?.slice(0, 12) ?? null
-                } catch (error) { return `threw:${String(error).slice(0, 60)}` }
-              })(),
-              bindingActionsSetDraft: typeof uiSession?.currentBinding?.props?.inputActions?.setDraft,
-            }
-            const dom = document.querySelector('[contenteditable], textarea')
-            const container = dom?.closest('[class]') ?? null
-            recordAsync('draft-write', {
-              marker,
-              setDraftReturn: wrote === undefined ? 'undefined' : String(wrote).slice(0, 40),
-              domVisible: dom !== null,
-              domTag: dom?.tagName ?? null,
-              domContentEditable: dom?.getAttribute?.('contenteditable') ?? null,
-              domRole: dom?.getAttribute?.('role') ?? null,
-              domAriaLabel: dom?.getAttribute?.('aria-label') ?? null,
-              domClasses: dom === null ? null : String(dom.className).slice(0, 160),
-              containerClasses: container === null ? null : String(container.className).slice(0, 120),
-              domContainsMarker: dom === null ? null : (dom.innerText ?? dom.value ?? '').includes(marker),
-              domText: dom === null ? null : String(dom.innerText ?? dom.value ?? '').slice(0, 140),
-              readBack,
-            })
-
-            // image admission (Q3: can a plugin mint a draft attachment?)
-            try {
-              const file = new File([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])], 'm0a.png', { type: 'image/png' })
-              const admitted = conversation.createDraftImages !== undefined
-                ? conversation.createDraftImages([file])
-                : undefined
-              recordAsync('image-admission', {
-                api: conversation.createDraftImages !== undefined ? 'createDraftImages' : 'none',
-                result: Array.isArray(admitted) ? `array(${String(admitted.length)})` : describe(admitted),
-                firstId: Array.isArray(admitted) && admitted.length > 0 ? String(admitted[0].id ?? admitted[0]).slice(0, 20) : null,
-              })
-            } catch (error) {
-              recordAsync('image-admission', { threw: String(error).slice(0, 160) })
-            }
-            // leave the user's draft exactly as we found it
-            try {
-              shell.setDraft(preDraft)
-              await sleep(400)
-              recordAsync('draft-restored', { givenBack: preDraft.length, now: String(shell.state?.draft ?? '').slice(0, 40) })
-            } catch (error) {
-              recordAsync('draft-restore-failed', { threw: String(error).slice(0, 160) })
-            }
-            return asyncSteps
-          } catch (error) {
-            recordAsync('draft-write-attempt', { attempt, threw: String(error).slice(0, 160) })
-          }
-          await sleep(700)
-        }
-        return asyncSteps
+          const service = ctx.get(name)
+          services[name] = service === undefined ? 'undefined' : describe(service)
+        } catch (error) { services[name] = `threw:${String(error).slice(0, 60)}` }
       }
+      record('services', services)
+
+      const conversation = ctx.get('conversation')
+      const sessions = ctx.get('sessions')
+      record('composer-contract', {
+        conversationKeys: conversation === undefined ? null : describe(conversation),
+        hasCreateDraftImages: typeof conversation?.createDraftImages === 'function',
+        hasCreateDraftAttachments: typeof conversation?.createDraftAttachments === 'function',
+        hasScope: typeof sessions?.scope === 'function',
+      })
+      globalThis.__AG_PROBE__ = steps
+      record('probe-done', { steps: steps.length })
+
+      /** Which session does the SHELL consider current? Drives the real composer. */
+      const currentSessionId = () => {
+        try {
+          const uiSession = ctx.get('uiSession')
+          const fromBinding = uiSession?.currentBinding?.props?.sessionId
+          return typeof fromBinding === 'string' ? fromBinding : undefined
+        } catch { return undefined }
+      }
+
       /**
-       * Harness-driven write: runs only after the UI has an ACTIVE composer, so
-       * the marker can be verified in the DOM (M0b assertion ②) and then undone.
+       * Harness-driven write used by the M0b assertions: only runs once the UI has
+       * an ACTIVE composer, writes a marker, verifies it in the live editor's DOM,
+       * then restores whatever the user had typed.
        */
       globalThis.__AG_PROBE_WRITE__ = async (marker) => {
-        const uiSessionNow = ctx.get('uiSession')
-        const sessionsNow = ctx.get('sessions')
-        const conversationNow = ctx.get('conversation')
-        const id = uiSessionNow?.currentBinding?.props?.sessionId
-        if (typeof id !== 'string') return { error: 'no current session', props: describe(uiSessionNow?.currentBinding?.props) }
-        const actx = sessionsNow.scope(id)
-        const shell = conversationNow.input.for(actx)
+        const id = currentSessionId()
+        if (typeof id !== 'string') return { error: 'no current session' }
+        const shell = ctx.get('conversation').input.for(ctx.get('sessions').scope(id))
         if (shell === undefined || shell === null) return { error: 'no session input shell' }
         const pre = typeof shell.state?.draft === 'string' ? shell.state.draft : ''
         shell.setDraft(marker)
-        await new Promise((r) => { setTimeout(r, 900) })
-        const el = document.querySelector('[contenteditable="true"], [contenteditable]')
+        await sleep(900)
+        const el = composerElement()
         const result = {
           marker,
           sessionId: id.slice(0, 14),
@@ -312,25 +126,201 @@ window.__ModuleLoader__.load({
           domHasMarker: String(el?.innerText ?? '').includes(marker),
           stateDraft: String(shell.state?.draft ?? '').slice(0, 80),
           lastMirroredDraft: String(shell.lastMirroredDraft ?? '').slice(0, 80),
-          imageApi: typeof conversationNow.createDraftImages === 'function',
         }
         shell.setDraft(pre)
-        await new Promise((r) => { setTimeout(r, 400) })
+        await sleep(400)
         result.restoredNow = String(shell.state?.draft ?? '').slice(0, 60)
         globalThis.__AG_PROBE_WRITE_RESULT__ = result
         return result
       }
 
-      globalThis.__AG_PROBE_RUN__ = runDraftProbe
-      globalThis.__AG_PROBE_CTX__ = { conversationAvailable: ctx.get('conversation') !== undefined, sessionsAvailable: ctx.get('sessions') !== undefined }
-      void runDraftProbe()
+      // ------------------------------------------------------- context channel --
+      const state = { chips: new Map(), connected: false, deliveries: [], acks: [], intents: [] }
+      let socket
+      let stopIntent = () => {}
+      let heartbeat
 
-      globalThis.__AG_PROBE__ = steps
-      record('probe-done', { steps: steps.length })
+      const send = (frame) => {
+        if (socket === undefined || socket.readyState !== 1) return false
+        try { socket.send(JSON.stringify(frame)); return true } catch { return false }
+      }
+
+      /**
+       * Read the composer draft from the most authoritative source available.
+       * Measured behaviour: `shell.state.draft` is often empty right after a
+       * write while the live editor already shows the text, so the DOM is the
+       * fallback that makes undo reliable.
+       */
+      const readDraft = (shell) => {
+        const fromState = typeof shell?.state?.draft === 'string' ? shell.state.draft : ''
+        if (fromState !== '') return fromState
+        const fromMirror = typeof shell?.lastMirroredDraft === 'string' ? shell.lastMirroredDraft : ''
+        if (fromMirror !== '') return fromMirror
+        const el = composerElement()
+        return el === null ? '' : String(el.innerText ?? el.value ?? '')
+      }
+
+      /** Anchor a chip strip just above whatever the composer currently is. */
+      function positionChip(root) {
+        const composer = composerElement()
+        if (composer === null) { root.style.bottom = '96px'; return }
+        const rect = composer.getBoundingClientRect()
+        root.style.bottom = `${String(Math.max(8, window.innerHeight - rect.top + 8))}px`
+      }
+
+      /** Build the chip element for one attach event. */
+      function renderChip(item, onDismiss) {
+        const root = document.createElement('div')
+        root.dataset.agChipRoot = 'true'
+        root.style.cssText = 'position:fixed;left:0;right:0;z-index:2147483000;display:flex;justify-content:center;pointer-events:none;font:12px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif'
+        const chip = document.createElement('div')
+        chip.dataset.agChip = 'true'
+        chip.dataset.captureId = item.captureId
+        chip.dataset.mode = item.mode ?? 'page'
+        chip.dataset.status = 'inserted'
+        chip.style.cssText = 'pointer-events:auto;display:inline-flex;align-items:center;gap:6px;max-width:min(560px,90vw);padding:4px 8px;border-radius:999px;border:1px solid rgba(127,127,127,.35);background:rgba(127,127,127,.12);backdrop-filter:blur(6px);color:inherit'
+        const label = document.createElement('span')
+        label.dataset.agChipLabel = 'true'
+        label.textContent = `📄 网页: ${String(item.page?.title ?? '未命名').slice(0, 40)}`
+        label.style.cssText = 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap'
+        const meta = document.createElement('span')
+        meta.dataset.agChipMeta = 'true'
+        meta.textContent = `${String(item.summary?.chars ?? 0)} 字符${item.summary?.hasSelection === true ? ' · 含选区' : ''}`
+        meta.style.cssText = 'opacity:.65;flex:none'
+        const dismiss = document.createElement('button')
+        dismiss.dataset.agChipDismiss = 'true'
+        dismiss.textContent = '✕'
+        dismiss.title = '移除上下文'
+        dismiss.style.cssText = 'all:unset;cursor:pointer;padding:0 2px;opacity:.7;flex:none'
+        dismiss.addEventListener('click', () => { void onDismiss(item) })
+        chip.append(label, meta, dismiss)
+        root.append(chip)
+        document.body.append(root)
+        positionChip(root)
+        window.addEventListener('resize', () => { positionChip(root) })
+        return root
+      }
+
+      /** Apply one attach event: reference into the draft, chip on screen, ack. */
+      async function applyAttach(item) {
+        state.deliveries.push({ captureId: item.captureId, fileRef: item.fileRef, at: Date.now() })
+        let inserted = false
+        let detail = ''
+        let sessionId
+        let preDraft = ''
+        try {
+          const id = currentSessionId()
+          if (typeof id !== 'string') throw new Error('no current session')
+          sessionId = id
+          const shell = ctx.get('conversation').input.for(ctx.get('sessions').scope(id))
+          preDraft = readDraft(shell)
+          const next = preDraft.trim() === '' ? item.fileRef : `${preDraft.trimEnd()}\n${item.fileRef}`
+          shell.setDraft(next)
+          inserted = true
+        } catch (error) {
+          detail = String(error).slice(0, 160)
+        }
+        const root = renderChip(item, dismissCapture)
+        state.chips.set(item.captureId, { sessionId, preDraft, inserted: item.fileRef, root, chip: root.firstElementChild })
+        root.firstElementChild.dataset.status = inserted ? 'inserted' : 'failed'
+        send({ type: 'ack', captureId: item.captureId, status: inserted ? 'inserted' : 'failed', ...(detail === '' ? {} : { detail }) })
+        state.acks.push({ captureId: item.captureId, status: inserted ? 'inserted' : 'failed' })
+        globalThis.__AG_LAST_ATTACH__ = { captureId: item.captureId, inserted, detail, fileRef: item.fileRef }
+        log('attach applied', item.captureId, inserted ? 'inserted' : `failed: ${detail}`)
+        return inserted
+      }
+
+      /** ✕ on a chip: undo our insertion, drop the chip, ack `dismissed`. */
+      async function dismissCapture(item) {
+        const entry = state.chips.get(item.captureId)
+        try {
+          if (entry?.sessionId !== undefined && typeof entry.inserted === 'string') {
+            const shell = ctx.get('conversation').input.for(ctx.get('sessions').scope(entry.sessionId))
+            const current = readDraft(shell)
+            if (current.includes(entry.inserted)) {
+              shell.setDraft(current.replace(entry.inserted, '').replace(/\n{2,}/gu, '\n').trimEnd())
+            } else if (current.trim() === entry.inserted.trim() && typeof entry.preDraft === 'string') {
+              shell.setDraft(entry.preDraft)
+            }
+          }
+        } catch (error) { log('dismiss undo failed', String(error).slice(0, 120)) }
+        entry?.root?.remove()
+        state.chips.delete(item.captureId)
+        send({ type: 'ack', captureId: item.captureId, status: 'dismissed' })
+        state.acks.push({ captureId: item.captureId, status: 'dismissed' })
+        log('dismissed', item.captureId)
+      }
+
+      /** 「看左边」intent watcher (design ADR-11: sniffing lives in this half). */
+      function watchIntent() {
+        let lastSent = ''
+        const timer = setInterval(() => {
+          try {
+            const sessionId = currentSessionId()
+            if (typeof sessionId !== 'string') return
+            const shell = ctx.get('conversation').input.for(ctx.get('sessions').scope(sessionId))
+            const draft = readDraft(shell)
+            if (draft === '' || draft === lastSent) return
+            if (!INTENT_PATTERN.test(draft)) return
+            lastSent = draft
+            state.intents.push({ draft, at: Date.now() })
+            send({ type: 'intent', protocolVersion: 1, kind: 'look-left', sessionId, draft, trigger: 'keyword', at: Date.now() })
+            log('intent detected', draft.slice(0, 40))
+          } catch { /* composer not ready */ }
+        }, 800)
+        return () => { clearInterval(timer) }
+      }
+
+      const connect = () => {
+        const scheme = location.protocol === 'https:' ? 'wss:' : 'ws:'
+        try { socket = new WebSocket(`${scheme}//${location.host}${CHANNEL}`) } catch (error) { log('ws throw', String(error)); return }
+        socket.addEventListener('open', () => {
+          state.connected = true
+          send({ type: 'hello', protocolVersion: 1, extVersion: 'client', sessionId: currentSessionId() })
+          send({ type: 'request-pending' })
+          log('ws open')
+        })
+        socket.addEventListener('message', (event) => {
+          const text = String(event.data)
+          if (text.includes('"ping"')) { send({ type: 'pong' }); return }
+          let frame
+          try { frame = JSON.parse(text) } catch { return }
+          if (frame.type === 'attach') void applyAttach(frame)
+        })
+        socket.addEventListener('close', () => { state.connected = false; log('ws closed') })
+        socket.addEventListener('error', () => { /* close follows */ })
+      }
+
+      connect()
+      heartbeat = setInterval(() => { send({ type: 'ping' }) }, HEARTBEAT_MS)
+      stopIntent = watchIntent()
+
+      globalThis.__AG_CLIENT__ = {
+        state,
+        chips: () => [...document.querySelectorAll('[data-ag-chip]')].map((el) => ({
+          captureId: el.dataset.captureId, status: el.dataset.status, mode: el.dataset.mode,
+          label: el.querySelector('[data-ag-chip-label]')?.textContent ?? null,
+        })),
+        deliver: (item) => applyAttach(item),
+        dismiss: (captureId) => {
+          const entry = state.chips.get(captureId) ?? {}
+          return dismissCapture({ captureId, ...entry })
+        },
+        reconnect: connect,
+      }
+
+      void recordAsync
+      ctx.effect(() => () => {
+        clearInterval(heartbeat)
+        stopIntent()
+        try { socket?.close() } catch { /* ignore */ }
+      }, 'ag-client: dispose')
+
+      log('client half ready')
     }
 
-    // `inject` makes cordis defer `apply` until the listed services exist; the
-    // names below are the ones the design depends on (see docs/04).
+    // `inject` makes cordis defer `apply` until these exist — without it every
+    // service lookup is undefined (verified in M0a).
     module.exports = { name: 'dsh-web-companion-bridge-client', inject: ['sessions', 'conversation'], apply }
     return module.exports
   },
