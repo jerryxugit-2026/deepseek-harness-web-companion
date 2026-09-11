@@ -21,6 +21,8 @@ import { registerWsProbe } from './routes/ws-probe.js'
 import { registerWsEcho } from './routes/ws-echo.js'
 import { probePageRoute } from './routes/probe-page.js'
 import { ackRoute, attachRoute, pendingRoute } from './routes/attach.js'
+import { ticketRoute } from './routes/ticket.js'
+import { createTicketStore } from './tickets.js'
 import { createStore } from './store.js'
 import { createHub } from './hub.js'
 
@@ -50,6 +52,7 @@ export function apply(ctx, config = {}) {
 
   const recent = { captures: [], acks: [] }
   const store = createStore(resolved)
+  const tickets = createTicketStore({ ttlMs: config.ticketTtlMs ?? 30000 })
   const hub = createHub({ log: (line) => ctx.logger?.info?.(`[dsh-web-companion-bridge] ${line}`) })
 
   let pairing = { key: undefined, extensionOrigins: [], source: resolved.keyFile, error: undefined }
@@ -67,6 +70,7 @@ export function apply(ctx, config = {}) {
 
   const state = {
     pluginVersion: PLUGIN_VERSION,
+    liveTickets: () => tickets.liveCount,
     recordCapture: (event, delivered) => {
       recent.captures.push({ captureId: event.captureId, fileRef: event.fileRef, delivered, at: Date.now() })
       if (recent.captures.length > 50) recent.captures.shift()
@@ -153,6 +157,15 @@ export function apply(ctx, config = {}) {
   ctx.effect(
     () => ctx.webServer.register({
       kind: 'exact',
+      path: ROUTE.ticket,
+      handler: withPairing(ticketRoute({ state, tickets })),
+    }),
+    `dsh-web-companion-bridge: POST ${ROUTE.ticket}`,
+  )
+
+  ctx.effect(
+    () => ctx.webServer.register({
+      kind: 'exact',
       path: ROUTE.attach,
       handler: withPairing(attachRoute({ state, store, hub, config: resolved })),
     }),
@@ -200,7 +213,7 @@ export function apply(ctx, config = {}) {
     () => ctx.webServer.register({
       kind: 'exact',
       path: ROUTE.enter,
-      handler: withPairing(enterRoute({ state, config: resolved })),
+      handler: withPairing(enterRoute({ state, config: resolved, tickets })),
     }),
     `dsh-web-companion-bridge: GET ${ROUTE.enter}`,
   )

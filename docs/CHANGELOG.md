@@ -5,7 +5,37 @@
 
 ---
 
-## v3.12 — 2026-09-11（当前）
+## v3.13 — 2026-09-11（当前）
+
+**触发**：M1② 一次性进入票据落地（设计 §5.4 key 生命周期）。
+
+### 交付
+
+| 组件 | 说明 |
+|---|---|
+| `dsh-plugin/src/host/tickets.js` | 纯函数票据库：`createTicketStore({ttlMs, now, random, limit})`，签发 / 单次消费 / TTL 过期 / 容量上限淘汰；时钟与随机源注入 → 可用假时钟单测 |
+| `POST /ag/ticket` | 形态 F2（key + 扩展 Origin）→ 返回 `{ok, ticket, expiresAt}`（30s TTL，协议 schema 已有 `TicketResponse`） |
+| `GET /ag/enter?ticket=` | 优先用**一次性票据**进入并消费；`?key=` 保留为探针与降级路径 |
+| `/ag/ping` | 新增 `liveTickets` 诊断字段 |
+| 扩展 `dsh-session.js` | `requestTicket()` + `ensureReady()` **优先票据**（`state.handshake: 'ticket'`），失败自动回退 key（`handshake: 'key-fallback'`）——**长期密钥不再进入 iframe URL** |
+
+### 验证
+
+| 检查 | 结果 |
+|---|---|
+| 单测 `tests/unit/tickets.test.mjs` | ✅ 14 项全过（单次消费、未知/空输入、假时钟过期、容量淘汰、默认 TTL 30s、随机串唯一） |
+| `POST /ag/ticket`（key + 扩展 Origin） | ✅ 200 + `{ticket, expiresAt}` |
+| `GET /ag/enter?ticket=…` | ✅ **303** + `Set-Cookie`（`SameSite=None; Secure`） |
+| 同一票据复用 | ✅ **403**（一次性语义） |
+| 无 key 申请票据 | ✅ 403 |
+
+### 质量门
+
+`npm run check` / `check:strict` 均加入 `test:unit`，两档共六道门全绿。
+
+---
+
+## v3.12 — 2026-09-11
 
 **触发**：client 半落地 + **E2E-0 最小闭环自动跑通**（M0b 收尾）。
 

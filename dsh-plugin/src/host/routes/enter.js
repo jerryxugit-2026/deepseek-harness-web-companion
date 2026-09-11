@@ -8,9 +8,15 @@
  */
 import { mintSessionCookie } from '../cookie.js'
 
-export function enterRoute({ state, config }) {
+export function enterRoute({ state, config, tickets }) {
   return async (req, res) => {
-    if (!state.guard().checkNavigation(req)) return forbidden(res)
+    // Preferred: a single-use ticket (`?ticket=`). Fallback: the pairing key
+    // (`?key=`), kept for probes and for the manual-token degraded path.
+    const url = new URL(req.url ?? '/', 'http://dsh.invalid')
+    const ticket = url.searchParams.get('ticket')
+    const viaTicket = ticket !== null
+    const authorized = viaTicket ? tickets.consume(ticket) : state.guard().checkNavigation(req)
+    if (!authorized) return forbidden(res)
     const authority = req.headers.host
     if (typeof authority !== 'string' || authority === '') return forbidden(res)
 

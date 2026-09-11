@@ -24,6 +24,7 @@ export function pingRoute({ state, protocolVersion }) {
       pairingError: pairing.error ?? null,
       dsh: { home: state.dshHome, port: state.port() },
       capabilities: state.capabilities(),
+      liveTickets: typeof state.liveTickets === 'function' ? state.liveTickets() : undefined,
     }
     // Fail loudly on drift: a payload the schema rejects must never ship.
     const validated = validateAs('PingResponse', payload)

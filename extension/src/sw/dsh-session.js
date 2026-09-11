@@ -11,7 +11,10 @@
  */
 import { fetchWithTimeout, fail, ok } from '../lib/result.js'
 import { PROTOCOL_VERSION, validateAs } from '../lib/protocol.generated.js'
-import { dshOrigin, dshPort, enterUrl, isPaired, pingUrl } from '../lib/urls.js'
+import { DEV_CONFIG } from '../lib/dev-config.js'
+
+const DEV_KEY = DEV_CONFIG.key
+import { dshOrigin, dshPort, enterUrl, enterUrlWithTicket, isPaired, pingUrl, ticketUrl } from '../lib/urls.js'
 
 /**
  * Probe `/ag/ping`.
@@ -31,6 +34,27 @@ export async function probe(timeoutMs = 1500) {
   } catch (error) {
     return fail('E_PAYLOAD', `bridge plugin returned non-JSON: ${String(error)}`)
   }
+}
+
+/**
+ * Exchange the pairing key for a single-use entry ticket (design §5.4).
+ * The key stays inside the service worker; only the ticket reaches the frame URL.
+ * @returns {Promise<ReturnType<typeof ok> | ReturnType<typeof fail>>}
+ */
+export async function requestTicket(timeoutMs = 3000) {
+  if (!isPaired()) return fail('E_UNPAIRED', 'extension has no pairing key')
+  const response = await fetchWithTimeout(`${ticketUrl()}?key=${encodeURIComponent(TICKET_KEY())}`, { method: 'POST' }, timeoutMs)
+  if (!response.ok) return response
+  if (response.value.status !== 200) return fail('E_AUTH', `ticket request rejected with HTTP ${String(response.value.status)}`)
+  const payload = await response.value.json()
+  const validated = validateAs('TicketResponse', payload)
+  if (!validated.ok) return fail('E_PAYLOAD', `ticket payload rejected: ${validated.error.message}`)
+  return ok(payload)
+}
+
+/** Indirection so tests can inject a key without touching dev-config. */
+function TICKET_KEY() {
+  return DEV_KEY
 }
 
 /**
@@ -56,5 +80,18 @@ export async function ensureReady() {
       },
     }
   }
-  return { ok: true, url: enterUrl(), state: { dsh: 'up', port: dshPort(), plugin: info } }
+  // Prefer the ticket handshake: the long-lived key never enters the frame URL.
+  const ticket = await requestTicket()
+  if (ticket.ok) {
+    return {
+      ok: true,
+      url: enterUrlWithTicket(ticket.value.ticket),
+      state: { dsh: 'up', port: dshPort(), plugin: info, handshake: 'ticket', ticketExpiresAt: ticket.value.expiresAt },
+    }
+  }
+  return {
+    ok: true,
+    url: enterUrl(),
+    state: { dsh: 'up', port: dshPort(), plugin: info, handshake: 'key-fallback', ticketError: ticket.error.code },
+  }
 }
