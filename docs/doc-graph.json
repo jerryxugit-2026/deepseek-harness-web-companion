@@ -114,8 +114,8 @@
       "path": "docs/CHANGELOG.md",
       "title": "变更记录（CHANGELOG）",
       "version": "v3.0",
-      "lines": 159,
-      "sections": 7,
+      "lines": 185,
+      "sections": 8,
       "codeRefs": 0,
       "docRefs": 1
     },
@@ -123,7 +123,7 @@
       "path": "docs/DOC-GRAPH.md",
       "title": "文档与代码图谱（DOC-GRAPH）",
       "version": null,
-      "lines": 308,
+      "lines": 309,
       "sections": 6,
       "codeRefs": 212,
       "docRefs": 0
@@ -201,6 +201,15 @@
       "docRefs": 0
     },
     {
+      "path": "docs/reviews/probe-permission.md",
+      "title": "M0a 探针报告 · 权限实验（probe-permission）",
+      "version": null,
+      "lines": 35,
+      "sections": 5,
+      "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
       "path": "scripts/review-prompts/design-adversarial.md",
       "title": "scripts/review-prompts/design-adversarial.md",
       "version": null,
@@ -212,15 +221,15 @@
     {
       "path": "详细设计文档.md",
       "title": "DSH Web Companion · 详细设计规范说明书",
-      "version": "v3.4",
-      "lines": 802,
+      "version": "v3.5",
+      "lines": 812,
       "sections": 16,
       "codeRefs": 20,
       "docRefs": 4
     }
   ],
   "code": {
-    "indexedFiles": 32,
+    "indexedFiles": 37,
     "areas": {
       "extension": [
         "docs/01-protocol.md",

@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>M0a Permission Probe</title>
+    <style>
+      body { font: 13px/1.5 -apple-system, sans-serif; margin: 0; padding: 12px; }
+      button { font: inherit; padding: 8px 12px; margin: 0 8px 8px 0; border-radius: 8px; cursor: pointer; }
+      pre { background: #f4f4f4; padding: 8px; border-radius: 6px; white-space: pre-wrap; }
+    </style>
+  </head>
+  <body>
+    <h1>M0a 权限探针</h1>
+    <p>Case A：下面这个按钮的点击是**真实用户手势**，用于验证 <code>permissions.request</code> 能否弹出授权。</p>
+    <button id="grant">A: 点击授权 *://*/*（手势）</button>
+    <button id="contains">查询当前权限</button>
+    <pre id="log">-</pre>
+    <script src="panel.js"></script>
+  </body>
+</html>

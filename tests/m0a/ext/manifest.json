@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "M0a Permission Probe",
+  "version": "0.0.1",
+  "description": "M0a experiment: does permissions.request work from a panel click, and does the gesture-less intent path work once granted?",
+  "minimum_chrome_version": "116",
+  "background": { "service_worker": "sw.js", "type": "module" },
+  "action": { "default_title": "M0a probe" },
+  "permissions": ["scripting", "activeTab", "tabs", "storage"],
+  "optional_host_permissions": ["*://*/*"],
+  "host_permissions": ["http://127.0.0.1/*"]
+}

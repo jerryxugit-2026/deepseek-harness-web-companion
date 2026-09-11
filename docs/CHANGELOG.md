@@ -5,7 +5,33 @@
 
 ---
 
-## v3.4 — 2026-09-11（当前）
+## v3.5 — 2026-09-11（当前）
+
+**触发**：M0a 权限实验首次实跑（`tests/m0a/permission-probe.mjs` → `docs/reviews/probe-permission.{md,json}`），把设计的**核心假设 A′** 从"推理"升级为"取证"。
+
+### 实测结论（逐字）
+
+| 测得项 | 结果 |
+|---|---|
+| 无手势 `permissions.request` | ❌ **抛异常** `Error: This function must be called during a user gesture`（不是静默失败） |
+| 真实点击面板按钮 / CDP 手势调用 | ⏸ 无头 Chrome 无法渲染原生弹窗 → 请求挂起（**弹窗 UX 需一次有头人工验证，列为 M1 前置**） |
+| 无授权 + 无手势截图 | ❌ `Error: Either the '<all_urls>' or 'activeTab' permission is required.` |
+| 无授权 + 无手势注入 | ✅ 成功——因为该测试目标 `127.0.0.1` 在探针扩展的 host 权限内 |
+
+### 对设计的修正
+
+1. §9 权限表：把"`executeScript` 与 `captureVisibleTab` **同时**失权"修正为**按源区分**——对无 host 权限的任意站点二者皆被拒（产品主场景），对已持权限的源（`http://127.0.0.1/*` = DSH 自身）注入仍可用。设计结论不变，理由精确化。
+2. 明确 `permissions.request` 的失败形态是**抛异常**，微壳必须捕获并转为"请点按钮完成一次授权"的 UI，而不是静默失败。
+3. 假设 A′ 状态更新为"**部分证实**"：无手势自授权已证伪（取证），"授权后无手势抓取可用"待有头验证。
+4. 新增 M1 前置人工步骤：有头 Chrome 中验证授权弹窗的允许/拒绝/撤销三分支。
+
+### 新增探针资产
+
+`tests/m0a/ext/`（MV3 探针扩展：手势授权按钮 + 无手势对照）· `tests/m0a/permission-probe.mjs`（CDP 驱动：端口预检、失败即清理、逐案结构化输出）· `docs/reviews/probe-permission.{md,json}`
+
+---
+
+## v3.4 — 2026-09-11
 
 **触发**：PiMoa 第四次对抗审核（`docs/reviews/pimoa-adversarial-v3.3.md`）：**阻断 2 → 1**（8 → 6 → 2 → 1）。本轮首次出现**亲验结论**（审核方实际执行了工具，读到了 DSH 源码检出），并据此推翻与纠正了设计的前提。
 

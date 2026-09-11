@@ -1,0 +1,49 @@
+{
+  "probe": "m0a-permission",
+  "extId": "ipajdegcommbkoeihcabjkpedangopaj",
+  "chrome": "150.0.7871.125",
+  "headless": true,
+  "cases": {
+    "B_request_without_gesture": {
+      "path": "no-gesture",
+      "threw": "Error: This function must be called during a user gesture",
+      "lastError": null,
+      "contains": false
+    },
+    "A_request_with_gesture": {
+      "timedOut": true,
+      "note": "no settlement within 12000ms"
+    },
+    "A2_real_click": {
+      "clicked": {
+        "x": 109.65625,
+        "y": 138.0625
+      },
+      "panelLog": "[panel-ready] {\"href\":\"chrome-extension://ipajdegcommbkoeihcabjkpedangopaj/panel.html\",\"id\":\"ipajdegcommbkoeihcabjkpedangopaj\"}"
+    },
+    "C_capture_state_before": false,
+    "C_capture_without_gesture": {
+      "tabId": 2021579726,
+      "url": "http://127.0.0.1:3999/",
+      "injected": {
+        "text": "FIXTURE-MARKER-42\n\ncapture target",
+        "title": "M0a Fixture Page"
+      },
+      "screenshotError": "Error: Either the '<all_urls>' or 'activeTab' permission is required.",
+      "screenshotLastError": null
+    },
+    "D_revoke": {
+      "removed": true,
+      "contains": null
+    },
+    "D_capture_after_revoke": {
+      "timedOut": true,
+      "note": "no settlement within 9000ms"
+    }
+  },
+  "notes": [
+    "headless Chrome cannot render the native permission prompt; a request that needs the user to answer will hang (`timedOut`) instead of settling.",
+    "`activeTab` cannot be granted programmatically, so the \"toolbar click → activeTab\" path is documented behaviour here, not measured.",
+    "case C result is the design-critical one: it is exactly the gesture-less capture the 「看左边」 intent path performs."
+  ]
+}

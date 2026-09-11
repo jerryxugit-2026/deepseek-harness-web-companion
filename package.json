@@ -13,7 +13,9 @@
     "graph:check": "node scripts/doc-graph.mjs --check",
     "check:consistency": "node scripts/consistency-check.mjs",
     "check": "npm run graph:sync && npm run graph:check && npm run check:consistency",
-    "review:adversarial": "node scripts/pimoa-review.mjs --tool moa_verify --prompt-file scripts/review-prompts/design-adversarial.md"
+    "review:adversarial": "node scripts/pimoa-review.mjs --tool moa_verify --prompt-file scripts/review-prompts/design-adversarial.md",
+    "probe:permission": "node tests/m0a/permission-probe.mjs",
+    "search": "semble search"
   },
   "devDependencies": {
     "@colbymchenry/codegraph": "^1.6.0"
