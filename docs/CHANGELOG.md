@@ -5,7 +5,36 @@
 
 ---
 
-## v3.18 — 2026-09-11（当前）
+## v3.19 — 2026-09-11（当前）
+
+**触发**：用户在真实 Chrome 中完成 H4① 自动拉起实测 —— **M2 阶段收尾**。
+
+### 实测结论（`docs/reviews/probe-autostart-manual-verification.md`）
+
+| 环节 | 证据 |
+|---|---|
+| host 被唤起并拉起 DSH | `dsh-web-companion-host.log`：`20:32:36 host started` → `20:32:40 ensure-dsh → started=true port=3080`（**4 秒**）→ `stdin closed — exiting`（短连接） |
+| 进程与 URL 记录 | `~/.dsh/web-companion-dsh.json`：pid 8125 / port 3080 / token 43 字符 |
+| **监听者确为该进程** | `lsof :3080` → `node 8125`（与状态文件完全一致） |
+| 面板连上通道 | `/ag/ping`：`paired: true`、`liveTickets: 0`、**`connectedClients: 2`** |
+| 端到端可用 | 用户随即成功抓取 `网页捕获/2026-09-11-1632-notebooklm-clawhub-l-ba83.md` |
+
+### M2 阶段完成清单（全部有实测）
+
+- ✅ 正文抽取 → Markdown（噪音剔除 / 链接绝对化 / 代码块 / 表格 / 截断）
+- ✅ `/ag/attach` 原子落盘 + `WS /ag/client` 推送 + 离线队列 + ack
+- ✅ composer 注入 `@fileRef` + 可删胶囊 + ✕ 撤销（草稿清理）
+- ✅ 一次性授权引导（`optional_host_permissions` + 手势内 `permissions.request`）
+- ✅ **native messaging 自动拉起**（真实环境实测，4 秒）
+- ✅ 一次性票据握手（长期密钥不进 iframe URL）
+
+### 自动化缺口（诚实记录）
+
+`tests/m2/autostart-probe.mjs` 在本 agent 沙箱内启动的 Chrome 上仍报 `Specified native messaging host not found`（判断为环境限制）；本环的回归依赖真实环境人工验证。若需 CI 可跑，须在非沙箱环境执行。
+
+---
+
+## v3.18 — 2026-09-11
 
 **触发**：M2 自动拉起（H4①）——native messaging host 落地。
 

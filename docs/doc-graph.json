@@ -114,8 +114,8 @@
       "path": "docs/CHANGELOG.md",
       "title": "变更记录（CHANGELOG）",
       "version": "v3.0",
-      "lines": 526,
-      "sections": 22,
+      "lines": 555,
+      "sections": 23,
       "codeRefs": 0,
       "docRefs": 1
     },
@@ -123,7 +123,7 @@
       "path": "docs/DOC-GRAPH.md",
       "title": "文档与代码图谱（DOC-GRAPH）",
       "version": null,
-      "lines": 291,
+      "lines": 292,
       "sections": 6,
       "codeRefs": 190,
       "docRefs": 0
@@ -201,6 +201,15 @@
       "docRefs": 0
     },
     {
+      "path": "docs/reviews/probe-autostart-manual-verification.md",
+      "title": "M2 · 自动拉起（H4①）实测验证 —— 用户真实 Chrome",
+      "version": null,
+      "lines": 26,
+      "sections": 4,
+      "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
       "path": "docs/reviews/probe-chip.md",
       "title": "M0b 探针报告 · E2E-0 完整闭环（probe-chip）",
       "version": null,
@@ -257,7 +266,7 @@
     {
       "path": "详细设计文档.md",
       "title": "DSH Web Companion · 详细设计规范说明书",
-      "version": "v3.18",
+      "version": "v3.19",
       "lines": 814,
       "sections": 16,
       "codeRefs": 22,
