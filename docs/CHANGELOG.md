@@ -5,7 +5,35 @@
 
 ---
 
-## v3.3 — 2026-09-11（当前）
+## v3.4 — 2026-09-11（当前）
+
+**触发**：PiMoa 第四次对抗审核（`docs/reviews/pimoa-adversarial-v3.3.md`）：**阻断 2 → 1**（8 → 6 → 2 → 1）。本轮首次出现**亲验结论**（审核方实际执行了工具，读到了 DSH 源码检出），并据此推翻与纠正了设计的前提。
+
+### 修正的 1 条阻断（权限模型，真缺陷）
+
+`chrome.permissions.request` **必须由扩展侧用户手势触发**，而「看左边」意图路径（client 插件 F4 → 桥接插件 → SW）全程无手势 → **授权卡根本弹不出来**，`activeTab` 也不激活，`executeScript` 与 `captureVisibleTab` 同时失权。v3.4 在 §0.1 与 §9 **写死方案③**：首启经微壳按钮（该点击即手势）完成一次 `optional_host_permissions: *://*/*` 授权；未授权时意图路径降级为"按钮高亮 + 点击授权并抓取"（方案②）；明确否决方案①（声明式全站 host 权限）。M0a 增加三项权限实验（含**无手势调用 `permissions.request` 的 `lastError` 原文**作为证据）。
+
+### 亲验带来的纠错（PiMoa 第四次审核）
+
+| 项 | 纠正 |
+|---|---|
+| §6.3 契约引用 | **符号已亲验成立**：源码检出 `packages/client/ui-conversation/src/client/input/contract.ts` 的 `setDraft/addImages/submit` 位于 `:35/:37/:46`（此前两轮"未命中"实为 glob 写法与权限截断所致）→ 假设 B 从"未证实"上调为**符号成立、路径已修正**，**不提前触发 M0c** |
+| **`setDraft` 签名** | 真实签名为 **`setDraft(text, editRange?)`**（`:104`，`EditRange` `:147`，`draft-changed` `:253`）→ **"`setDraft` 是唯一整段写入入口"被证伪**；v3.3 据此写的三分支撤销契约与 Q4 均基于伪约束，已改为**基于区间的插入/撤销契约**，Q4 改写为"`EditRange` 语义 + `draft-changed` 时机"并上提 M0a |
+
+### 关闭的四项契约面缺口
+
+1. **附件取回通道**：WS `attach` 事件**内联 `image.base64`**（受 8MB/图 上限约束），client 插件直接 `new File(...)` 走 `createDraftImages`——消除"`attachmentId` → `File`"的映射缺口；仅在放宽上限时才启用兜底端点 `GET /ag/attachment`（F4）。
+2. **漂移 shim 补全**：新增覆盖 `setDraft`（含 `editRange` 是否存在）、`draft-changed` 事件名，探测失败即降级（无 `editRange` → 撤销退回"整段回退 + 用户编辑检测"）。
+3. **两条 WS 的重连状态机拆分**：`/ag/agent`（侧边栏文档持有，断连立即 `E_EXT_OFFLINE`）与 `/ag/client`（页面持有，attach 入队、意图缓存 60s 后补发）**独立重连**。
+4. **§7.4 新增两行**：DSH 未登录/会话失效导致 F4 恒 403 的降级（重建 iframe + 停止重连风暴）；**UI 撤销与 ack 解耦**（先本地撤销、后异步 ack，ack 失败不回滚 UI）。
+
+### 最脆弱假设更新
+
+① **A′**：`optional_host_permissions` + 无手势意图抓取能否共存（当前判断**大概率互斥**，唯一阻断项，已按方案③写死并待 M0a 验证）；② **B**：composer 草稿可读性（符号已亲验，剩命名/签名漂移风险）；③ **C**：截图能否真正成为 composer 附件（`createDraftImages` 尚未亲验命中，但取回通道已闭合）。
+
+---
+
+## v3.3 — 2026-09-11
 
 **触发**：PiMoa 对 v3.2 的第三次对抗审核（`docs/reviews/pimoa-adversarial-v3.2.md`）：**阻断 6 → 2**（8 → 6 → 2），并指出残留仍是同一病根——"修了 §5.4 的矩阵却没回改 §5.1 的端点表"。
 

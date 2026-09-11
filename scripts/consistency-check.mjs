@@ -33,7 +33,7 @@ const HISTORY = ['FINDINGS.md', 'docs/CHANGELOG.md', 'docs/REVIEW-', 'docs/revie
 /** 生成物：内容完全来自其它文档，检查源文档即可。 */
 const GENERATED = ['docs/DOC-GRAPH.md', 'docs/doc-graph.json']
 /** 正当的"已废弃/已否决"叙述。 */
-const NEGATED = /废弃|否决|不再|禁止|旧名|已改|历史|改为|修正|误读|高估/u
+const NEGATED = /废弃|否决|不再|禁止|旧名|已改|历史|改为|修正|误读|高估|证伪|订正/u
 
 /** @type {Rule[]} */
 const RULES = [
@@ -128,6 +128,13 @@ const RULES = [
     pattern: /待拍板|待你拍板/u,
     reason: 'BLOCKER-5：H4 已决（默认①）；悬空的双态表述禁止出现',
     only: ['详细设计文档.md'],
+  },
+  {
+    id: 'stale-single-write-claim',
+    pattern: /唯一整段写入|整段写入入口/u,
+    reason: 'v3.4 亲验证伪：真实签名为 setDraft(text, editRange?)，存在区间写入能力（contract.ts:104）',
+    skip: HISTORY,
+    allowIf: NEGATED,
   },
   {
     id: 'bare-auth-restatement',

@@ -114,8 +114,8 @@
       "path": "docs/CHANGELOG.md",
       "title": "变更记录（CHANGELOG）",
       "version": "v3.0",
-      "lines": 131,
-      "sections": 6,
+      "lines": 159,
+      "sections": 7,
       "codeRefs": 0,
       "docRefs": 1
     },
@@ -123,9 +123,9 @@
       "path": "docs/DOC-GRAPH.md",
       "title": "文档与代码图谱（DOC-GRAPH）",
       "version": null,
-      "lines": 306,
+      "lines": 308,
       "sections": 6,
-      "codeRefs": 211,
+      "codeRefs": 212,
       "docRefs": 0
     },
     {
@@ -192,6 +192,15 @@
       "docRefs": 0
     },
     {
+      "path": "docs/reviews/pimoa-adversarial-v3.3.md",
+      "title": "PiMoa 对抗性审核结果",
+      "version": null,
+      "lines": 73,
+      "sections": 5,
+      "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
       "path": "scripts/review-prompts/design-adversarial.md",
       "title": "scripts/review-prompts/design-adversarial.md",
       "version": null,
@@ -203,10 +212,10 @@
     {
       "path": "详细设计文档.md",
       "title": "DSH Web Companion · 详细设计规范说明书",
-      "version": "v3.3",
-      "lines": 776,
+      "version": "v3.4",
+      "lines": 802,
       "sections": 16,
-      "codeRefs": 19,
+      "codeRefs": 20,
       "docRefs": 4
     }
   ],
@@ -1246,6 +1255,10 @@
       },
       {
         "doc": "docs/DOC-GRAPH.md",
+        "ref": "deepseek-harness/packages/client/ui-conversation/src/client/input/contract.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
         "ref": "docs/reviews/probe-seed.json"
       },
       {
@@ -1627,6 +1640,10 @@
       {
         "doc": "详细设计文档.md",
         "ref": "contract/slots.d.ts"
+      },
+      {
+        "doc": "详细设计文档.md",
+        "ref": "deepseek-harness/packages/client/ui-conversation/src/client/input/contract.ts"
       },
       {
         "doc": "详细设计文档.md",
