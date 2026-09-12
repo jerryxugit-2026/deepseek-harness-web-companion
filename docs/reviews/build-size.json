@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-12T03:16:31.578Z",
+  "generatedAt": "2026-09-12T03:22:07.595Z",
   "criterion": {
     "limitBytes": 1048576,
     "metric": "dist/ total, uncompressed"

@@ -1,6 +1,6 @@
 {
   "probe": "m4/perf",
-  "at": "2026-09-12T03:14:11.060Z",
+  "at": "2026-09-12T03:19:45.336Z",
   "dshPort": "3099",
   "runs": 7,
   "caveat": "headless Chrome, loopback, same machine — 这是基线而非承诺",
@@ -13,64 +13,76 @@
   },
   "results": {
     "g1HotStartMs": {
-      "min": 2036,
-      "p50": 2074,
-      "p95": 2209,
-      "max": 2209,
+      "min": 2070,
+      "p50": 2221,
+      "p95": 2284,
+      "max": 2284,
       "n": 3
     },
     "g1PhasesMs": {
       "panelDoc": {
-        "min": 580,
-        "p50": 585,
-        "p95": 644,
-        "max": 644,
+        "min": 585,
+        "p50": 642,
+        "p95": 646,
+        "max": 646,
         "n": 3
       },
       "iframeTarget": {
-        "min": 632,
-        "p50": 691,
-        "p95": 819,
-        "max": 819,
+        "min": 638,
+        "p50": 776,
+        "p95": 876,
+        "max": 876,
         "n": 3
       },
       "composerReady": {
-        "min": 2036,
-        "p50": 2074,
-        "p95": 2209,
-        "max": 2209,
+        "min": 2070,
+        "p50": 2221,
+        "p95": 2284,
+        "max": 2284,
         "n": 3
       }
     },
+    "g1HandshakeMs": {
+      "min": 1,
+      "p50": 2,
+      "p95": 4,
+      "max": 4,
+      "n": 5
+    },
+    "g1IframeBootMs": {
+      "appRoot": 638,
+      "domComplete": 1511,
+      "composer": 2077
+    },
     "g2LightMs": {
-      "min": 28,
-      "p50": 66,
-      "p95": 94,
-      "max": 94,
+      "min": 24,
+      "p50": 80,
+      "p95": 108,
+      "max": 108,
       "n": 7
     },
     "g2LightFailures": 0,
     "g2StandardMs": {
-      "min": 35,
-      "p50": 92,
-      "p95": 533,
-      "max": 533,
+      "min": 29,
+      "p50": 96,
+      "p95": 128,
+      "max": 128,
       "n": 7
     },
     "g2StandardFailures": 0,
     "g2ScreenshotViewportMs": {
-      "min": 83,
+      "min": 81,
       "p50": 94,
-      "p95": 118,
-      "max": 118,
+      "p95": 605,
+      "max": 605,
       "n": 5
     },
     "g2ScreenshotViewportBytes": 214383,
     "g2ScreenshotMs": {
-      "min": 1757,
-      "p50": 1764,
-      "p95": 1861,
-      "max": 1861,
+      "min": 1769,
+      "p50": 1780,
+      "p95": 1865,
+      "max": 1865,
       "n": 5
     },
     "g6BundleKb": 127

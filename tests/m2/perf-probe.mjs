@@ -161,6 +161,60 @@ console.log(`   总计 ${JSON.stringify(hotStats)}  目标 p50 ≤ ${String(G1_H
 results.g1PhasesMs = { panelDoc: percentiles(phases.panelDoc), iframeTarget: percentiles(phases.iframe), composerReady: percentiles(phases.composer) }
 console.log(`   分解：面板文档 ${String(results.g1PhasesMs.panelDoc.p50)}ms → iframe target ${String(results.g1PhasesMs.iframeTarget.p50)}ms → composer ${String(results.g1PhasesMs.composerReady.p50)}ms\n`)
 
+/* ── G1 细分：握手 vs DSH 应用启动（决定"能否优化"） ────────────────────── */
+console.log('1b. G1 细分：/ag/enter 握手 vs iframe 内应用启动')
+const handshake = await (async () => {
+  const key = JSON.parse(readFileSync(PAIRING, 'utf8')).key
+  const samples = []
+  for (let i = 0; i < 5; i += 1) {
+    const t0 = Date.now()
+    await fetch(`http://127.0.0.1:${String(DSH_PORT)}/ag/enter?key=${encodeURIComponent(key)}`, { redirect: 'manual' }).catch(() => null)
+    samples.push(Date.now() - t0)
+  }
+  return percentiles(samples)
+})()
+results.g1HandshakeMs = handshake
+console.log(`   /ag/enter 握手（含 303 + Set-Cookie）：${JSON.stringify(handshake)}`)
+
+const bootPhases = []
+{
+  const { targetId } = await browser.send('Target.createTarget', { url: `chrome-extension://${extId}/src/sidepanel/panel.html` })
+  const started = Date.now()
+  let iframeSession = null
+  for (let i = 0; i < 400; i += 1) {
+    const { targetInfos } = await browser.send('Target.getTargets')
+    const iframe = targetInfos.find((t) => t.type === 'iframe' && t.url.startsWith(`http://127.0.0.1:${String(DSH_PORT)}`))
+    if (iframe !== undefined) {
+      iframeSession = (await browser.send('Target.attachToTarget', { targetId: iframe.targetId, flatten: true })).sessionId
+      await browser.send('Runtime.enable', {}, iframeSession).catch(() => {})
+      break
+    }
+    await sleep(25)
+  }
+  if (iframeSession !== null) {
+    const marks = {}
+    for (let i = 0; i < 400; i += 1) {
+      const probe = await evaluate(iframeSession, `JSON.stringify({
+        readyState: document.readyState,
+        root: document.querySelector('#root, #app, main') !== null,
+        composer: document.querySelector('[contenteditable="true"], textarea') !== null,
+        moduleLoader: typeof globalThis.__ModuleLoader__ === 'object',
+      })`, 3000)
+      if (typeof probe === 'string') {
+        const state = JSON.parse(probe)
+        if (state.readyState === 'complete' && marks.domComplete === undefined) marks.domComplete = Date.now() - started
+        if (state.root === true && marks.appRoot === undefined) marks.appRoot = Date.now() - started
+        if (state.composer === true && marks.composer === undefined) { marks.composer = Date.now() - started; break }
+      }
+      await sleep(25)
+    }
+    bootPhases.push(marks)
+    console.log(`   iframe 内阶段：DOM complete ${String(marks.domComplete ?? '?')}ms → 应用根节点 ${String(marks.appRoot ?? '?')}ms → composer ${String(marks.composer ?? '?')}ms`)
+  }
+  await browser.send('Target.closeTarget', { targetId }).catch(() => {})
+}
+results.g1IframeBootMs = bootPhases[0] ?? null
+
 /* ── G2：抓取耗时（轻量 / 标准 / 截图） ──────────────────────────────────── */
 const fixtureTab = async (path) => {
   const { targetId } = await browser.send('Target.createTarget', { url: `${ORIGIN}${path}`, newWindow: false })
