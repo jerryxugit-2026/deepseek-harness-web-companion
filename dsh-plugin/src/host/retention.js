@@ -23,6 +23,14 @@ import { join } from 'node:path'
 
 /** The exact shape `store.js` writes: `<yyyy-MM-dd-HHmm>-<slug>-<id6>.md`. */
 export const CAPTURE_FILE = /^\d{4}-\d{2}-\d{2}-\d{4}-.*\.md$/u
+/**
+ * Screenshots written by `tools.js`: `browser-<yyyy-MM-dd-HHmm>-<id6>.<ext>`.
+ *
+ * Found the hard way: the first version of this module only recognized capture
+ * names, so `网页捕获/assets/` would have grown without bound — the exact failure
+ * the retention policy exists to prevent, just in a subdirectory.
+ */
+export const ASSET_FILE = /^browser-\d{4}-\d{2}-\d{2}-\d{4}-.*\.(?:png|jpe?g|webp)$/u
 /** Half-written files from a crashed run (`.tmp` is renamed into place on success). */
 export const TEMP_FILE = /\.tmp$/u
 
@@ -53,7 +61,7 @@ export async function sweepCaptures(dir, options = {}) {
   let kept = 0
   for (const entry of entries) {
     if (!entry.isFile()) continue
-    if (!CAPTURE_FILE.test(entry.name) && !TEMP_FILE.test(entry.name)) {
+    if (!CAPTURE_FILE.test(entry.name) && !ASSET_FILE.test(entry.name) && !TEMP_FILE.test(entry.name)) {
       kept += 1
       continue
     }

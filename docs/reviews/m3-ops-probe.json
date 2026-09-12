@@ -1,0 +1,45 @@
+{
+  "probe": "m3/ops",
+  "fixturePort": 3995,
+  "at": "2026-09-12T02:32:48.959Z",
+  "results": {
+    "browser_tabs 列出夹具页": true,
+    "browser_tabs 不把扩展自身页面当普通标签": true,
+    "browser_tabs 报告 active 状态": true,
+    "browser_read 返回正文 Markdown": true,
+    "browser_read 带 title/url/chars": true,
+    "browser_read + selector 只读该元素": true,
+    "selector 不存在 → E_TARGET": true,
+    "未授权写操作被拒（E_READONLY）": true,
+    "未知 op → E_PAYLOAD": true,
+    "browser_click 真的改变了页面（clicks +1）": true,
+    "非可信路径如实标注 trusted=false": true,
+    "返回 matched/tag 便于模型自我纠错": true,
+    "browser_type 非可信路径写入输入框": true,
+    "运行期开关可打开（无需重新授权）": true,
+    "可信点击真的触发页面 onclick（clicks +1）": true,
+    "可信路径如实标注 trusted=true": true,
+    "可信路径返回点击坐标": true,
+    "可信输入 append 语义（光标定位到末尾）": true,
+    "可信输入不破坏原有内容": true,
+    "可信输入 replace 语义（选中后覆盖）": true,
+    "browser_ax 拿到无障碍节点": true,
+    "browser_ax 含 button/heading 角色": true,
+    "browser_screenshot 整页 PNG 有内容": true,
+    "截图声明 fullPage 与 trusted": true,
+    "browser_wait(ms) 正常返回": true,
+    "browser_navigate 加载第二页": true,
+    "导航后标题更新": true,
+    "browser_wait(selector) 等到动态元素": true,
+    "等不到 → E_TIMEOUT（可诊断）": true,
+    "关闭开关返回释放情况": true
+  },
+  "sample": {
+    "read": {
+      "title": "M3 ops 夹具",
+      "chars": 77
+    },
+    "axNodes": 21,
+    "screenshotBytes": 18603
+  }
+}

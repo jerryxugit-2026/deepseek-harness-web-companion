@@ -5,7 +5,48 @@
 
 ---
 
-## v3.25 — 2026-09-11（当前）
+## v3.26 — 2026-09-11（当前）
+
+**触发**：继续 M3（用户：「你继续做吧」）—— 把 `browser_*` 反向控制从设计变成已验证的两层实现。
+
+### 交付
+
+| 层 | 内容 |
+|---|---|
+| 协议 | 新增 `AgentToolCall` / `AgentToolResult`（`/ag/agent` 上的请求/响应） |
+| 桥接插件 | `hub.callAgent()`：**关联在 hub**（它拥有 socket），掉线即把在途调用全部以 `E_EXT_OFFLINE` 失败；`tools.js` 用 `ctx.tools.register(defineTool(...))` 注册 8 个 `browser_*`；写类**不注册**（`allowBrowserWriteOps=false` 时模型看不见）；`/ag/ping.capabilities` 反映已注册工具 |
+| 扩展 ops | `sw/ops/index.js`（read/tabs/wait/screenshot/ax/click/type/navigate）+ `sw/ops/debugger.js`（AX 树、盒模型定位、可信点击/输入/按键、整页截图）；两条路径**如实标注** `trusted` |
+| 扩展 UI | 面板新增「浏览器控制」开关（ADR-12 的运行期 opt-in；关闭即 `detachAll` 释放调试器） |
+| 帧预算 | 新增 `lib/frame-budget.js`：截图 base64 在预算内**保留**、超限才带原因丢弃 |
+| 测试 | `tests/m3/ops-probe.mjs`（真 Chrome，31 断言）、`tests/m3/debugger-probe.mjs`(14)、`tests/unit/browser-tools.test.mjs`(31)、`tests/unit/frame-budget.test.mjs`(16) |
+
+### 实测
+
+| 检查 | 结果 |
+|---|---|
+| `npm run probe:m3-ops` | ✅ 31/31：只读 5 项可用；未授权写操作 `E_READONLY`；**非可信点击真的改变页面**（clicks+1）且 `trusted:false`；开开关后**可信点击真的触发 onclick**、可信输入 append/replace 双语义、返回坐标；`ax` 有 role/name 节点；`screenshot` >1KB 整页 PNG；`navigate/wait/tabs` 形状正确；`wait` 超时 `E_TIMEOUT` |
+| `npm run test:browser-tools` | ✅ 31/31：**声明 schema 接受实现返回值**（同一份 `validateJsonSchemaValue`）；写工具按开关注册；失败是 `{code,message}`；截图落 `网页捕获/assets/` 且旧截图被同一保留策略清掉 |
+| `/ag/ping.capabilities`（真进程） | ✅ 默认 `[browser_read, browser_tabs, browser_wait, browser_screenshot, browser_ax]`；临时把 `allowBrowserWriteOps: true` 写进 dev 配置重启后变 8 个（含 3 个写类），验证后已还原 |
+| `npm run test:unit` | ✅ tickets + retention(19) + frame-budget(16) + browser-tools(31) |
+
+### 过程中修掉的三个真缺陷（都是"两层各自看着都对"的接缝问题）
+
+1. **截图像素被无条件丢弃**：`agent-channel` 第一版删掉所有 `base64`，于是 `browser_screenshot` **结构性不可能成功**（插件只会看到 `E_STORAGE: extension returned no pixels`）。改为帧预算内保留、超限带原因拒绝。
+2. **保留策略不认截图命名**：`sweepCaptures` 只认抓取名，`网页捕获/assets/*.png` 会无限膨胀 —— 正是保留策略要防的那件事，只是换了个子目录。新增 `ASSET_FILE` 规则。
+3. **可信输入的追加语义不可靠**：`Input.insertText` 落在**插入点**，点击落点可能把光标放在文本中间（实测）。改为先用脚本定位光标/选中、再走可信插入，append 与 replace 成为确定语义。
+
+### 单测自身的两处"假绿"（一并修掉，否则上面的成绩都不算数）
+
+1. `validateJsonSchemaValue` 返回的是**违规数组**（空数组=通过），第一版按 `.ok` 读 → 永远 false，被"或上 `includes('"code"')`"的宽松写法掩盖；
+2. 桩函数只认 `{reply}` 包装，喂原始帧时返回 `undefined` → 走**错误分支** → 恰好被 `oneOf` 的错误变体接受，于是"schema 接受实现返回值"全部是空断言。修法是让断言同时要求 `value.code === undefined`（必须是成功值）。
+
+### 平台/契约要点（已写入 docs/03 §6）
+
+DSH 的 output schema **强制**每个 object 显式声明 `additionalProperties`；`required` 写在属性里；`defineTool` 从 `@deepseek-ai/dsh-tools` 导入（0.1.2-rc.1，须与运行时同版本）。
+
+---
+
+## v3.25 — 2026-09-11
 
 **触发**：用户实测提出 —— 抓取会在工作区 `网页捕获/` 里持续生成 `.md`，**没有任何东西会删它们**。
 

@@ -1,28 +1,28 @@
 {
-  "generatedAt": "2026-09-12T02:29:16.601Z",
+  "generatedAt": "2026-09-12T02:36:39.437Z",
   "criterion": {
     "limitBytes": 1048576,
     "metric": "dist/ total, uncompressed"
   },
-  "totalBytes": 90235,
+  "totalBytes": 120647,
   "gzipBytes": 399,
   "pass": true,
   "files": [
     {
       "path": "src/sw/index.js",
-      "bytes": 47586
+      "bytes": 70919
     },
     {
       "path": "src/sidepanel/panel.js",
-      "bytes": 37965
+      "bytes": 44467
     },
     {
       "path": "src/sidepanel/panel.css",
-      "bytes": 2152
+      "bytes": 2397
     },
     {
       "path": "src/sidepanel/panel.html",
-      "bytes": 1339
+      "bytes": 1671
     },
     {
       "path": "manifest.json",

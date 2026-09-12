@@ -54,7 +54,7 @@ const capturable = (tab) => tab.id !== undefined && !isOwnSurface(tab) && !UNCAP
  * fallback is deliberately ordered by `lastAccessed`, not by tab index, so it
  * lands on what the user was reading just before.
  */
-async function activeTab(log = () => {}) {
+export async function activeTab(log = () => {}) {
   const [active] = await chrome.tabs.query({ active: true, currentWindow: true })
   if (active !== undefined && capturable(active)) return active
   const candidates = (await chrome.tabs.query({}))

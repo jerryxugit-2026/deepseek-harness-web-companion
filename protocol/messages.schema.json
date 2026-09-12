@@ -60,6 +60,12 @@
       "$ref": "#/$defs/CaptureResultEvent"
     },
     {
+      "$ref": "#/$defs/AgentToolCall"
+    },
+    {
+      "$ref": "#/$defs/AgentToolResult"
+    },
+    {
       "$ref": "#/$defs/AgentHello"
     },
     {
@@ -926,6 +932,91 @@
           }
         },
         "at": {
+          "type": "number"
+        }
+      }
+    },
+    "AgentToolCall": {
+      "description": "Bridge → extension (over /ag/agent): run one browser op and answer with AgentToolResult. The bridge owns tool registration and the read/write gate; the extension owns the browser.",
+      "type": "object",
+      "required": [
+        "type",
+        "id",
+        "tool"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "tool-call"
+        },
+        "protocolVersion": {
+          "type": "number"
+        },
+        "id": {
+          "type": "string"
+        },
+        "tool": {
+          "type": "string",
+          "enum": [
+            "browser_read",
+            "browser_tabs",
+            "browser_wait",
+            "browser_screenshot",
+            "browser_ax",
+            "browser_click",
+            "browser_type",
+            "browser_navigate"
+          ]
+        },
+        "params": {
+          "type": "object"
+        },
+        "timeoutMs": {
+          "type": "number"
+        },
+        "allowWrite": {
+          "type": "boolean"
+        }
+      }
+    },
+    "AgentToolResult": {
+      "description": "Extension → bridge (over /ag/agent): the outcome of one AgentToolCall.",
+      "type": "object",
+      "required": [
+        "type",
+        "id",
+        "ok"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "tool-result"
+        },
+        "protocolVersion": {
+          "type": "number"
+        },
+        "id": {
+          "type": "string"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "value": {
+          "type": "object"
+        },
+        "error": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          }
+        },
+        "elapsedMs": {
           "type": "number"
         }
       }

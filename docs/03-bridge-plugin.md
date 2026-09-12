@@ -250,7 +250,39 @@ export function upgradeExtension(req: IncomingMessage, socket: Duplex, head: Buf
 
 ---
 
-## 6. 模型工具（`tool-bridge.ts`）
+## 6. 模型工具（`tools.js`，v3.26 已实现）
+
+**注册契约**（照 `dsh-schedule` 的官方写法，实测可用）：
+
+```js
+import { defineTool } from '@deepseek-ai/dsh-tools'   // 0.1.2-rc.1，与运行时同版本
+ctx.tools.register(defineTool({
+  name, description,
+  parameters: { selector: { type: 'string', description: '…' } },   // DSH 的参数 DSL
+  output: { schema, render: (_args, value) => [{ type: 'text', text: JSON.stringify(value) }] },
+  async execute(args, exec) { … return value | { code, message } },
+}))
+```
+
+要点（每条都踩过或验过）：
+
+| 要点 | 说明 |
+|---|---|
+| `inject` | 必须是 `['webServer', 'credentials', 'tools']` —— 少写 `tools` 时 `ctx.tools` 为 undefined |
+| output schema | DSH 编译器**强制**每个 object 显式写 `additionalProperties: true/false`；`required` 写在属性里（`{ type:'string', required:true }`），不是数组 |
+| 校验返回值 | `validateJsonSchemaValue(schema, value, '')` 返回的是**违规数组**（空数组=通过），不是 `{ok}` —— 单测第一版按 `.ok` 读，于是"失败也是通过" |
+| 工具错误 | 返回 `{ code, message }` 即工具错误（不是抛异常）；离线/超时/元素找不到分别映射，并给模型可操作提示 |
+| 注册即门禁 | `allowBrowserWriteOps=false` 时写类工具**不注册**（模型看不见，哄不动）；扩展侧对同一帧还有 `E_READONLY` 二次拦截 |
+| 请求/响应 | `hub.callAgent()` 负责关联、超时与"掉线即失败"；扩展侧 `tool-result` 由 hub 直接结算，回调看不到内部 id |
+
+**工具清单**：只读 `browser_read` / `browser_tabs` / `browser_wait` / `browser_screenshot` / `browser_ax`；写类（开关开启后） `browser_click` / `browser_type` / `browser_navigate`。
+已注册的名字通过 `GET /ag/ping.capabilities` 对外可见 —— 真进程实测：默认 5 个，`allowBrowserWriteOps: true` 后 8 个。
+
+**截图落盘**：扩展只产出像素，**插件**才写工作区（它才是知道工作区的一侧）：`<workspace>/网页捕获/assets/browser-<stamp>-<id6>.png`，并沿用与抓取相同的保留策略（`ASSET_FILE` 规则）。这条规则是补的：第一版保留策略只认抓取文件名，截图目录本来会无限膨胀。
+
+---
+
+## 6b. 模型工具（原始设计草案，保留对照）
 
 用 DSH 的工具 API 注册（`defineTool` + `ctx.tools.register`，见 `@deepseek-ai/dsh-tools`）：
 

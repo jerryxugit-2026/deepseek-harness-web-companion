@@ -100,3 +100,14 @@ button[disabled] { opacity: 0.5; cursor: default; }
   border-color: #0a84ff;
   color: #fff;
 }
+
+/* M3 runtime switch: the debugger is installed-but-off until the user asks for it. */
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #444;
+  white-space: nowrap;
+}
+.toggle input { margin: 0; }

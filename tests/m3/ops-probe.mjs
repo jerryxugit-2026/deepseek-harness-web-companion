@@ -1,0 +1,236 @@
+#!/usr/bin/env node
+/**
+ * M3 · ops probe (design docs/06 §8.2, E2E-7) — real Chrome, real page.
+ *
+ * Drives the seven browser ops the tool bridge calls, exactly the way the bridge
+ * does: `chrome.runtime.sendMessage({kind:'op', …})` from an extension document
+ * (the panel owns the `/ag/agent` socket, the service worker owns the browser
+ * APIs). Everything is asserted against a live fixture page — the point of M3 is
+ * that a model can *change* a page and observe the change.
+ *
+ * What it pins down:
+ *   1. read tools work without any debugger attach;
+ *   2. write tools are REFUSED unless the call carries `allowWrite` (the plugin's
+ *      `allowBrowserWriteOps` decision, re-enforced in the worker);
+ *   3. the untrusted (scripting) path really changes the page — and reports
+ *      `trusted: false` so nobody mistakes it for real input;
+ *   4. after the runtime switch, the trusted (debugger `Input.*`) path really
+ *      changes the page and reports `trusted: true`;
+ *   5. `navigate` / `wait` / `tabs` / `screenshot` / `ax` answer with the shapes
+ *      the tools schema promises.
+ *
+ * Usage: node tests/m3/ops-probe.mjs [--fixture-port 3995] [--out docs/reviews]
+ */
+import { createServer } from 'node:http'
+import { execFileSync } from 'node:child_process'
+import { cpSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { WebSocket } from 'ws'
+
+const HERE = dirname(fileURLToPath(import.meta.url))
+const ROOT = resolve(HERE, '..', '..')
+const argOf = (name, fallback) => {
+  const at = process.argv.indexOf(`--${name}`)
+  return at === -1 ? fallback : process.argv[at + 1]
+}
+const FIXTURE_PORT = Number(argOf('fixture-port', '3995'))
+const CDP_PORT = Number(argOf('cdp-port', '9243'))
+const OUT_DIR = resolve(ROOT, argOf('out', 'docs/reviews'))
+const EXT_DIST = join(ROOT, 'extension', 'dist')
+const TMP = process.env.TMPDIR ?? '/tmp'
+const EXT_COPY = join(TMP, 'dshwc-m3-ops-ext')
+const PROFILE = join(TMP, 'dshwc-m3-ops-profile')
+const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+const ORIGIN = `http://127.0.0.1:${String(FIXTURE_PORT)}`
+const MARKER = 'M3-OPS-FIXTURE-MARKER'
+const sleep = (ms) => new Promise((r) => { setTimeout(r, ms) })
+mkdirSync(OUT_DIR, { recursive: true })
+
+const PAGE_ONE = `<!doctype html><html lang="zh"><head><meta charset="utf-8"><title>M3 ops 夹具</title></head>
+<body><article><h1>M3 ops 夹具</h1>
+<p>${MARKER} 第一页正文，用于 read/ax/screenshot。</p>
+<button id="count" onclick="window.__clicks = (window.__clicks || 0) + 1">点我</button>
+<p id="clicks">clicks=0</p>
+<input id="field" placeholder="在这里输入">
+</article></body></html>`
+
+const PAGE_TWO = `<!doctype html><html lang="zh"><head><meta charset="utf-8"><title>M3 ops 第二页</title></head>
+<body><article><h1>第二页</h1><p id="late-anchor">${MARKER}-TWO</p>
+<script>setTimeout(() => { const el = document.createElement('div'); el.id = 'late'; el.textContent = '迟到的元素'; document.body.appendChild(el) }, 700)</script>
+</article></body></html>`
+
+const fixture = createServer((req, res) => {
+  const two = String(req.url ?? '').startsWith('/two')
+  res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
+  res.end(two ? PAGE_TWO : PAGE_ONE)
+})
+await new Promise((res) => { fixture.listen(FIXTURE_PORT, '127.0.0.1', res) })
+
+rmSync(EXT_COPY, { recursive: true, force: true })
+cpSync(EXT_DIST, EXT_COPY, { recursive: true })
+rmSync(PROFILE, { recursive: true, force: true })
+const chromePid = execFileSync('/usr/bin/env', ['bash', '-c',
+  `"${CHROME}" --user-data-dir="${PROFILE}" --remote-debugging-port=${CDP_PORT} --no-first-run --no-default-browser-check --no-sandbox --disable-gpu --headless=new --enable-unsafe-extension-debugging --window-size=900,700 about:blank >/tmp/m3-ops-chrome.log 2>&1 & echo $!`,
+], { encoding: 'utf8' }).trim()
+const cleanup = () => {
+  try { process.kill(Number(chromePid)) } catch { /* gone */ }
+  fixture.close()
+}
+process.on('exit', cleanup)
+
+class Cdp {
+  #socket
+  #id = 1
+  #pending = new Map()
+  static async connect(url) {
+    const c = new Cdp()
+    c.#socket = new WebSocket(url)
+    await new Promise((res, rej) => {
+      c.#socket.addEventListener('open', res, { once: true })
+      c.#socket.addEventListener('error', () => rej(new Error('cdp socket error')), { once: true })
+    })
+    c.#socket.addEventListener('message', (event) => {
+      const m = JSON.parse(event.data)
+      if (m.id === undefined) return
+      const p = c.#pending.get(m.id)
+      c.#pending.delete(m.id)
+      if (m.error !== undefined) p?.reject(new Error(m.error.message))
+      else p?.resolve(m.result)
+    })
+    return c
+  }
+  send(method, params = {}, sessionId) {
+    const id = this.#id++
+    this.#socket.send(JSON.stringify({ id, method, params, ...(sessionId === undefined ? {} : { sessionId }) }))
+    return new Promise((resolve, reject) => { this.#pending.set(id, { resolve, reject, method }) })
+  }
+}
+
+let browserWs
+for (let i = 0; i < 40; i += 1) {
+  try { browserWs = (await (await fetch(`http://127.0.0.1:${String(CDP_PORT)}/json/version`)).json()).webSocketDebuggerUrl; break } catch { await sleep(500) }
+}
+if (browserWs === undefined) throw new Error('chrome devtools never came up')
+const browser = await Cdp.connect(browserWs)
+const { id: extId } = await browser.send('Extensions.loadUnpacked', { path: EXT_COPY })
+console.log(`[m3-ops] extension id=${extId}`)
+
+const open = async (url) => {
+  const { targetId } = await browser.send('Target.createTarget', { url, newWindow: false })
+  await browser.send('Target.activateTarget', { targetId })
+  const { sessionId } = await browser.send('Target.attachToTarget', { targetId, flatten: true })
+  await browser.send('Runtime.enable', {}, sessionId)
+  return { targetId, sessionId }
+}
+const evaluate = async (sessionId, expression, timeoutMs = 20000) => {
+  const call = browser.send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true }, sessionId)
+  const result = await Promise.race([call, sleep(timeoutMs).then(() => ({ timedOut: true }))])
+  if (result.timedOut === true) return { timedOut: true }
+  if (result.exceptionDetails !== undefined) return { error: String(result.exceptionDetails.exception?.description ?? result.exceptionDetails.text).slice(0, 300) }
+  return result.result.value
+}
+
+// fixture first (it must be the browser's active tab), then the panel document
+const fixtureTab = await open(`${ORIGIN}/`)
+await sleep(700)
+const panel = await open(`chrome-extension://${extId}/src/sidepanel/panel.html`)
+await sleep(1500)
+
+// The tab id is Chrome's, not CDP's — ask the extension through `browser_tabs`.
+const op = async (tool, params = {}, allowWrite) => {
+  const expression = `(async () => {
+    const reply = await chrome.runtime.sendMessage(${JSON.stringify({ kind: 'op', tool, params, allowWrite })})
+    return JSON.stringify(reply ?? null)
+  })()`
+  const raw = await evaluate(panel.sessionId, expression, 45000)
+  if (typeof raw !== 'string') return { transport: raw }
+  try { return JSON.parse(raw) } catch { return { transport: raw } }
+}
+
+const results = {}
+const record = (name, value) => {
+  results[name] = value
+  console.log(`  ${value === true ? '✅' : value === false ? '❌' : '·'} ${name}: ${(JSON.stringify(value) ?? String(value)).slice(0, 260)}`)
+}
+
+console.log('\n1. 只读工具（无需 debugger）')
+const tabs = await op('browser_tabs', {})
+const target = (tabs.value?.tabs ?? []).find((t) => String(t.url).startsWith(ORIGIN))
+record('browser_tabs 列出夹具页', target !== undefined)
+record('browser_tabs 不把扩展自身页面当普通标签', (tabs.value?.tabs ?? []).every((t) => !String(t.url).startsWith('chrome-extension://')))
+record('browser_tabs 报告 active 状态', typeof target?.active === 'boolean')
+const tabId = target?.id
+
+const read = await op('browser_read', { tabId })
+record('browser_read 返回正文 Markdown', String(read.value?.markdown ?? '').includes(MARKER))
+record('browser_read 带 title/url/chars', typeof read.value?.title === 'string' && typeof read.value?.chars === 'number')
+const readSel = await op('browser_read', { tabId, selector: '#count' })
+record('browser_read + selector 只读该元素', readSel.value?.text === '点我' && readSel.value?.tag === 'button')
+const readMiss = await op('browser_read', { tabId, selector: '#nope' })
+record('selector 不存在 → E_TARGET', readMiss.ok === false && readMiss.error?.code === 'E_TARGET')
+
+console.log('\n2. 写操作门禁（allowBrowserWriteOps 的扩展侧复核）')
+const blocked = await op('browser_click', { tabId, selector: '#count' }, false)
+record('未授权写操作被拒（E_READONLY）', blocked.ok === false && blocked.error?.code === 'E_READONLY')
+const unknown = await op('browser_teleport', {})
+record('未知 op → E_PAYLOAD', unknown.ok === false && unknown.error?.code === 'E_PAYLOAD')
+
+console.log('\n3. 非可信路径（scripting 合成事件）')
+const before = await evaluate(fixtureTab.sessionId, 'window.__clicks ?? 0')
+const clicked = await op('browser_click', { tabId, selector: '#count' }, true)
+const after = await evaluate(fixtureTab.sessionId, 'window.__clicks ?? 0')
+record('browser_click 真的改变了页面（clicks +1）', clicked.ok === true && Number(after) === Number(before) + 1)
+record('非可信路径如实标注 trusted=false', clicked.value?.trusted === false)
+record('返回 matched/tag 便于模型自我纠错', typeof clicked.value?.matched === 'number' && clicked.value?.tag === 'button')
+
+const typed = await op('browser_type', { tabId, selector: '#field', text: 'DSH-UNTRUSTED' }, true)
+const fieldValue = await evaluate(fixtureTab.sessionId, 'document.getElementById("field").value')
+record('browser_type 非可信路径写入输入框', typed.ok === true && fieldValue === 'DSH-UNTRUSTED')
+
+console.log('\n4. 打开运行时开关 → 可信路径（debugger Input.*）')
+const enable = await evaluate(panel.sessionId, `(async () => JSON.stringify(await chrome.runtime.sendMessage({ kind: 'browser-control', enabled: true })))()`)
+record('运行期开关可打开（无需重新授权）', typeof enable === 'string' && enable.includes('true'))
+const before2 = await evaluate(fixtureTab.sessionId, 'window.__clicks ?? 0')
+const trusted = await op('browser_click', { tabId, selector: '#count' }, true)
+const after2 = await evaluate(fixtureTab.sessionId, 'window.__clicks ?? 0')
+record('可信点击真的触发页面 onclick（clicks +1）', trusted.ok === true && Number(after2) === Number(before2) + 1)
+record('可信路径如实标注 trusted=true', trusted.value?.trusted === true)
+record('可信路径返回点击坐标', Number.isFinite(trusted.value?.coords?.x))
+
+const trustedTyped = await op('browser_type', { tabId, selector: '#field', text: '-TRUSTED', replace: false }, true)
+const fieldAfter = await evaluate(fixtureTab.sessionId, 'document.getElementById("field").value')
+record('可信输入 append 语义（光标定位到末尾）', trustedTyped.value?.trusted === true && String(fieldAfter).endsWith('-TRUSTED'))
+record('可信输入不破坏原有内容', String(fieldAfter).startsWith('DSH-UNTRUSTED'))
+const replaced = await op('browser_type', { tabId, selector: '#field', text: 'DSH-REPLACED', replace: true }, true)
+const fieldReplaced = await evaluate(fixtureTab.sessionId, 'document.getElementById("field").value')
+record('可信输入 replace 语义（选中后覆盖）', replaced.value?.trusted === true && fieldReplaced === 'DSH-REPLACED')
+
+console.log('\n5. ax / screenshot / wait / navigate')
+const ax = await op('browser_ax', { tabId, maxNodes: 200 })
+record('browser_ax 拿到无障碍节点', (ax.value?.nodes ?? []).length > 5)
+record('browser_ax 含 button/heading 角色', (ax.value?.nodes ?? []).some((n) => n.role === 'button') && (ax.value?.nodes ?? []).some((n) => n.role === 'heading'))
+const shot = await op('browser_screenshot', { tabId, fullPage: true })
+record('browser_screenshot 整页 PNG 有内容', shot.ok === true && (shot.value?.bytes ?? 0) > 1000)
+record('截图声明 fullPage 与 trusted', shot.value?.fullPage === true && shot.value?.trusted === true)
+
+const waited = await op('browser_wait', { tabId, ms: 200 }, false)
+record('browser_wait(ms) 正常返回', waited.ok === true && waited.value?.elapsedMs >= 200)
+
+const navigated = await op('browser_navigate', { tabId, url: `${ORIGIN}/two` }, true)
+record('browser_navigate 加载第二页', navigated.ok === true && String(navigated.value?.url).endsWith('/two'))
+record('导航后标题更新', String(navigated.value?.title ?? '').includes('第二页'))
+const waitedSel = await op('browser_wait', { tabId, selector: '#late', timeoutMs: 5000 }, false)
+record('browser_wait(selector) 等到动态元素', waitedSel.ok === true && waitedSel.value?.selector === '#late')
+const waitTimeout = await op('browser_wait', { tabId, selector: '#never', timeoutMs: 600 }, false)
+record('等不到 → E_TIMEOUT（可诊断）', waitTimeout.ok === false && waitTimeout.error?.code === 'E_TIMEOUT')
+
+console.log('\n6. 关闭开关会释放调试器')
+const disable = await evaluate(panel.sessionId, `(async () => JSON.stringify(await chrome.runtime.sendMessage({ kind: 'browser-control', enabled: false })))()`)
+record('关闭开关返回释放情况', typeof disable === 'string' && disable.includes('browserControl'))
+
+const failed = Object.entries(results).filter(([, v]) => v === false).map(([k]) => k)
+writeFileSync(resolve(OUT_DIR, 'm3-ops-probe.json'), `${JSON.stringify({ probe: 'm3/ops', fixturePort: FIXTURE_PORT, at: new Date().toISOString(), results, sample: { read: { title: read.value?.title, chars: read.value?.chars }, axNodes: (ax.value?.nodes ?? []).length, screenshotBytes: shot.value?.bytes } }, null, 2)}\n`)
+console.log(`\n${failed.length === 0 ? '✅ 全部通过' : `❌ 失败 ${String(failed.length)} 项：${failed.join('、')}`}（报告 → docs/reviews/m3-ops-probe.json）`)
+cleanup()
+process.exitCode = failed.length === 0 ? 0 : 1

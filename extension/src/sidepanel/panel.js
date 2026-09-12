@@ -21,6 +21,8 @@ const els = {
   retry: document.getElementById('retry'),
   openWindow: document.getElementById('open-window'),
   attach: document.getElementById('attach-page'),
+  browserControl: document.getElementById('browser-control'),
+  bcToggle: document.getElementById('bc-toggle'),
   attachSelection: document.getElementById('attach-selection'),
   frame: document.getElementById('dsh'),
 }
@@ -29,7 +31,7 @@ const store = createStore()
 let currentUrl = ''
 
 /** White-box probe hooks (tests/m2/look-left-e2e-probe.mjs); harmless in production. */
-const probe = { agentConnected: false, frames: [], intents: [], errors: [] }
+const probe = { agentConnected: false, browserControl: false, frames: [], intents: [], errors: [] }
 globalThis.__AG_PANEL__ = probe
 
 store.subscribe((state) => {
@@ -87,7 +89,8 @@ els.frame.addEventListener('load', () => {
   store.dispatch({ dsh: 'up' })
 })
 
-els.retry.addEventListener('click', () => { void connect() })
+els.retry.addEventListener('click', () => { void initBrowserControl()
+void connect() })
 
 els.openWindow.addEventListener('click', () => {
   if (currentUrl === '') return
@@ -185,6 +188,35 @@ async function runCapture(mode, trigger = 'button') {
   return { ok: false, error: { ...result.error, message: readable } }
 }
 
+/**
+ * 「浏览器控制」switch (ADR-12): `debugger` is a required permission, but attaching
+ * is a runtime choice — while attached the browser shows the "being debugged"
+ * infobar, so it stays off until asked for, and turning it off releases every
+ * attach immediately.
+ */
+async function initBrowserControl() {
+  const stored = await chrome.storage.local.get('browserControl').catch(() => ({}))
+  const enabled = stored?.browserControl === true
+  els.bcToggle.checked = enabled
+  els.browserControl.hidden = false
+  probe.browserControl = enabled
+  els.bcToggle.addEventListener('change', () => {
+    void (async () => {
+      const reply = await ask({ kind: 'browser-control', enabled: els.bcToggle.checked })
+      if (!reply.ok) {
+        els.status.textContent = `切换浏览器控制失败：${String(reply.error?.message ?? '')}`
+        els.bcToggle.checked = !els.bcToggle.checked
+        return
+      }
+      probe.browserControl = reply.value.browserControl === true
+      probe.detached = reply.value.detached ?? []
+      els.status.textContent = probe.browserControl
+        ? '浏览器控制已开启：点击/输入走真实输入事件（浏览器会显示「正在调试」横幅）'
+        : '浏览器控制已关闭：已释放调试器'
+    })()
+  })
+}
+
 /** Button path: keep the button honest about what it is doing. */
 async function runCaptureFromButton(mode, button) {
   const label = button.textContent
@@ -234,4 +266,5 @@ const agentChannel = startAgentChannel({
 })
 agentChannel.start()
 
+void initBrowserControl()
 void connect()

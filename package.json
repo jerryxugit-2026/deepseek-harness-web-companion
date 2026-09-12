@@ -25,7 +25,7 @@
     "check:strict": "npm run protocol:check && npm run graph:sync && npm run graph:check && npm run check:consistency && npm run test:protocol && npm run test:unit && npm run build:ext",
     "probe:attach": "node tests/m0b/attach-probe.mjs",
     "probe:chip": "node tests/m0b/chip-probe.mjs",
-    "test:unit": "node tests/unit/tickets.test.mjs && node tests/unit/retention.test.mjs",
+    "test:unit": "node tests/unit/tickets.test.mjs && node tests/unit/retention.test.mjs && node tests/unit/frame-budget.test.mjs && node tests/unit/browser-tools.test.mjs",
     "build:ext": "node extension/build.mjs",
     "size:ext": "node extension/build.mjs --report-only",
     "probe:panel": "node tests/m1/panel-probe.mjs",
@@ -36,7 +36,10 @@
     "probe:look-left-e2e": "node tests/m2/look-left-e2e-probe.mjs",
     "probe:m3-debugger": "node tests/m3/debugger-probe.mjs",
     "native:install": "node native-host/install.mjs",
-    "test:retention": "node tests/unit/retention.test.mjs"
+    "test:retention": "node tests/unit/retention.test.mjs",
+    "test:browser-tools": "node tests/unit/browser-tools.test.mjs",
+    "test:frame-budget": "node tests/unit/frame-budget.test.mjs",
+    "probe:m3-ops": "node tests/m3/ops-probe.mjs"
   },
   "devDependencies": {
     "@colbymchenry/codegraph": "^1.6.0",

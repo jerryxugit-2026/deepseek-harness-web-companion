@@ -10,6 +10,7 @@ import { sendCapture } from './attach-sender.js'
 import { fail } from '../lib/result.js'
 import { PROTOCOL_VERSION } from '../lib/protocol.generated.js'
 import { handleMenuClick, registerMenus } from './menu.js'
+import { OPS, WRITE_OPS, detachAll, runOp } from './ops/index.js'
 
 /** Last observed companion state, mirrored to the panel on request. */
 let lastState = { dsh: 'unknown', attach: 'idle' }
@@ -63,6 +64,23 @@ async function route(message) {
         lastState = { ...lastState, attach: 'failed', error: failure.error }
         return failure
       }
+    }
+    case 'op': {
+      // M3: one browser op requested by the bridge plugin (via the panel socket).
+      // `allowWrite` is decided by the plugin (its allowBrowserWriteOps switch);
+      // the extension refuses write ops without it rather than trusting the panel.
+      const result = await runOp({ tool: message.tool, params: message.params ?? {}, allowWrite: message.allowWrite === true })
+      lastState = { ...lastState, lastOp: { tool: message.tool, ok: result.ok === true, at: Date.now() } }
+      return result
+    }
+    case 'capabilities':
+      return { ok: true, value: { writeOps: WRITE_OPS, ops: Object.keys(OPS) } }
+    case 'browser-control': {
+      // Runtime opt-in (ADR-12): the debugger is a required permission, but we only
+      // attach when the user flips this switch; turning it off releases every attach.
+      await chrome.storage.local.set({ browserControl: message.enabled === true })
+      const detached = message.enabled === true ? [] : await detachAll()
+      return { ok: true, value: { browserControl: message.enabled === true, detached } }
     }
     case 'state':
       return { ok: true, value: lastState }

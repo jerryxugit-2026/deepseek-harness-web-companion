@@ -13,6 +13,7 @@
  * intent and replays it on the next connect.
  */
 import { PROTOCOL_VERSION, validateAs } from '../lib/protocol.generated.js'
+import { withinFrameBudget } from '../lib/frame-budget.js'
 import { agentSocketUrl, isPaired } from '../lib/urls.js'
 
 const HEARTBEAT_MS = 20000
@@ -41,6 +42,41 @@ export function startAgentChannel({ runCapture, log = () => {}, onState = () => 
       log(`send failed: ${String(error)}`)
       return false
     }
+  }
+
+  /**
+   * One browser op (M3) → the service worker.
+   *
+   * The panel owns this socket (an idle MV3 worker is recycled), but the browser
+   * APIs live in the worker, so the op is forwarded. `allowWrite` comes from the
+   * bridge plugin's own switch and is enforced again in the worker.
+   */
+  async function handleToolCall(frame) {
+    const validated = validateAs('AgentToolCall', frame)
+    if (!validated.ok) {
+      log(`tool-call rejected: ${validated.error.message}`)
+      send({ type: 'tool-result', protocolVersion: PROTOCOL_VERSION, id: typeof frame?.id === 'string' ? frame.id : 'unknown', ok: false, error: { code: 'E_PAYLOAD', message: validated.error.message } })
+      return
+    }
+    const started = Date.now()
+    log(`tool-call ${frame.tool} (allowWrite=${String(frame.allowWrite === true)})`)
+    const reply = await chrome.runtime.sendMessage({
+      kind: 'op',
+      tool: frame.tool,
+      params: frame.params ?? {},
+      allowWrite: frame.allowWrite === true,
+    }).catch((error) => ({ ok: false, error: { code: 'E_INTERNAL', message: String(error?.message ?? error) } }))
+    const result = reply ?? { ok: false, error: { code: 'E_INTERNAL', message: 'no response from service worker' } }
+    send({
+      type: 'tool-result',
+      protocolVersion: PROTOCOL_VERSION,
+      id: frame.id,
+      ok: result.ok === true,
+      ...(result.ok === true
+        ? { value: withinFrameBudget(result.value) }
+        : { error: { code: result.error?.code ?? 'E_INTERNAL', message: String(result.error?.message ?? 'op failed').slice(0, 600) } }),
+      elapsedMs: Date.now() - started,
+    })
   }
 
   /** One capture request → the same orchestration the buttons use. */
@@ -131,6 +167,19 @@ export function startAgentChannel({ runCapture, log = () => {}, onState = () => 
       onFrame(frame)
       if (frame?.type === 'ping') { send({ type: 'pong', at: Date.now() }); return }
       if (frame?.type === 'pong') return
+      if (frame?.type === 'tool-call') {
+        void handleToolCall(frame).catch((error) => {
+          log(`tool-call crashed: ${String(error?.message ?? error)}`)
+          send({
+            type: 'tool-result',
+            protocolVersion: PROTOCOL_VERSION,
+            id: typeof frame.id === 'string' ? frame.id : 'unknown',
+            ok: false,
+            error: { code: 'E_INTERNAL', message: String(error?.message ?? error) },
+          })
+        })
+        return
+      }
       if (frame?.type === 'capture-request') {
         // Never die silently: a handler bug must still answer the bridge, or the
         // DSH page waits forever for a capture that will never come.

@@ -28,9 +28,10 @@ import { ticketRoute } from './routes/ticket.js'
 import { createTicketStore } from './tickets.js'
 import { createStore } from './store.js'
 import { createHub } from './hub.js'
+import { registerBrowserTools } from './tools.js'
 
 export const name = 'dsh-web-companion-bridge'
-export const inject = ['webServer', 'credentials']
+export const inject = ['webServer', 'credentials', 'tools']
 
 export { PROTOCOL_VERSION }
 export const PLUGIN_VERSION = '0.1.0'
@@ -52,6 +53,8 @@ export function apply(ctx, config = {}) {
     pendingLimit: config.pendingLimit ?? 32,
     defaultWorkspace: config.defaultWorkspace,
     attachSessionMode: config.attachSessionMode ?? 'new',
+    toolTimeoutMs: config.toolTimeoutMs ?? 10000,
+    allowBrowserWriteOps: config.allowBrowserWriteOps === true,
     // 0 (or negative) disables the sweep; see docs/03 §7 and host/retention.js
     retentionHours: config.retentionHours ?? 24,
     log: (line) => ctx.logger?.info?.(`[dsh-web-companion-bridge] ${line}`),
@@ -144,6 +147,19 @@ export function apply(ctx, config = {}) {
     return pairing
   }
 
+  /**
+   * M3: the model-facing tools. Registered only after the hub exists (every call
+   * goes through it), and the write subset is decided here — an unregistered tool
+   * cannot be talked into existing.
+   */
+  const browserTools = registerBrowserTools({
+    ctx,
+    hub,
+    config: resolved,
+    resolveWorkspace: () => clientFacts.workspace ?? resolved.defaultWorkspace,
+    log: (line) => ctx.logger?.info?.(`[dsh-web-companion-bridge] ${line}`),
+  })
+
   const state = {
     pluginVersion: PLUGIN_VERSION,
     liveTickets: () => tickets.liveCount,
@@ -174,7 +190,7 @@ export function apply(ctx, config = {}) {
     credentials: ctx.credentials,
     dshHome: dshHome(),
     port: () => ctx.webServer?.port,
-    capabilities: () => [],
+    capabilities: () => browserTools,
   }
 
   /** Every guarded route re-reads the pairing first (cheap, throttled). */

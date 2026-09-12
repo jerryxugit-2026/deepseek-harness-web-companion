@@ -60,8 +60,8 @@
       "path": "docs/03-bridge-plugin.md",
       "title": "03 · DSH 桥接插件（host 半）设计：`dsh-plugin/`",
       "version": null,
-      "lines": 343,
-      "sections": 9,
+      "lines": 375,
+      "sections": 10,
       "codeRefs": 20,
       "docRefs": 0
     },
@@ -114,8 +114,8 @@
       "path": "docs/CHANGELOG.md",
       "title": "变更记录（CHANGELOG）",
       "version": "v3.0",
-      "lines": 741,
-      "sections": 29,
+      "lines": 782,
+      "sections": 30,
       "codeRefs": 0,
       "docRefs": 1
     },
@@ -266,15 +266,15 @@
     {
       "path": "详细设计文档.md",
       "title": "DSH Web Companion · 详细设计规范说明书",
-      "version": "v3.25",
-      "lines": 878,
+      "version": "v3.26",
+      "lines": 894,
       "sections": 16,
-      "codeRefs": 31,
+      "codeRefs": 34,
       "docRefs": 4
     }
   ],
   "code": {
-    "indexedFiles": 134,
+    "indexedFiles": 142,
     "areas": {
       "extension": [
         "docs/01-protocol.md",
@@ -570,10 +570,6 @@
       {
         "doc": "docs/03-bridge-plugin.md",
         "ref": "tool-bridge.test.ts"
-      },
-      {
-        "doc": "docs/03-bridge-plugin.md",
-        "ref": "tool-bridge.ts"
       },
       {
         "doc": "docs/04-client-plugin.md",

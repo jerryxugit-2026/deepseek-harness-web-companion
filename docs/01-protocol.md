@@ -136,8 +136,8 @@ Set-Cookie: dsh-auth-<hash>=v1.<payload>.<sig>; Path=/; HttpOnly; SameSite=None;
 | op | args | 结果关键字段 | 实现手段 |
 |---|---|---|---|
 | `read` | `{tabId?, maxChars?, includeHtml?}` | `{title,url,text,selection}` | `scripting.executeScript` |
-| `screenshot` | `{tabId?, fullPage?}` | `{base64,width,height}` | `captureVisibleTab`（fullPage 用 debugger） |
-| `click` | `{tabId?, selector?, text?, index?}` | `{ok, matched, tag, coords}` | scripting（不可点击元素回退 debugger） |
+| `screenshot` | `{tabId?, fullPage?}` | `{mime, base64, bytes, fullPage, trusted}` | 「浏览器控制」开 → `Page.captureScreenshot`；否则 `captureVisibleTab`（视口、限流 2/s） |
+| `click` | `{tabId?, selector?, text?, index?}` | `{ok, matched, tag, text, trusted, coords?, notes?}` | 开关开 + 有 selector → `Input.dispatchMouseEvent`（可信）；否则 DOM `click()`（`trusted:false`） |
 | `type` | `{tabId?, selector?, text, submit?}` | `{ok, value}` | scripting（原生 setter + input 事件） |
 | `navigate` | `{tabId?, url, waitUntil?}` | `{ok, finalUrl, status}` | `chrome.tabs.update` + 等待 |
 | `tabs` | `{}` | `{tabs:[{id,title,url,active}]}` | `chrome.tabs.query` |

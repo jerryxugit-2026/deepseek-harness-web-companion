@@ -13,6 +13,10 @@
       <span class="spacer"></span>
       <button id="attach-page" data-ag-action="attach-page" title="Attach 当前网页（整页 Markdown）">Attach 网页</button>
       <button id="attach-selection" data-ag-action="attach-selection" title="Attach 当前选中文本">Attach 选区</button>
+      <label id="browser-control" class="toggle" hidden>
+        <input type="checkbox" id="bc-toggle">
+        <span title="开启后用 DevTools 协议发送真实输入事件（可信点击/输入、整页截图、无障碍树）。开启期间浏览器会显示「正在调试」横幅。">浏览器控制</span>
+      </label>
       <button id="open-window" hidden title="在独立窗口打开">独立窗口</button>
     </header>
     <section id="gate" hidden>
