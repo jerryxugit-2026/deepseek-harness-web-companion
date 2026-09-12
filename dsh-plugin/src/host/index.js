@@ -26,6 +26,7 @@ import { probePageRoute } from './routes/probe-page.js'
 import { ackRoute, attachRoute, pendingRoute } from './routes/attach.js'
 import { ticketRoute } from './routes/ticket.js'
 import { controlRoute } from './routes/control.js'
+import { createWriteGate } from './approval.js'
 import { createTicketStore } from './tickets.js'
 import { createStore } from './store.js'
 import { createHub } from './hub.js'
@@ -55,6 +56,7 @@ export function apply(ctx, config = {}) {
     defaultWorkspace: config.defaultWorkspace,
     attachSessionMode: config.attachSessionMode ?? 'new',
     toolTimeoutMs: config.toolTimeoutMs ?? 10000,
+    approvalForWriteOps: config.approvalForWriteOps !== false,
     allowBrowserWriteOps: config.allowBrowserWriteOps === true,
     // 0 (or negative) disables the sweep; see docs/03 §7 and host/retention.js
     retentionHours: config.retentionHours ?? 24,
@@ -174,6 +176,18 @@ export function apply(ctx, config = {}) {
   }
   applyTools((line) => ctx.logger?.info?.(`[dsh-web-companion-bridge] ${line}`))
 
+  /**
+   * Third guard on write ops (design §9): route each call to the human through DSH's
+   * approval seam when this deployment has one; otherwise stay honest and say the
+   * panel switch is the only gate.
+   */
+  const writeGate = createWriteGate({
+    ctx,
+    writeEnabled: () => runtime.allowBrowserWriteOps === true,
+    approvalRequired: () => resolved.approvalForWriteOps !== false,
+    log: connLogger,
+  })
+
   const state = {
     pluginVersion: PLUGIN_VERSION,
     liveTickets: () => tickets.liveCount,
@@ -210,7 +224,7 @@ export function apply(ctx, config = {}) {
       connLogger(`control: allowBrowserWriteOps ${String(runtime.allowBrowserWriteOps)} → ${String(patch.allowBrowserWriteOps)}`)
       runtime.allowBrowserWriteOps = patch.allowBrowserWriteOps === true
       applyTools()
-      return { allowBrowserWriteOps: runtime.allowBrowserWriteOps, capabilities: browserTools }
+      return { allowBrowserWriteOps: runtime.allowBrowserWriteOps, capabilities: browserTools, approvalMode: writeGate.mode }
     },
   }
 

@@ -30,6 +30,10 @@ export function controlRoute({ state }) {
       ok: true,
       allowBrowserWriteOps: applied.allowBrowserWriteOps,
       capabilities: applied.capabilities,
+      // Say which gate is really in force: 'ask' = every write goes to the human,
+      // 'switch-only' = this deployment has no approval service, so the panel switch
+      // is the gate (the panel must not imply otherwise).
+      ...(applied.approvalMode === undefined ? {} : { approvalMode: applied.approvalMode }),
     }
     const checked = validateAs('ControlResponse', payload)
     if (!checked.ok) {

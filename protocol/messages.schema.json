@@ -1059,6 +1059,14 @@
           "items": {
             "type": "string"
           }
+        },
+        "approvalMode": {
+          "type": "string",
+          "enum": [
+            "ask",
+            "switch-only",
+            "off"
+          ]
         }
       }
     }

@@ -5,7 +5,38 @@
 
 ---
 
-## v3.27 — 2026-09-11（当前）
+## v3.28 — 2026-09-11（当前）
+
+**触发**：M3 收尾第二项 —— 设计里承诺的"写操作开启后受审批"，落到真 seam 上。
+
+### 契约（读源码得来，非猜测）
+
+`dsh-tools` 的执行前闸门是 cordis **waterfall**：
+
+```js
+ctx.waterfall(carrier, 'tools/pre-execute', exec, () => Promise.resolve({ kind: 'allow' }))
+```
+
+监听器签名 `(exec, next)`，**不调用 `next()` 就等于否决**；返回 `{ kind:'ask', reason }` 会把决定权交给 `ctx.get('approval')`（`approval.request({agent, toolName, callId, reason, signal})` → `allowed-once` 放行，`rejected`/`cancelled`/其它 deny）。没有审批服务的部署会把 `ask` **降级为 deny** —— 这正是必须如实报告 mode 的原因。
+
+### 实测
+
+| 检查 | 结果 |
+|---|---|
+| `npm run test:write-gate`（20 断言） | ✅ 非浏览器工具原样放行；写工具在开关关闭时 deny 且理由点名开关；有审批服务时三个写工具都走 `ask`；无审批服务时 `switch-only` 且开关打开即放行；`approvalForWriteOps=false` → `off`；缺 `next` 时不静默否决 |
+| 真进程 `/ag/control` | ✅ 返回 `approvalMode: "ask"`（**本机部署确实带审批服务**）+ 8 个工具 |
+
+### 结论（对用户可见的行为）
+
+打开「写操作」后，模型每次 `browser_click` / `browser_type` / `browser_navigate` 都会先在 DSH 界面里向你请求批准 —— 三层闸门：不注册（关时）→ 扩展复核 → 逐次审批。
+
+### 单测自身的又一次"假绿"
+
+第一版桩把 `writeEnabled` 写成常量 `() => true`，于是"关闭 → deny"三处断言永远测不到（也永远不失败）。改成可变开关后才真正覆盖。
+
+---
+
+## v3.27 — 2026-09-11
 
 **触发**：M3 收尾 —— 让「写操作」成为**用户的一次点击**，而不是"改 YAML + 重启 DSH"。
 

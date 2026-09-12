@@ -1,14 +1,14 @@
 /**
  * AUTO-GENERATED — do not edit. Source: protocol/messages.schema.json
  * protocolVersion: 1
- * schemaSha256: 07629149aab778088232806bd1f74b8f193df300fd814d3b552f100a1c5da8a1
+ * schemaSha256: e18aac52ff3dc0b2a7bf9decb24558306b80cc4db87786070ccc51a8d3b60ee3
  * platform: chrome-extension (ESM)
  * Runtime: browser (Chrome MV3).
  * Regenerate: node protocol/codegen.mjs   Verify: node protocol/codegen.mjs --check
  */
 
 export const PROTOCOL_VERSION = 1
-export const SCHEMA_SHA256 = '07629149aab778088232806bd1f74b8f193df300fd814d3b552f100a1c5da8a1'
+export const SCHEMA_SHA256 = 'e18aac52ff3dc0b2a7bf9decb24558306b80cc4db87786070ccc51a8d3b60ee3'
 export const SCHEMA_ID = 'https://dsh.local/web-companion/messages.schema.json'
 
 /** Message kinds this protocol defines (from the schema's top-level oneOf). */
@@ -1200,6 +1200,14 @@ export const MESSAGE_SCHEMA = {
           "items": {
             "type": "string"
           }
+        },
+        "approvalMode": {
+          "type": "string",
+          "enum": [
+            "ask",
+            "switch-only",
+            "off"
+          ]
         }
       }
     }

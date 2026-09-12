@@ -240,6 +240,7 @@ async function initWriteOps() {
     const payload = await response.json().catch(() => null)
     enabled = payload?.allowBrowserWriteOps === true
     probe.capabilities = payload?.capabilities ?? []
+    probe.approvalMode = payload?.approvalMode
   } catch (error) {
     // The plugin may be older than this panel; the switch stays hidden then.
     els.status.textContent = `写操作开关不可用：${String(error?.message ?? error).slice(0, 80)}`
@@ -261,8 +262,14 @@ async function initWriteOps() {
         probe.writeOps = payload.allowBrowserWriteOps === true
         probe.capabilities = payload.capabilities ?? []
         els.woToggle.checked = probe.writeOps
+        probe.approvalMode = payload.approvalMode
+        const gate = payload.approvalMode === 'ask'
+          ? '每次点击/输入都会先向你请求批准'
+          : payload.approvalMode === 'switch-only'
+            ? '本部署无审批服务：仅由这个开关把关'
+            : '审批已在配置里关闭'
         els.status.textContent = probe.writeOps
-          ? `写操作已开启：模型可见 ${String((payload.capabilities ?? []).length)} 个浏览器工具（含点击/输入/导航）`
+          ? `写操作已开启：模型可见 ${String((payload.capabilities ?? []).length)} 个浏览器工具（${gate}）`
           : '写操作已关闭：模型只剩只读工具'
       } catch (error) {
         els.status.textContent = `切换写操作失败：${String(error?.message ?? error).slice(0, 80)}`
