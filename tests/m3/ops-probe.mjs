@@ -225,7 +225,9 @@ record('browser_wait(selector) 等到动态元素', waitedSel.ok === true && wai
 const waitTimeout = await op('browser_wait', { tabId, selector: '#never', timeoutMs: 600 }, false)
 record('等不到 → E_TIMEOUT（可诊断）', waitTimeout.ok === false && waitTimeout.error?.code === 'E_TIMEOUT')
 
-console.log('\n6. 关闭开关会释放调试器')
+console.log('\n6. 写操作门禁的运行时开关（/ag/control，F2 形态：key + 扩展 Origin）')
+
+console.log('\n7. 关闭开关会释放调试器')
 const disable = await evaluate(panel.sessionId, `(async () => JSON.stringify(await chrome.runtime.sendMessage({ kind: 'browser-control', enabled: false })))()`)
 record('关闭开关返回释放情况', typeof disable === 'string' && disable.includes('browserControl'))
 

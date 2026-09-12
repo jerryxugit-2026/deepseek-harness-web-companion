@@ -66,6 +66,12 @@
       "$ref": "#/$defs/AgentToolResult"
     },
     {
+      "$ref": "#/$defs/ControlRequest"
+    },
+    {
+      "$ref": "#/$defs/ControlResponse"
+    },
+    {
       "$ref": "#/$defs/AgentHello"
     },
     {
@@ -1018,6 +1024,41 @@
         },
         "elapsedMs": {
           "type": "number"
+        }
+      }
+    },
+    "ControlRequest": {
+      "description": "Extension → bridge (POST /ag/control): flip a runtime switch. Write access is the only one today; it is deliberately a separate, explicit call rather than a config edit, and the plugin still re-registers the tool set so an unregistered tool cannot be called.",
+      "type": "object",
+      "required": [
+        "allowBrowserWriteOps"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "allowBrowserWriteOps": {
+          "type": "boolean"
+        }
+      }
+    },
+    "ControlResponse": {
+      "type": "object",
+      "required": [
+        "ok",
+        "allowBrowserWriteOps"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "allowBrowserWriteOps": {
+          "type": "boolean"
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     }

@@ -401,10 +401,13 @@ function renderValue(value) {
  *
  * @returns {string[]} the registered tool names (also what `/ag/ping` advertises)
  */
-export function registerBrowserTools({ ctx, hub, config, resolveWorkspace, log }) {
+export function registerBrowserTools({ ctx, hub, config, resolveWorkspace, log, keepDisposers }) {
   const definitions = buildBrowserTools({ hub, config, resolveWorkspace, log })
   const disposers = definitions.map((definition) => ctx.tools.register(definition))
-  ctx.effect(() => () => { for (const dispose of disposers) dispose() }, 'dsh-web-companion-bridge: browser tools')
+  // The plugin owns the lifetime (it re-registers on a control flip); when a
+  // collector is passed, the disposers go there instead of an effect of their own.
+  if (Array.isArray(keepDisposers)) keepDisposers.push(...disposers)
+  else ctx.effect(() => () => { for (const dispose of disposers) dispose() }, 'dsh-web-companion-bridge: browser tools')
   const names = definitions.map((definition) => definition.name)
   log(`browser tools registered: ${names.join(', ')}${config.allowBrowserWriteOps === true ? '' : ' (read-only: allowBrowserWriteOps=false)'}`)
   return names

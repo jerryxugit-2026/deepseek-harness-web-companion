@@ -146,6 +146,7 @@ export const ROUTE = Object.freeze(${JSON.stringify({
   attach: '/ag/attach',
   pending: '/ag/pending',
   ack: '/ag/ack',
+  control: '/ag/control',
   whoami: '/ag/whoami',
   probePage: '/ag/probe-page',
 }, null, 2)})

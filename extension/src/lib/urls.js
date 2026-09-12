@@ -36,5 +36,11 @@ export const enterUrlWithTicket = (ticket) => `${dshOrigin()}${ROUTE.enter}?tick
 export const agentSocketUrl = (key = DEV_CONFIG.key) =>
   `ws://127.0.0.1:${String(dshPort())}${CHANNEL.agent}?key=${encodeURIComponent(key)}`
 
+/** Runtime control surface (write-access switch) — F2 form: key + extension Origin. */
+export const controlUrl = () => `${dshOrigin()}${ROUTE.control}`
+
+/** The pairing key, for the one place that must put it in a request body (F2). */
+export const pairingKey = () => DEV_CONFIG.key
+
 /** Whether the dev pairing file has been provisioned. */
 export const isPaired = () => typeof DEV_CONFIG.key === 'string' && DEV_CONFIG.key.length > 0

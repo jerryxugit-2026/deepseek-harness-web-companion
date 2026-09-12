@@ -17,6 +17,10 @@
         <input type="checkbox" id="bc-toggle">
         <span title="开启后用 DevTools 协议发送真实输入事件（可信点击/输入、整页截图、无障碍树）。开启期间浏览器会显示「正在调试」横幅。">浏览器控制</span>
       </label>
+      <label id="write-ops" class="toggle danger" hidden>
+        <input type="checkbox" id="wo-toggle">
+        <span title="允许 Agent 在你的页面上点击/输入/导航（browser_click / browser_type / browser_navigate）。默认关闭；开启后这些工具才会被注册给模型。">写操作</span>
+      </label>
       <button id="open-window" hidden title="在独立窗口打开">独立窗口</button>
     </header>
     <section id="gate" hidden>

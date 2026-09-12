@@ -8,6 +8,7 @@
  */
 import { createStore } from './state.js'
 import { startAgentChannel } from './agent-channel.js'
+import { controlUrl, pairingKey } from '../lib/urls.js'
 
 const els = {
   gate: document.getElementById('gate'),
@@ -23,6 +24,8 @@ const els = {
   attach: document.getElementById('attach-page'),
   browserControl: document.getElementById('browser-control'),
   bcToggle: document.getElementById('bc-toggle'),
+  writeOps: document.getElementById('write-ops'),
+  woToggle: document.getElementById('wo-toggle'),
   attachSelection: document.getElementById('attach-selection'),
   frame: document.getElementById('dsh'),
 }
@@ -90,6 +93,7 @@ els.frame.addEventListener('load', () => {
 })
 
 els.retry.addEventListener('click', () => { void initBrowserControl()
+void initWriteOps()
 void connect() })
 
 els.openWindow.addEventListener('click', () => {
@@ -217,6 +221,57 @@ async function initBrowserControl() {
   })
 }
 
+/**
+ * 「写操作」switch (M3): whether the *bridge plugin* registers browser_click /
+ * browser_type / browser_navigate at all. Off by default — an unregistered tool is
+ * invisible to the model, which is a stronger guarantee than refusing a call. The
+ * switch talks to `/ag/control` (F2: key + extension Origin), so the plugin
+ * re-registers its tool set immediately and no DSH restart is involved.
+ */
+async function initWriteOps() {
+  const reply = await ask({ kind: 'state' }).catch(() => null)
+  let enabled = false
+  try {
+    const response = await fetch(`${controlUrl()}?key=${encodeURIComponent(pairingKey())}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ allowBrowserWriteOps: false }),
+    })
+    const payload = await response.json().catch(() => null)
+    enabled = payload?.allowBrowserWriteOps === true
+    probe.capabilities = payload?.capabilities ?? []
+  } catch (error) {
+    // The plugin may be older than this panel; the switch stays hidden then.
+    els.status.textContent = `写操作开关不可用：${String(error?.message ?? error).slice(0, 80)}`
+    void reply
+    return
+  }
+  els.woToggle.checked = enabled
+  els.writeOps.hidden = false
+  probe.writeOps = enabled
+  els.woToggle.addEventListener('change', () => {
+    void (async () => {
+      try {
+        const response = await fetch(`${controlUrl()}?key=${encodeURIComponent(pairingKey())}`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ allowBrowserWriteOps: els.woToggle.checked }),
+        })
+        const payload = await response.json()
+        probe.writeOps = payload.allowBrowserWriteOps === true
+        probe.capabilities = payload.capabilities ?? []
+        els.woToggle.checked = probe.writeOps
+        els.status.textContent = probe.writeOps
+          ? `写操作已开启：模型可见 ${String((payload.capabilities ?? []).length)} 个浏览器工具（含点击/输入/导航）`
+          : '写操作已关闭：模型只剩只读工具'
+      } catch (error) {
+        els.status.textContent = `切换写操作失败：${String(error?.message ?? error).slice(0, 80)}`
+        els.woToggle.checked = !els.woToggle.checked
+      }
+    })()
+  })
+}
+
 /** Button path: keep the button honest about what it is doing. */
 async function runCaptureFromButton(mode, button) {
   const label = button.textContent
@@ -267,4 +322,5 @@ const agentChannel = startAgentChannel({
 agentChannel.start()
 
 void initBrowserControl()
+void initWriteOps()
 void connect()

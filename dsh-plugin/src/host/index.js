@@ -25,6 +25,7 @@ import { registerWsEcho } from './routes/ws-echo.js'
 import { probePageRoute } from './routes/probe-page.js'
 import { ackRoute, attachRoute, pendingRoute } from './routes/attach.js'
 import { ticketRoute } from './routes/ticket.js'
+import { controlRoute } from './routes/control.js'
 import { createTicketStore } from './tickets.js'
 import { createStore } from './store.js'
 import { createHub } from './hub.js'
@@ -62,6 +63,7 @@ export function apply(ctx, config = {}) {
     intentCaptureMode: config.intentCaptureMode ?? 'page',
   }
 
+  const connLogger = (line) => ctx.logger?.info?.(`[dsh-web-companion-bridge] ${line}`)
   const recent = { captures: [], acks: [] }
   const store = createStore(resolved)
   const tickets = createTicketStore({ ttlMs: config.ticketTtlMs ?? 30000 })
@@ -148,17 +150,29 @@ export function apply(ctx, config = {}) {
   }
 
   /**
-   * M3: the model-facing tools. Registered only after the hub exists (every call
-   * goes through it), and the write subset is decided here — an unregistered tool
-   * cannot be talked into existing.
+   * M3: the model-facing tools.
+   *
+   * The write subset is decided by `allowBrowserWriteOps`, and that decision can be
+   * flipped at runtime through `/ag/control` — so registration is a *re-runnable*
+   * step rather than a one-shot: turning write access off disposes the write tools
+   * (they stop existing for the model) instead of leaving a check to refuse them.
    */
-  const browserTools = registerBrowserTools({
-    ctx,
-    hub,
-    config: resolved,
-    resolveWorkspace: () => clientFacts.workspace ?? resolved.defaultWorkspace,
-    log: (line) => ctx.logger?.info?.(`[dsh-web-companion-bridge] ${line}`),
-  })
+  const runtime = { allowBrowserWriteOps: resolved.allowBrowserWriteOps === true }
+  let toolDisposers = []
+  let browserTools = []
+  const applyTools = (log = () => {}) => {
+    for (const dispose of toolDisposers) dispose()
+    toolDisposers = []
+    browserTools = registerBrowserTools({
+      ctx,
+      hub,
+      config: { ...resolved, allowBrowserWriteOps: runtime.allowBrowserWriteOps },
+      resolveWorkspace: () => clientFacts.workspace ?? resolved.defaultWorkspace,
+      log,
+      keepDisposers: toolDisposers,
+    })
+  }
+  applyTools((line) => ctx.logger?.info?.(`[dsh-web-companion-bridge] ${line}`))
 
   const state = {
     pluginVersion: PLUGIN_VERSION,
@@ -191,6 +205,13 @@ export function apply(ctx, config = {}) {
     dshHome: dshHome(),
     port: () => ctx.webServer?.port,
     capabilities: () => browserTools,
+    /** Flip a runtime switch, re-registering the tool set so the change is structural. */
+    applyControl: (patch) => {
+      connLogger(`control: allowBrowserWriteOps ${String(runtime.allowBrowserWriteOps)} → ${String(patch.allowBrowserWriteOps)}`)
+      runtime.allowBrowserWriteOps = patch.allowBrowserWriteOps === true
+      applyTools()
+      return { allowBrowserWriteOps: runtime.allowBrowserWriteOps, capabilities: browserTools }
+    },
   }
 
   /** Every guarded route re-reads the pairing first (cheap, throttled). */
@@ -279,6 +300,23 @@ export function apply(ctx, config = {}) {
       })),
     }),
     `dsh-web-companion-bridge: POST ${ROUTE.attach}`,
+  )
+
+  // --- runtime control surface (extension side only, F2) ---
+  ctx.effect(
+    () => ctx.webServer.register({
+      kind: 'exact',
+      path: ROUTE.control,
+      handler: withPairing((req, res) => {
+        if (!state.guard().checkFetch(req)) {
+          res.writeHead(403, { 'content-type': 'application/json', 'cache-control': 'no-store' })
+          res.end(JSON.stringify({ ok: false, error: { code: 'E_AUTH', message: 'control requires the pairing key and a trusted extension origin' } }))
+          return
+        }
+        return controlRoute({ state })(req, res)
+      }),
+    }),
+    `dsh-web-companion-bridge: POST ${ROUTE.control}`,
   )
 
   ctx.effect(

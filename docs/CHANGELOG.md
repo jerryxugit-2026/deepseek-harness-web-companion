@@ -5,7 +5,35 @@
 
 ---
 
-## v3.26 — 2026-09-11（当前）
+## v3.27 — 2026-09-11（当前）
+
+**触发**：M3 收尾 —— 让「写操作」成为**用户的一次点击**，而不是"改 YAML + 重启 DSH"。
+
+### 为什么这算 M3 的一部分
+
+`allowBrowserWriteOps` 决定写类工具**是否存在**（默认 false 时不注册，模型看不见 —— 比"注册后拒绝"强）。但如果只能靠改 `cordis.patch.yml` 才能打开，安全默认就等于永久只读，功能形同没做。
+
+### 交付
+
+| 位置 | 变更 |
+|---|---|
+| 协议 | `ROUTE.control = /ag/control`（路由表源头在 `protocol/codegen.mjs`）+ `ControlRequest` / `ControlResponse` 两个消息定义 |
+| 插件 | `routes/control.js`；`index.js` 把工具注册变成**可重注册**（`applyTools()` 先 dispose 旧的再按当前开关注册），`state.applyControl()` 翻转并返回新能力集；无 key 或非法 body 分别 403 / 400 |
+| 扩展 | `extension/src/lib/urls.js` 增 `controlUrl()` / `pairingKey()`；面板新增「写操作」开关（红色、默认关、说明它让 Agent 能点/输入/导航） |
+
+### 实测（`npm run probe:m3-control`，真 Chrome + 真 dev 实例，10/10）
+
+- 面板「写操作」开关可见；点击后面板探针确认 `writeOps=true`；
+- **插件即时**把工具集从 5 个扩到 8 个（含 `browser_click` / `browser_type` / `browser_navigate`），**全程无重启**；再点回去又回到 5 个 —— 写工具是**从注册表消失**，不是被拒绝；
+- 无 key → 403；`{"allowBrowserWriteOps":"yes"}` → 400（schema 校验拦下）；两次非法请求都没改变状态。
+
+### 方法论备注
+
+第一版我把控制面断言"顺手塞进" `ops-probe`，还留了一段 `note: 'placeholder'` 的占位代码 —— 删掉了。控制面需要真实 DSH 实例，而 `ops-probe` 刻意不依赖 DSH；混在一起会让一个探针的通过掩盖另一个探针没跑。拆成两个探针，各自的前提写在自己的文件头。
+
+---
+
+## v3.26 — 2026-09-11
 
 **触发**：继续 M3（用户：「你继续做吧」）—— 把 `browser_*` 反向控制从设计变成已验证的两层实现。
 

@@ -111,3 +111,7 @@ button[disabled] { opacity: 0.5; cursor: default; }
   white-space: nowrap;
 }
 .toggle input { margin: 0; }
+
+/* Write access is a bigger switch than the debugger one: make it read that way. */
+.toggle.danger { color: #8a2b2b; }
+.toggle.danger input:checked + span { font-weight: 600; }

@@ -1,14 +1,14 @@
 /**
  * AUTO-GENERATED — do not edit. Source: protocol/messages.schema.json
  * protocolVersion: 1
- * schemaSha256: 877d884119df5c65f886c91a28f645ec87b47591f4cfd1c360c5b76420d636bd
+ * schemaSha256: 07629149aab778088232806bd1f74b8f193df300fd814d3b552f100a1c5da8a1
  * platform: dsh-plugin (ESM)
  * Runtime: DSH host process (Node) / bundled client half.
  * Regenerate: node protocol/codegen.mjs   Verify: node protocol/codegen.mjs --check
  */
 
 export const PROTOCOL_VERSION = 1
-export const SCHEMA_SHA256 = '877d884119df5c65f886c91a28f645ec87b47591f4cfd1c360c5b76420d636bd'
+export const SCHEMA_SHA256 = '07629149aab778088232806bd1f74b8f193df300fd814d3b552f100a1c5da8a1'
 export const SCHEMA_ID = 'https://dsh.local/web-companion/messages.schema.json'
 
 /** Message kinds this protocol defines (from the schema's top-level oneOf). */
@@ -33,6 +33,8 @@ export const MESSAGE_KIND = Object.freeze({
   "CaptureResultEvent": "CaptureResultEvent",
   "AgentToolCall": "AgentToolCall",
   "AgentToolResult": "AgentToolResult",
+  "ControlRequest": "ControlRequest",
+  "ControlResponse": "ControlResponse",
   "AgentHello": "AgentHello",
   "ExtensionCaptureRequest": "ExtensionCaptureRequest",
   "ExtensionCaptureResponse": "ExtensionCaptureResponse",
@@ -106,6 +108,8 @@ export const ENUM = Object.freeze({
     "CaptureResultEvent",
     "AgentToolCall",
     "AgentToolResult",
+    "ControlRequest",
+    "ControlResponse",
     "AgentHello",
     "ExtensionCaptureRequest",
     "ExtensionCaptureResponse",
@@ -123,6 +127,7 @@ export const ROUTE = Object.freeze({
   "attach": "/ag/attach",
   "pending": "/ag/pending",
   "ack": "/ag/ack",
+  "control": "/ag/control",
   "whoami": "/ag/whoami",
   "probePage": "/ag/probe-page"
 })
@@ -200,6 +205,12 @@ export const MESSAGE_SCHEMA = {
     },
     {
       "$ref": "#/$defs/AgentToolResult"
+    },
+    {
+      "$ref": "#/$defs/ControlRequest"
+    },
+    {
+      "$ref": "#/$defs/ControlResponse"
     },
     {
       "$ref": "#/$defs/AgentHello"
@@ -1154,6 +1165,41 @@ export const MESSAGE_SCHEMA = {
         },
         "elapsedMs": {
           "type": "number"
+        }
+      }
+    },
+    "ControlRequest": {
+      "description": "Extension → bridge (POST /ag/control): flip a runtime switch. Write access is the only one today; it is deliberately a separate, explicit call rather than a config edit, and the plugin still re-registers the tool set so an unregistered tool cannot be called.",
+      "type": "object",
+      "required": [
+        "allowBrowserWriteOps"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "allowBrowserWriteOps": {
+          "type": "boolean"
+        }
+      }
+    },
+    "ControlResponse": {
+      "type": "object",
+      "required": [
+        "ok",
+        "allowBrowserWriteOps"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "allowBrowserWriteOps": {
+          "type": "boolean"
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     }

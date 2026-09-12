@@ -39,7 +39,8 @@
     "test:retention": "node tests/unit/retention.test.mjs",
     "test:browser-tools": "node tests/unit/browser-tools.test.mjs",
     "test:frame-budget": "node tests/unit/frame-budget.test.mjs",
-    "probe:m3-ops": "node tests/m3/ops-probe.mjs"
+    "probe:m3-ops": "node tests/m3/ops-probe.mjs",
+    "probe:m3-control": "node tests/m3/control-probe.mjs"
   },
   "devDependencies": {
     "@colbymchenry/codegraph": "^1.6.0",
