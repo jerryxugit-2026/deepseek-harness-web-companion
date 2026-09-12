@@ -1,7 +1,7 @@
 # 文档与代码图谱（DOC-GRAPH）
 
 > **自动生成，请勿手改**：`node scripts/doc-graph.mjs`（校验：`node scripts/doc-graph.mjs --check`）
-> 生成时间：2026-09-12T04:55:25.570Z
+> 生成时间：2026-09-12T04:58:23.314Z
 >
 > **更新时机（随项目进展）**：
 > 1. 任一 `*.md` 或代码文件增删改后 → `npm run graph:sync`（代码图谱增量重建）+ `npm run graph:docs`（本文件重生成）；
@@ -15,7 +15,7 @@
 | `DESIGN.md` | DSH Web Companion — 设计摘要（DESIGN） | v3.1 | 106 | 9 | 0 |
 | `FINDINGS.md` | dsh-chrome 可行性验证结果（FINDINGS） | — | 81 | 7 | 0 |
 | `PRD_需求定义说明书.md` | DeepSeek Harness Web Companion (DSH 浏览器智能侧伴侣) | v3.0.0 | 138 | 8 | 0 |
-| `README.md` | DSH Web Companion（Antigravity Web Companion） | — | 108 | 9 | 0 |
+| `README.md` | DSH Web Companion（Antigravity Web Companion） | — | 109 | 9 | 0 |
 | `docs/01-protocol.md` | 01 · 协议契约（Protocol） | — | 229 | 8 | 6 |
 | `docs/02-extension.md` | 02 · Chrome 扩展设计（`extension/`） | — | 296 | 8 | 39 |
 | `docs/03-bridge-plugin.md` | 03 · DSH 桥接插件（host 半）设计：`dsh-plugin/` | — | 375 | 10 | 20 |
@@ -26,11 +26,11 @@
 | `docs/08-security.md` | 08 · 安全与威胁模型 | — | 73 | 6 | 1 |
 | `docs/09-manual-checklist.md` | 人工验收清单（有头 Chrome） | — | 48 | 7 | 0 |
 | `docs/10-automation.md` | 自动化分层：哪些能无人值守，哪些必须有人（M4-3） | — | 70 | 7 | 0 |
-| `docs/11-台账.md` | 项目台账（对照《详细设计文档》） | v3.1 | 178 | 12 | 6 |
+| `docs/11-台账.md` | 项目台账（对照《详细设计文档》） | v3.1 | 197 | 12 | 8 |
 | `docs/CHANGELOG.md` | 变更记录（CHANGELOG） | v3.0 | 1086 | 41 | 0 |
-| `docs/DOC-GRAPH.md` | 文档与代码图谱（DOC-GRAPH） | — | 298 | 6 | 191 |
-| `docs/HANDOFF.md` | 交接提示词（新会话从这里开始） | — | 105 | 5 | 1 |
-| `docs/PROGRESS.md` | 进度与续跑规则（durable memory） | — | 46 | 6 | 0 |
+| `docs/DOC-GRAPH.md` | 文档与代码图谱（DOC-GRAPH） | — | 303 | 6 | 196 |
+| `docs/HANDOFF.md` | 交接提示词（新会话从这里开始） | — | 188 | 7 | 1 |
+| `docs/PROGRESS.md` | 进度与续跑规则（durable memory） | — | 50 | 6 | 0 |
 | `docs/REVIEW-v3.0.md` | 详细设计 v3.0 评审报告（Review of v3.0 → 修正为 v3.1） | v3.0 | 68 | 5 | 0 |
 | `docs/research/01-dsh-plugin-authoring.md` | 01 — Writing, building, installing and testing a THIRD-PARTY DSH plugin (host half + browser/client half) | — | 1137 | 18 | 0 |
 | `docs/research/02-dsh-client-composer-attach.md` | 02 — DSH Web GUI 客户端插件「插入 composer 内容 + 附件 + 上下文 chip」seam 调研 | — | 1446 | 22 | 0 |
@@ -52,7 +52,7 @@
 
 | 代码区 | 职责 | 描述它的文档 |
 |---|---|---|
-| `extension/` | Chrome MV3 扩展（side panel / service worker / content script） | `docs/01-protocol.md` `docs/06-test-plan.md` `docs/11-台账.md` `docs/DOC-GRAPH.md` `docs/HANDOFF.md` `详细设计文档.md` |
+| `extension/` | Chrome MV3 扩展（side panel / service worker / content script） | `docs/01-protocol.md` `docs/06-test-plan.md` `docs/11-台账.md` `docs/DOC-GRAPH.md` `详细设计文档.md` |
 | `dsh-plugin/` | DSH 进程内插件（host 桥接 + client composer 注入） | `docs/01-protocol.md` `docs/DOC-GRAPH.md` `详细设计文档.md` |
 | `native-host/` | native messaging 宿主（拉起 dsh web，M2） | `docs/01-protocol.md` |
 | `protocol/` | 单源消息 schema + codegen | `docs/01-protocol.md` `docs/06-test-plan.md` `docs/DOC-GRAPH.md` `详细设计文档.md` |
@@ -114,6 +114,10 @@ flowchart LR
 | `.../dsh-session.test.js` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
 | `.../extract.test.js` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
 | `.../hub.test.ts` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
+| `.../look-left-e2e-probe.json` | `docs/11-台账.md` `docs/DOC-GRAPH.md` |
+| `.../m3-agent-turn-probe.json` | `docs/11-台账.md` `docs/DOC-GRAPH.md` |
+| `.../m3-control-probe.json` | `docs/11-台账.md` `docs/DOC-GRAPH.md` |
+| `.../m3-debugger-probe.json` | `docs/11-台账.md` `docs/DOC-GRAPH.md` |
 | `.../native-host.test.js` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
 | `.../package.json` | `docs/DOC-GRAPH.md` |
 | `.../packages/client/tsdown.client.ts` | `docs/DOC-GRAPH.md` |
@@ -271,6 +275,7 @@ flowchart LR
 | 引用路径 | 出现在文档 |
 |---|---|
 | `./lib/client.js` | `docs/DOC-GRAPH.md` |
+| `/Users/mac/.dsh/dsh-web-companion.json` | `docs/11-台账.md` `docs/DOC-GRAPH.md` `docs/HANDOFF.md` |
 | `/Users/mac/.dsh/profiles/web/package.json` | `docs/DOC-GRAPH.md` |
 | `@deepseek-ai/dsh-client-ui-conversation/lib/types/client/contract/input.d.ts` | `docs/04-client-plugin.md` `docs/DOC-GRAPH.md` |
 | `dsh-api-gateway/lib/types/client/index.d.ts` | `docs/DOC-GRAPH.md` |

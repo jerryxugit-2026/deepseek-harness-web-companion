@@ -100,8 +100,9 @@ docs/              分册文档、研究、审核记录、探针报告
 
 ## 相关文档
 
-- `详细设计文档.md` —— 架构、ADR、协议、模块、测试方案、安全模型、里程碑
-- `docs/11-台账.md` —— **对照设计的完成度台账**（哪些完成 / 哪些改了实现方式 / 哪些没做 + 证据索引）
-- `docs/HANDOFF.md` —— **交接提示词**（可直接粘贴给新会话）+ 避坑清单
+- `/Users/mac/ai_tools/dsh project/网页插件/详细设计文档.md` —— 架构、ADR、协议、模块、测试方案、安全模型、里程碑
+- `/Users/mac/ai_tools/dsh project/网页插件/docs/11-台账.md` —— **对照设计的完成度台账**（哪些完成 / 哪些改了实现方式 / 哪些没做 + 证据索引）
+- `/Users/mac/ai_tools/dsh project/网页插件/docs/HANDOFF.md` —— **交接提示词**（可直接粘贴给新会话）+ 避坑清单
+- `/Users/mac/ai_tools/AGENT-SEARCH-TOOLS.md` —— **本机检索规范（唯一真源）**：文档问题走 semble、代码问题走 codegraph；本项目一切检索都要按它执行
 - `docs/CHANGELOG.md` —— 每个版本改了什么、为什么（含被推翻的结论）
 - `docs/reviews/` —— 探针报告与对抗审核结论

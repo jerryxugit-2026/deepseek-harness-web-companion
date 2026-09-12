@@ -1,7 +1,11 @@
 # 进度与续跑规则（durable memory）
 
-> **先看这两份**：`docs/11-台账.md`（对照设计的完成度、差异、未做清单、证据索引）、
-> `docs/HANDOFF.md`（交给新会话的提示词 + 避坑清单）。本文件只记"下一步"与续跑规则。
+> 本文件绝对路径：`/Users/mac/ai_tools/dsh project/网页插件/docs/PROGRESS.md`
+> **先看这三份**（全绝对路径）：
+> `/Users/mac/ai_tools/AGENT-SEARCH-TOOLS.md`（检索规范，唯一真源 —— 文档走 semble、代码走 codegraph）、
+> `/Users/mac/ai_tools/dsh project/网页插件/docs/11-台账.md`（对照设计的完成度、差异、未做清单、证据索引）、
+> `/Users/mac/ai_tools/dsh project/网页插件/docs/HANDOFF.md`（交给新会话的提示词 + 避坑清单）。
+> 本文件只记"下一步"与续跑规则。
 
 > 这份文件是**跨轮次的记忆**。每轮开工先读这里，取第一个未完成项，做完再更新。
 > 目的：不再"每轮重新推导下一步"，也不再因为一轮结束就把任务停在半路。
