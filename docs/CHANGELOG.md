@@ -5,7 +5,36 @@
 
 ---
 
-## v3.32 — 2026-09-11（当前）
+## v3.33 — 2026-09-11（当前）
+
+**触发**：M4-1 —— 胶囊从"往页面里塞 DOM"改成"用 DSH 自己的插槽"，以及 M4-3 的自动化分层。
+
+### M4-1 胶囊走 `conversation.input.dock` 插槽
+
+`ctx.slots.inject('conversation.input.dock', () => ctx.slots.register({ name, id: 'dsh-companion-chips', order: 30 }, CaptureDock))`。
+
+契约是**读 shell 源码 + 官方 slot ledger 取证**的（不是试错出来的），其中三条最容易踩：
+
+1. **组件是第二个位置参数**（`register(options, component)`），写在 options 里的 `component` 会被静默丢弃；组件返回 **React 元素**，`react` 是平台种子模块 —— 自带 React 会造出第二份 React，hooks 直接崩。
+2. **必须用 `inject` 包一层**：直接注册尚未声明的插槽会抛 `slot "…" is not declared (a parent entry's children table must declare it)`；`inject` 会等声明出现，并在声明坍塌后**重跑回调**（所以回调必须可重入）。
+3. list 槽必须给 `id`；排序 `priority` → `order`（都默认 0）；**同 `(id, priority)` 重复注册会抛错**。
+
+**DOM 条带保留为兜底**（`inject` 只保证等声明，不保证声明一定来）：`__AG_CLIENT__.chips()` 每项报告 `host: 'slot' | 'dom'`。
+
+**实测**：`probe:capture` → `chips[0].host === "slot"`；`probe:chip`（M0b 胶囊生命周期）→ 插入 `host: slot`、草稿含引用、`ack: inserted`、✕ 后胶囊消失 + 草稿清理 + `ack: dismissed`。
+
+### M4-3 自动化分层（`docs/10-automation.md` + `npm run probe:all`）
+
+- **第 0 层**（纯静态、无 Chrome/无 DSH）：`npm run check` 一条命令 = 协议一致性 + 19 条反模式规则 + 6 个单测文件 + 构建 + 体积门禁。
+- **第 1 层**（要 DSH，不要浏览器）：`npm run audit:captures`、`/ag/ping` 自检。
+- **第 2 层**（要 Chrome，不要人）：`npm run probe:all` —— **自己拉 dev 实例**，按顺序跑 7 个探针，汇总表 + 非零退出码；只杀自己拉起的实例，绝不碰用户正在用的那个。
+- **第 3 层**（必须由人）：用户手势（授权弹窗三分支）、有头 UI 判断（调试横幅、审批弹窗）、品味判断（内容够不够好）。
+
+**实测 `npm run probe:all`：7/7 全绿**（debugger 43s / look-left 5s / capture 10s / sites 54s / m3-ops 53s / m3-control 23s / look-left-e2e 27s）。
+
+---
+
+## v3.32 — 2026-09-11
 
 **触发**：修掉"没选中却点「Attach 选区」静默抓整页"—— 我先前只是**问了**要不要改，按纪律这类可逆小修应当直接做。
 

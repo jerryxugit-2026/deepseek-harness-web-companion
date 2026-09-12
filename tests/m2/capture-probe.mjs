@@ -292,6 +292,15 @@ if (typeof selPath === 'string' && existsSync(selPath)) {
     chars: text.length,
   })
 }
+record('chipHostedBySlot', (() => {
+  const chips = (() => { try { return chipState?.chips ?? [] } catch { return [] } })()
+  return {
+    dockMounted: chipState?.dockMounted === true,
+    allChipsInSlot: chips.length > 0 && chips.every((chip) => chip.host === 'slot'),
+    noDomFallbackChip: chips.every((chip) => chip.host !== 'dom'),
+  }
+})())
+
 record('emptySelection', await (async () => {
   // 先清掉选区，再请求选区抓取：必须明确失败且**不产生文件**
   await evaluate(fixture.sessionId, '(() => { const s = window.getSelection(); s.removeAllRanges(); return s.toString() })()')

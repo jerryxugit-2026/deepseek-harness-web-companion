@@ -33,7 +33,7 @@
       "path": "README.md",
       "title": "DSH Web Companion（Antigravity Web Companion）",
       "version": null,
-      "lines": 102,
+      "lines": 106,
       "sections": 9,
       "codeRefs": 0,
       "docRefs": 0
@@ -120,11 +120,20 @@
       "docRefs": 0
     },
     {
+      "path": "docs/10-automation.md",
+      "title": "自动化分层：哪些能无人值守，哪些必须有人（M4-3）",
+      "version": null,
+      "lines": 70,
+      "sections": 7,
+      "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
       "path": "docs/CHANGELOG.md",
       "title": "变更记录（CHANGELOG）",
       "version": "v3.0",
-      "lines": 934,
-      "sections": 36,
+      "lines": 963,
+      "sections": 37,
       "codeRefs": 0,
       "docRefs": 1
     },
@@ -132,9 +141,9 @@
       "path": "docs/DOC-GRAPH.md",
       "title": "文档与代码图谱（DOC-GRAPH）",
       "version": null,
-      "lines": 294,
+      "lines": 296,
       "sections": 6,
-      "codeRefs": 190,
+      "codeRefs": 191,
       "docRefs": 0
     },
     {
@@ -284,15 +293,15 @@
     {
       "path": "详细设计文档.md",
       "title": "DSH Web Companion · 详细设计规范说明书",
-      "version": "v3.32",
-      "lines": 900,
+      "version": "v3.33",
+      "lines": 923,
       "sections": 16,
-      "codeRefs": 37,
+      "codeRefs": 39,
       "docRefs": 4
     }
   ],
   "code": {
-    "indexedFiles": 152,
+    "indexedFiles": 153,
     "areas": {
       "extension": [
         "docs/01-protocol.md",
@@ -1614,6 +1623,10 @@
     },
     {
       "doc": "docs/DOC-GRAPH.md",
+      "ref": "dsh-client-ui-renderer/lib/client.js"
+    },
+    {
+      "doc": "docs/DOC-GRAPH.md",
       "ref": "dsh-client-ui-renderer/lib/types/client/registry.d.ts"
     },
     {
@@ -1635,6 +1648,10 @@
     {
       "doc": "docs/DOC-GRAPH.md",
       "ref": "ui-input-trigger/lib/client.js"
+    },
+    {
+      "doc": "详细设计文档.md",
+      "ref": "dsh-client-ui-renderer/lib/client.js"
     }
   ],
   "issues": []

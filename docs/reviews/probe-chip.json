@@ -1,7 +1,7 @@
 {
   "probe": "m0b-chip",
   "dshPort": "3099",
-  "captureId": "M0B-CHIP-mtxdig60",
+  "captureId": "M0B-CHIP-mtxt4prd",
   "workspace": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a",
   "results": {
     "clientConnected": true,
@@ -22,26 +22,30 @@
     "composerActive": true,
     "attachStatus": 200,
     "attachDeliveredTo": [
-      "client:1"
+      "client:2"
     ],
     "chipCount": 1,
     "chip": {
-      "captureId": "M0B-CHIP-mtxdig60",
+      "host": "slot",
+      "captureId": "M0B-CHIP-mtxt4prd",
       "status": "inserted",
       "mode": "selection+page",
       "label": "📄 网页: M0B 胶囊探针页"
     },
     "lastAttach": {
-      "captureId": "M0B-CHIP-mtxdig60",
+      "captureId": "M0B-CHIP-mtxt4prd",
       "inserted": true,
       "detail": "",
-      "fileRef": "@网页捕获/2026-09-11-1552-m0b-胶囊探针页-xdig60.md"
+      "fileRef": "@网页捕获/2026-09-11-2310-m0b-胶囊探针页-xt4prd.md",
+      "sessionId": "session-92449dfc-fac1-4c8f-ba86-ec1bf8e8f285",
+      "sessionMode": "current",
+      "switched": false
     },
     "draftContainsFileRef": true,
-    "draftText": "@网页捕获/2026-09-11-1552-m0b-胶囊探针页-xdig60.md",
+    "draftText": "@网页捕获/2026-09-11-2310-m0b-胶囊探针页-xt4prd.md",
     "acksAfterInsert": [
       {
-        "captureId": "M0B-CHIP-mtxdig60",
+        "captureId": "M0B-CHIP-mtxt4prd",
         "status": "inserted"
       }
     ],
@@ -49,11 +53,11 @@
     "draftAfterDismiss": "\n",
     "acksTotal": [
       {
-        "captureId": "M0B-CHIP-mtxdig60",
+        "captureId": "M0B-CHIP-mtxt4prd",
         "status": "inserted"
       },
       {
-        "captureId": "M0B-CHIP-mtxdig60",
+        "captureId": "M0B-CHIP-mtxt4prd",
         "status": "dismissed"
       }
     ],

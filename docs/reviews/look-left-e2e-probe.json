@@ -2,7 +2,7 @@
   "probe": "m2/look-left-e2e",
   "port": "3099",
   "fixturePort": 3998,
-  "at": "2026-09-11T21:25:18.982Z",
+  "at": "2026-09-12T03:08:40.360Z",
   "results": {
     "DSH iframe 已加载": true,
     "面板 agent 通道已连接（无手势）": true,
@@ -24,28 +24,28 @@
     "意图路径落回当前会话（sessionMode=current）": true,
     "意图路径不切换会话外壳（switched=false）": true,
     "输入框里出现文件引用（硬要求）": true,
-    "触发草稿是否保留（观察）: \"看左边\\n\\n@网页捕获/2026-09-11-1725-看左边夹具页-w-3e98.md\"": true,
+    "触发草稿是否保留（观察）: \"看左边\\n\\n@网页捕获/2026-09-11-2308-看左边夹具页-4-2ffe.md\"": true,
     "屏幕上出现 chip": true
   },
   "intent": {
     "mode": "page",
     "reason": "look-left",
     "ok": true,
-    "fileRef": "@网页捕获/2026-09-11-1725-看左边夹具页-w-3e98.md"
+    "fileRef": "@网页捕获/2026-09-11-2308-看左边夹具页-4-2ffe.md"
   },
   "newFiles": [
-    "2026-09-11-1725-看左边夹具页-w-3e98.md"
+    "2026-09-11-2308-看左边夹具页-4-2ffe.md"
   ],
-  "draftAfter": "看左边\n\n@网页捕获/2026-09-11-1725-看左边夹具页-w-3e98.md",
+  "draftAfter": "看左边\n\n@网页捕获/2026-09-11-2308-看左边夹具页-4-2ffe.md",
   "applied": {
-    "captureId": "cap-mtxgt7mw-3e98",
+    "captureId": "cap-mtxt2rp4-2ffe",
     "inserted": true,
     "detail": "",
-    "fileRef": "@网页捕获/2026-09-11-1725-看左边夹具页-w-3e98.md",
-    "sessionId": "session-cac2bcf5-7ffa-458d-8d9e-f8075376fff6",
+    "fileRef": "@网页捕获/2026-09-11-2308-看左边夹具页-4-2ffe.md",
+    "sessionId": "session-2e1530f1-0dbd-4506-b340-8eee0cef186a",
     "sessionMode": "current",
     "switched": false
   },
   "deliveries": 1,
-  "chips": "[{\"captureId\":\"cap-mtxgt7mw-3e98\",\"status\":\"inserted\",\"mode\":\"page\",\"label\":\"📄 网页: 看左边夹具页\"}]"
+  "chips": "[{\"captureId\":\"cap-mtxt2rp4-2ffe\",\"status\":\"inserted\",\"mode\":\"page\",\"label\":\"📄 网页: 看左边夹具页\"}]"
 }

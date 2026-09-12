@@ -1,7 +1,7 @@
 {
   "probe": "m3/debugger",
   "fixturePort": 3996,
-  "at": "2026-09-11T21:33:32.156Z",
+  "at": "2026-09-12T03:05:27.063Z",
   "manifestPermissions": [
     "sidePanel",
     "storage",
@@ -17,7 +17,7 @@
   "optionalPermissions": null,
   "results": {
     "debugger 已在必需 permissions 中": true,
-    "optional_permissions 里没有 debugger（Chrome 会整个省略它）": true,
+    "未把 debugger 写进可选权限（禁止的写法）": true,
     "SW 内 typeof chrome.debugger === \"object\"": true,
     "permissions.contains({debugger}) === true": true,
     "permissions.getAll().permissions 含 debugger": true,
@@ -61,12 +61,12 @@
       "result"
     ],
     "evaluateValue": "{\"clicks\":1,\"typed\":\"DSH-M3-PROBE\",\"title\":\"M3 debugger 夹具\"}",
-    "pngBytes": 16128
+    "pngBytes": 16110
   },
   "lifecycle": {
     "before": 1,
     "during": 2,
     "after": 1,
-    "secondAttach": "Another debugger is already attached to the tab with id: 19426109."
+    "secondAttach": "Another debugger is already attached to the tab with id: 457306886."
   }
 }

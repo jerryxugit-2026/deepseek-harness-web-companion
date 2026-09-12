@@ -44,7 +44,8 @@
     "test:write-gate": "node tests/unit/write-gate.test.mjs",
     "audit:captures": "node tests/quality/audit-captures.mjs",
     "probe:sites": "node tests/quality/probe-sites.mjs",
-    "test:panel-errors": "node tests/unit/panel-errors.test.mjs"
+    "test:panel-errors": "node tests/unit/panel-errors.test.mjs",
+    "probe:all": "node scripts/probe-all.mjs"
   },
   "devDependencies": {
     "@colbymchenry/codegraph": "^1.6.0",

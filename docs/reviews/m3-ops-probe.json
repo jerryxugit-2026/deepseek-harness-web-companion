@@ -1,7 +1,7 @@
 {
   "probe": "m3/ops",
   "fixturePort": 3995,
-  "at": "2026-09-12T02:40:51.832Z",
+  "at": "2026-09-12T03:07:24.828Z",
   "results": {
     "browser_tabs 列出夹具页": true,
     "browser_tabs 不把扩展自身页面当普通标签": true,

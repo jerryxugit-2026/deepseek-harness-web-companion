@@ -13,14 +13,14 @@
     "attachReply": {
       "ok": true,
       "value": {
-        "captureId": "cap-mtxsxu3p-9112",
+        "captureId": "cap-mtxt4btx-4991",
         "result": {
           "ok": true,
-          "captureId": "cap-mtxsxu3p-9112",
-          "fileRef": "@网页捕获/2026-09-11-2304-m2-抓取夹具页-p-9112.md",
-          "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-11-2304-m2-抓取夹具页-p-9112.md",
+          "captureId": "cap-mtxt4btx-4991",
+          "fileRef": "@网页捕获/2026-09-11-2309-m2-抓取夹具页-x-4991.md",
+          "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-11-2309-m2-抓取夹具页-x-4991.md",
           "deliveredTo": [
-            "client:4"
+            "client:1"
           ]
         },
         "meta": {
@@ -36,7 +36,7 @@
         }
       }
     },
-    "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-11-2304-m2-抓取夹具页-p-9112.md",
+    "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-11-2309-m2-抓取夹具页-x-4991.md",
     "fileChecks": {
       "hasMarker": true,
       "hasCategoryChips": false,
@@ -57,14 +57,14 @@
     "selectionReply": {
       "ok": true,
       "value": {
-        "captureId": "cap-mtxsxuj0-581b",
+        "captureId": "cap-mtxt4c9h-11cd",
         "result": {
           "ok": true,
-          "captureId": "cap-mtxsxuj0-581b",
-          "fileRef": "@网页捕获/2026-09-11-2304-m2-抓取夹具页-0-581b.md",
-          "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-11-2304-m2-抓取夹具页-0-581b.md",
+          "captureId": "cap-mtxt4c9h-11cd",
+          "fileRef": "@网页捕获/2026-09-11-2309-m2-抓取夹具页-h-11cd.md",
+          "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-11-2309-m2-抓取夹具页-h-11cd.md",
           "deliveredTo": [
-            "client:4"
+            "client:1"
           ]
         },
         "meta": {
@@ -110,31 +110,45 @@
       "connected": true,
       "chips": [
         {
-          "captureId": "cap-mtxsxu3p-9112",
+          "host": "slot",
+          "captureId": "cap-mtxt4c9h-11cd",
           "status": "inserted",
-          "mode": "page",
+          "mode": "selection+page",
           "label": "📄 网页: M2 抓取夹具页"
         }
       ],
       "acks": [
         {
-          "captureId": "cap-mtxsxu3p-9112",
+          "captureId": "cap-mtxt4btx-4991",
+          "status": "inserted"
+        },
+        {
+          "captureId": "cap-mtxt4c9h-11cd",
           "status": "inserted"
         }
       ],
       "lastAttach": {
-        "captureId": "cap-mtxsxu3p-9112",
+        "captureId": "cap-mtxt4c9h-11cd",
         "inserted": true,
         "detail": "",
-        "fileRef": "@网页捕获/2026-09-11-2304-m2-抓取夹具页-p-9112.md",
-        "sessionId": "session-16f392fc-0564-428d-976e-18137da339d8",
+        "fileRef": "@网页捕获/2026-09-11-2309-m2-抓取夹具页-h-11cd.md",
+        "sessionId": "session-92449dfc-fac1-4c8f-ba86-ec1bf8e8f285",
         "sessionMode": "new",
         "switched": true
       }
     },
     "sessionsAfter": {
-      "current": "session-ee7d22c4-1e2d-4f8f-ab60-71f7df74d42f",
+      "current": "session-92449dfc-fac1-4c8f-ba86-ec1bf8e8f285",
       "ids": [
+        "session-92449dfc-fac1-4c8f-ba86-ec1bf8e8f285",
+        "session-cac1ba90-12bf-4ce3-9c87-a136bc3f395b",
+        "session-2e1530f1-0dbd-4506-b340-8eee0cef186a",
+        "session-18524c51-1662-4788-b386-5598139b4583",
+        "session-9ef250e2-21ec-4154-b9fb-4f4700fb5aca",
+        "session-40072b9a-44d4-427d-9d34-42f5c5f8243c",
+        "session-d9a69bf7-1abf-4f35-90ef-5ff16f5b1e83",
+        "session-c9fb7af5-f82b-4f0c-8e17-6180a2c2006f",
+        "session-044307dc-6679-4c2b-9184-84edee22b9f2",
         "session-ee7d22c4-1e2d-4f8f-ab60-71f7df74d42f",
         "session-16f392fc-0564-428d-976e-18137da339d8",
         "session-dd85ff4c-a36c-400a-8627-e13c653d1383",
@@ -189,7 +203,7 @@
         "session-af4d394f-aeb1-4b76-850b-267a190e00dd",
         "session-6b8a1366-8e2f-422b-93c5-3d778059a7cc"
       ],
-      "count": 53
+      "count": 62
     },
     "newSessionCreated": true,
     "targetIsFreshSession": true,

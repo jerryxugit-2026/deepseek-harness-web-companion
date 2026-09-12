@@ -71,6 +71,9 @@ npm run probe:capture          # 抓取：整页/选区/噪音/硬化/保留（�
 npm run probe:m3-ops           # 浏览器 op 层（31 断言，真 Chrome）
 npm run probe:m3-control       # 写操作开关控制面（10 断言，真 Chrome + dev 实例）
 npm run probe:m3-debugger      # debugger 能力前置（14 断言）
+npm run probe:sites            # 五类页面抓取质量回归（真 Chrome，本地夹具）
+npm run probe:all              # 一条命令跑完全部 Chrome 探针（自己拉 dev 实例）
+npm run audit:captures         # 用真实抓取文件做质量审计
 ```
 
 需要 dev 实例的探针先跑：`DSH_HOME="$PWD/.devhome" dsh web --no-open --port 3099 &`。
@@ -92,7 +95,8 @@ docs/              分册文档、研究、审核记录、探针报告
 - **多站点抓取质量**：启发式是保守的；导航型短链接列表在某些站点仍可能被误删（可用 `stripChipRows: false` 等开关逐条关闭）。
 - **`browser_screenshot` 的工具结果给的是文件路径**，不是图片块：像素落 `<workspace>/网页捕获/assets/`，避免猜 DSH 图片块的形状。
 - **意图抓取依赖扩展侧授权**：未授予 `<all_urls>` 时，只能抓已持 host 权限的站点（如 `127.0.0.1`）；面板会给出可操作的提示。
-- **M4 未完成项**：胶囊目前是 DOM 注入（设计里想改用 `conversation.input.dock` 插槽）；多站点质量回归探针；CI 化。
+- **胶囊**已由 DSH 自己的 `conversation.input.dock` 插槽渲染；`inject` 只保证"等声明"，若声明未出现则回退到 DOM 条带（`__AG_CLIENT__.chips()` 的 `host` 字段会说明是哪种）。
+- **CI 尚未接入**：`npm run check` 可直接进 CI；`npm run probe:all`（7 个 Chrome 探针）需要一台带 Chrome 与本机 DSH 的机器，目前在本地跑。
 
 ## 相关文档
 

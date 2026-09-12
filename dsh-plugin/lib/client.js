@@ -17,10 +17,24 @@
  *      (`window.__AG_PROBE__`, `__AG_PROBE_ASYNC__`, `__AG_PROBE_WRITE__`) so the
  *      CDP harness can assert on it verbatim.
  *
- * Chip rendering note: the chip is a DOM strip anchored above the composer
- * (`[data-ag-chip]`), not yet the `conversation.input.dock` slot — the slot-based
- * rendering is the next refinement (docs/04 §5); the observable contract
- * (present / removable / acked) is identical.
+ * Chip rendering note (updated v3.33): the chip now renders through DSH's own
+ * `conversation.input.dock` slot — `ctx.slots.inject(name, () => ctx.slots.register(
+ * options, Component))`, with the component as the SECOND positional argument and
+ * returning **React** elements (`react` is a platform seed module; bundling our own
+ * React would break hooks). The DOM strip (`[data-ag-chip]`) is kept as a fallback
+ * for the case where the dock never mounts (older shell / declaration missing), so
+ * the observable contract — present / removable / acked — never depends on which
+ * host rendered it (`__AG_CLIENT__.chips()` reports `host: 'slot' | 'dom'`).
+
+ * Slot contract facts this code relies on (read from the shell's source, with the
+ * official slot ledger as the authority):
+ *   - a list slot needs `id`; entries sort by `priority` then `order` (both default 0);
+ *   - registering into a slot that is NOT declared throws — the declaration comes
+ *     from the parent entry's `children` table, which is why `inject` (wait for the
+ *     declaration) is mandatory rather than optional;
+ *   - components receive `sessionId` (session-scoped slot) plus the standard hooks;
+ *     the outlet remounts per session, so component-local state cannot leak across
+ *     sessions.
  */
 window.__ModuleLoader__.load({
   id: 'dsh-web-companion-bridge',
@@ -187,7 +201,103 @@ window.__ModuleLoader__.load({
         root.style.bottom = `${String(Math.max(8, window.innerHeight - rect.top + 8))}px`
       }
 
-      /** Build the chip element for one attach event. */
+      /* ── chip store (slot + DOM share one source of truth) ───────────────── */
+
+      /** Listeners for the slot component; the chips Map stays the only state. */
+      const chipListeners = new Set()
+      const notifyChips = () => {
+        for (const listener of [...chipListeners]) {
+          try { listener() } catch (error) { log('chip listener failed', String(error).slice(0, 80)) }
+        }
+      }
+      const subscribeChips = (listener) => {
+        chipListeners.add(listener)
+        return () => { chipListeners.delete(listener) }
+      }
+      /** Chips belonging to one session, newest last (the dock is session-scoped). */
+      const chipsForSession = (sessionId) => [...state.chips.entries()]
+        .filter(([, entry]) => entry.sessionId === sessionId)
+        .map(([captureId, entry]) => ({ captureId, ...entry }))
+
+      const chipLabel = (item) => `📄 网页: ${String(item.page?.title ?? '未命名').slice(0, 40)}`
+      const chipMeta = (item) => `${String(item.summary?.chars ?? 0)} 字符${item.summary?.hasSelection === true ? ' · 含选区' : ''}`
+
+      /**
+       * Register the chip row into `conversation.input.dock`.
+       *
+       * @returns true when the registration was accepted (the component may still
+       *          mount later — the declaration can arrive after us, which is exactly
+       *          what `inject` waits for).
+       */
+      function registerChipDock(React) {
+        const slots = ctx.get?.('slots') ?? ctx.slots
+        if (slots === undefined || typeof slots.inject !== 'function') {
+          log('slots service unavailable: chips stay DOM-anchored')
+          return false
+        }
+        const CHIP_STYLE = {
+          pointerEvents: 'auto', display: 'inline-flex', alignItems: 'center', gap: '6px',
+          maxWidth: 'min(560px, 90vw)', padding: '4px 8px', borderRadius: '999px',
+          border: '1px solid rgba(127,127,127,.35)', background: 'rgba(127,127,127,.12)',
+          font: '12px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
+        }
+        const LABEL_STYLE = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }
+        const META_STYLE = { opacity: 0.65, flex: 'none' }
+        const DISMISS_STYLE = { all: 'unset', cursor: 'pointer', padding: '0 2px', opacity: 0.7, flex: 'none' }
+        const ROW_STYLE = { display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: 'center', padding: '2px 0' }
+
+        /** The dock entry: one chip per capture inserted into THIS session. */
+        function CaptureDock(props) {
+          const sessionId = props?.sessionId
+          const [, force] = React.useState(0)
+          React.useEffect(() => {
+            state.dockMounted = true
+            state.dockSessionId = sessionId
+            const off = subscribeChips(() => { force((n) => n + 1) })
+            force((n) => n + 1)
+            return () => { off(); state.dockMounted = false }
+          }, [sessionId])
+          const items = typeof sessionId === 'string' ? chipsForSession(sessionId) : []
+          if (items.length === 0) return null
+          return React.createElement('div', { 'data-ag-dock': 'slot', style: ROW_STYLE },
+            items.map((item) => React.createElement('div', {
+              key: item.captureId,
+              'data-ag-chip': 'true',
+              'data-capture-id': item.captureId,
+              'data-mode': item.mode ?? 'page',
+              'data-status': item.status ?? 'inserted',
+              'data-session-mode': item.sessionMode ?? 'current',
+              style: CHIP_STYLE,
+            },
+            React.createElement('span', { key: 'label', 'data-ag-chip-label': 'true', style: LABEL_STYLE }, chipLabel(item)),
+            React.createElement('span', { key: 'meta', 'data-ag-chip-meta': 'true', style: META_STYLE }, chipMeta(item)),
+            React.createElement('button', {
+              key: 'dismiss',
+              type: 'button',
+              'data-ag-chip-dismiss': 'true',
+              title: '移除上下文',
+              style: DISMISS_STYLE,
+              onClick: () => { void dismissCapture({ captureId: item.captureId }) },
+            }, '✕'))))
+        }
+
+        try {
+          slots.inject('conversation.input.dock', () => slots.register({
+            name: 'conversation.input.dock',
+            id: 'dsh-companion-chips',   // fresh id → additive, never fights the shipped entries
+            order: 30,
+          }, CaptureDock))
+          state.chipHost = 'slot'
+          log('dock slot registered (conversation.input.dock)')
+          return true
+        } catch (error) {
+          state.chipHost = 'dom'
+          log('dock registration failed', String(error).slice(0, 140))
+          return false
+        }
+      }
+
+      /** Build the chip element for one attach event (fallback host). */
       function renderChip(item, onDismiss) {
         const root = document.createElement('div')
         root.dataset.agChipRoot = 'true'
@@ -289,9 +399,20 @@ window.__ModuleLoader__.load({
         } catch (error) {
           detail = String(error).slice(0, 160)
         }
-        const root = renderChip(item, dismissCapture)
-        state.chips.set(item.captureId, { sessionId, preDraft, inserted: item.fileRef, root, chip: root.firstElementChild, sessionMode, switched })
-        root.firstElementChild.dataset.status = inserted ? 'inserted' : 'failed'
+        // The dock hosts the chip when it mounted; the DOM strip is the fallback
+        // for shells where the slot never appeared. Either way the chips Map is the
+        // single source of truth, so ✕ and ack behave identically.
+        const useSlot = state.dockMounted === true
+        const root = useSlot ? undefined : renderChip(item, dismissCapture)
+        state.chips.set(item.captureId, {
+          sessionId, preDraft, inserted: item.fileRef, sessionMode, switched,
+          status: inserted ? 'inserted' : 'failed',
+          mode: item.mode, page: item.page, summary: item.summary,
+          fileRef: item.fileRef, host: useSlot ? 'slot' : 'dom',
+          ...(root === undefined ? {} : { root, chip: root.firstElementChild }),
+        })
+        if (root !== undefined) root.firstElementChild.dataset.status = inserted ? 'inserted' : 'failed'
+        notifyChips()
         send({ type: 'ack', captureId: item.captureId, status: inserted ? 'inserted' : 'failed', ...(detail === '' ? {} : { detail }) })
         state.acks.push({ captureId: item.captureId, status: inserted ? 'inserted' : 'failed' })
         globalThis.__AG_LAST_ATTACH__ = { captureId: item.captureId, inserted, detail, fileRef: item.fileRef, sessionId, sessionMode, switched }
@@ -315,6 +436,7 @@ window.__ModuleLoader__.load({
         } catch (error) { log('dismiss undo failed', String(error).slice(0, 120)) }
         entry?.root?.remove()
         state.chips.delete(item.captureId)
+        notifyChips()
         send({ type: 'ack', captureId: item.captureId, status: 'dismissed' })
         state.acks.push({ captureId: item.captureId, status: 'dismissed' })
         log('dismissed', item.captureId)
@@ -380,9 +502,22 @@ window.__ModuleLoader__.load({
       }, 3000)
       stopIntent = ((inner) => () => { clearInterval(announceTimer); inner() })(stopIntent)
 
+      // Register the dock BEFORE the app mounts, so a capture that lands early still
+      // has a host. `require('react')` resolves to the shell's own React: a bundled
+      // copy would create a second React and hooks would break.
+      try {
+        registerChipDock(require('react'))
+      } catch (error) {
+        log('dock bootstrap failed', String(error).slice(0, 140))
+        state.chipHost = 'dom'
+      }
+
       globalThis.__AG_CLIENT__ = {
         state,
+        chipHost: () => state.chipHost ?? 'unknown',
+        dockMounted: () => state.dockMounted === true,
         chips: () => [...document.querySelectorAll('[data-ag-chip]')].map((el) => ({
+          host: el.closest('[data-ag-dock]') === null ? 'dom' : 'slot',
           captureId: el.dataset.captureId, status: el.dataset.status, mode: el.dataset.mode,
           label: el.querySelector('[data-ag-chip-label]')?.textContent ?? null,
         })),
@@ -412,7 +547,7 @@ window.__ModuleLoader__.load({
 
     // `inject` makes cordis defer `apply` until these exist — without it every
     // service lookup is undefined (verified in M0a).
-    module.exports = { name: 'dsh-web-companion-bridge-client', inject: ['sessions', 'conversation'], apply }
+    module.exports = { name: 'dsh-web-companion-bridge-client', inject: ['sessions', 'conversation', 'slots'], apply }
     return module.exports
   },
 })

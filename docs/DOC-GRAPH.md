@@ -1,21 +1,21 @@
 # 文档与代码图谱（DOC-GRAPH）
 
 > **自动生成，请勿手改**：`node scripts/doc-graph.mjs`（校验：`node scripts/doc-graph.mjs --check`）
-> 生成时间：2026-09-12T03:05:01.939Z
+> 生成时间：2026-09-12T03:10:30.299Z
 >
 > **更新时机（随项目进展）**：
 > 1. 任一 `*.md` 或代码文件增删改后 → `npm run graph:sync`（代码图谱增量重建）+ `npm run graph:docs`（本文件重生成）；
 > 2. 每个里程碑（M1–M4）收尾必须执行一次，并把 `--check` 纳入交付前检查；
 > 3. `--check` 发现 broken-doc-link / missing-code-ref 时以非零码退出，作为质量门。
 
-## 1. 文档清单（32 份 / 152 个代码与配置文件）
+## 1. 文档清单（33 份 / 153 个代码与配置文件）
 
 | 文档 | 标题 | 版本 | 行数 | 二级标题数 | 代码引用数 |
 |---|---|---|---|---|---|
 | `DESIGN.md` | DSH Web Companion — 设计摘要（DESIGN） | v3.1 | 106 | 9 | 0 |
 | `FINDINGS.md` | dsh-chrome 可行性验证结果（FINDINGS） | — | 81 | 7 | 0 |
 | `PRD_需求定义说明书.md` | DeepSeek Harness Web Companion (DSH 浏览器智能侧伴侣) | v3.0.0 | 138 | 8 | 0 |
-| `README.md` | DSH Web Companion（Antigravity Web Companion） | — | 102 | 9 | 0 |
+| `README.md` | DSH Web Companion（Antigravity Web Companion） | — | 106 | 9 | 0 |
 | `docs/01-protocol.md` | 01 · 协议契约（Protocol） | — | 229 | 8 | 6 |
 | `docs/02-extension.md` | 02 · Chrome 扩展设计（`extension/`） | — | 296 | 8 | 39 |
 | `docs/03-bridge-plugin.md` | 03 · DSH 桥接插件（host 半）设计：`dsh-plugin/` | — | 375 | 10 | 20 |
@@ -25,8 +25,9 @@
 | `docs/07-implementation-plan.md` | 07 · 实现计划（任务分解与完成判据） | — | 87 | 7 | 39 |
 | `docs/08-security.md` | 08 · 安全与威胁模型 | — | 73 | 6 | 1 |
 | `docs/09-manual-checklist.md` | 人工验收清单（有头 Chrome） | — | 48 | 7 | 0 |
-| `docs/CHANGELOG.md` | 变更记录（CHANGELOG） | v3.0 | 934 | 36 | 0 |
-| `docs/DOC-GRAPH.md` | 文档与代码图谱（DOC-GRAPH） | — | 294 | 6 | 190 |
+| `docs/10-automation.md` | 自动化分层：哪些能无人值守，哪些必须有人（M4-3） | — | 70 | 7 | 0 |
+| `docs/CHANGELOG.md` | 变更记录（CHANGELOG） | v3.0 | 963 | 37 | 0 |
+| `docs/DOC-GRAPH.md` | 文档与代码图谱（DOC-GRAPH） | — | 296 | 6 | 191 |
 | `docs/PROGRESS.md` | 进度与续跑规则（durable memory） | — | 32 | 5 | 0 |
 | `docs/REVIEW-v3.0.md` | 详细设计 v3.0 评审报告（Review of v3.0 → 修正为 v3.1） | v3.0 | 68 | 5 | 0 |
 | `docs/research/01-dsh-plugin-authoring.md` | 01 — Writing, building, installing and testing a THIRD-PARTY DSH plugin (host half + browser/client half) | — | 1137 | 18 | 0 |
@@ -43,7 +44,7 @@
 | `docs/reviews/probe-keepalive.md` | M0a 探针报告 · 空闲 WebSocket 保活（probe-keepalive / Q8） | — | 29 | 4 | 0 |
 | `docs/reviews/probe-permission.md` | M0a 探针报告 · 权限实验（probe-permission） | — | 35 | 5 | 0 |
 | `scripts/review-prompts/design-adversarial.md` | scripts/review-prompts/design-adversarial.md | — | 27 | 4 | 0 |
-| `详细设计文档.md` | DSH Web Companion · 详细设计规范说明书 | v3.32 | 900 | 16 | 37 |
+| `详细设计文档.md` | DSH Web Companion · 详细设计规范说明书 | v3.33 | 923 | 16 | 39 |
 
 ## 2. 文档 ↔ 代码 覆盖矩阵
 
@@ -279,6 +280,7 @@ flowchart LR
 | `dsh-client-ui-conversation/lib/client.js` | `docs/DOC-GRAPH.md` |
 | `dsh-client-ui-conversation/lib/types/client/contract/input.d.ts` | `docs/DOC-GRAPH.md` |
 | `dsh-client-ui-input-trigger/lib/client.js` | `docs/DOC-GRAPH.md` |
+| `dsh-client-ui-renderer/lib/client.js` | `docs/DOC-GRAPH.md` `详细设计文档.md` |
 | `dsh-client-ui-renderer/lib/types/client/registry.d.ts` | `docs/DOC-GRAPH.md` |
 | `dsh-file-reference/lib/types/grammar.js` | `docs/DOC-GRAPH.md` |
 | `dsh-host-webserver/lib/index.js` | `docs/DOC-GRAPH.md` |

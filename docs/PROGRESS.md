@@ -18,9 +18,9 @@
 
 ## 待办（按顺序取）
 
-- [ ] **M4-1 胶囊走 `conversation.input.dock` 插槽**：现在胶囊是 DOM 注入（`[data-ag-chip]`），能用且有探针覆盖，但设计里想用 DSH 自己的插槽 → 生命周期跟着会话走、样式统一。需要先查 DSH 的 slot 契约（`slots` 服务 + `uiConversation`）。
+- [x] **M4-1 胶囊走 `conversation.input.dock` 插槽**（v3.33）：契约已取证并实现；DOM 条带保留为兜底；`probe:capture` 断言 `host === "slot"`，`probe:chip` 覆盖插入/✕/ack。
 - [x] **M4-2 多站点抓取质量回归**（v3.31）：`npm run probe:sites` 五类页面 16/16；夹具本地 HTML 不依赖外网。首轮抓出两个真缺陷（引用 Markdown 非法、`Load more` 漏清）。
-- [ ] **M4-3 自动化/CI 说明**：哪些能无人值守（协议契约、单测、构建、审计），哪些必须要 Chrome/用户手势（标清命令与前置）。
+- [x] **M4-3 自动化/CI 说明**（v3.33）：`docs/10-automation.md` 四层分层 + `npm run probe:all` 一条命令跑完 7 个 Chrome 探针（实测 7/7）。
 - [ ] **M4-4 文档收口**：设计文档剩余"目标·未测"项复核；README 的已知限制随实现更新。
 - [ ] **M3-剩余（仅用户可做）**：真模型调用一次 `browser_read`（工具已注册 + 逐层验证，但还没被模型调用过）；写操作审批弹窗的实际批准/拒绝交互。
 - [ ] **M4-5（仅用户可做）**：`docs/09-manual-checklist.md` 的有头人工项。
