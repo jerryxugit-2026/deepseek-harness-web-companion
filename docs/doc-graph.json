@@ -33,7 +33,7 @@
       "path": "README.md",
       "title": "DSH Web Companion（Antigravity Web Companion）",
       "version": null,
-      "lines": 106,
+      "lines": 108,
       "sections": 9,
       "codeRefs": 0,
       "docRefs": 0
@@ -129,6 +129,15 @@
       "docRefs": 0
     },
     {
+      "path": "docs/11-台账.md",
+      "title": "项目台账（对照《详细设计文档》）",
+      "version": "v3.1",
+      "lines": 178,
+      "sections": 12,
+      "codeRefs": 6,
+      "docRefs": 0
+    },
+    {
       "path": "docs/CHANGELOG.md",
       "title": "变更记录（CHANGELOG）",
       "version": "v3.0",
@@ -141,16 +150,25 @@
       "path": "docs/DOC-GRAPH.md",
       "title": "文档与代码图谱（DOC-GRAPH）",
       "version": null,
-      "lines": 296,
+      "lines": 298,
       "sections": 6,
       "codeRefs": 191,
+      "docRefs": 0
+    },
+    {
+      "path": "docs/HANDOFF.md",
+      "title": "交接提示词（新会话从这里开始）",
+      "version": null,
+      "lines": 105,
+      "sections": 5,
+      "codeRefs": 1,
       "docRefs": 0
     },
     {
       "path": "docs/PROGRESS.md",
       "title": "进度与续跑规则（durable memory）",
       "version": null,
-      "lines": 43,
+      "lines": 46,
       "sections": 6,
       "codeRefs": 0,
       "docRefs": 0
@@ -306,7 +324,9 @@
       "extension": [
         "docs/01-protocol.md",
         "docs/06-test-plan.md",
+        "docs/11-台账.md",
         "docs/DOC-GRAPH.md",
+        "docs/HANDOFF.md",
         "详细设计文档.md"
       ],
       "dsh-plugin": [
@@ -881,6 +901,14 @@
       {
         "doc": "docs/08-security.md",
         "ref": "log.ts"
+      },
+      {
+        "doc": "docs/11-台账.md",
+        "ref": "enter.ts"
+      },
+      {
+        "doc": "docs/11-台账.md",
+        "ref": "hub.ts"
       },
       {
         "doc": "docs/DOC-GRAPH.md",
