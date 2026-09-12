@@ -30,7 +30,7 @@ export function stamp(date = new Date()) {
 }
 
 /** Render the Markdown file: front-matter + optional selection block + body. */
-export function renderCapture({ captureId, trigger, page, content, media }) {
+export function renderCapture({ captureId, trigger, page, content, media, extVersion }) {
   const lines = [
     '---',
     `captureId: ${captureId}`,
@@ -40,6 +40,7 @@ export function renderCapture({ captureId, trigger, page, content, media }) {
     `capturedAt: ${String(page.capturedAt ?? Date.now())}`,
     `trigger: ${trigger}`,
     `source: dsh-web-companion`,
+    ...(typeof extVersion === 'string' && extVersion !== '' ? [`sourceVersion: ${extVersion}`] : []),
   ]
   if (content.truncated === true) lines.push('truncated: true')
   if (media?.screenshot !== undefined) lines.push(`screenshot: ${media.screenshot.mime} (${String(media.screenshot.width)}x${String(media.screenshot.height)})`)

@@ -1,14 +1,14 @@
 /**
  * AUTO-GENERATED — do not edit. Source: protocol/messages.schema.json
  * protocolVersion: 1
- * schemaSha256: e18aac52ff3dc0b2a7bf9decb24558306b80cc4db87786070ccc51a8d3b60ee3
+ * schemaSha256: 6aaff4935b118d3f78774eb2778974c58ea6e454d9917b3cdd75f0671ca2fbb0
  * platform: dsh-plugin (ESM)
  * Runtime: DSH host process (Node) / bundled client half.
  * Regenerate: node protocol/codegen.mjs   Verify: node protocol/codegen.mjs --check
  */
 
 export const PROTOCOL_VERSION = 1
-export const SCHEMA_SHA256 = 'e18aac52ff3dc0b2a7bf9decb24558306b80cc4db87786070ccc51a8d3b60ee3'
+export const SCHEMA_SHA256 = '6aaff4935b118d3f78774eb2778974c58ea6e454d9917b3cdd75f0671ca2fbb0'
 export const SCHEMA_ID = 'https://dsh.local/web-companion/messages.schema.json'
 
 /** Message kinds this protocol defines (from the schema's top-level oneOf). */
@@ -508,6 +508,10 @@ export const MESSAGE_SCHEMA = {
               "type": "string"
             }
           }
+        },
+        "extVersion": {
+          "type": "string",
+          "description": "Extension build that produced this capture — lets a quality audit tell an old build's artifacts from a current regression."
         }
       }
     },

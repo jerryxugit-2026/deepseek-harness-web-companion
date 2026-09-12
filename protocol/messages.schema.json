@@ -367,6 +367,10 @@
               "type": "string"
             }
           }
+        },
+        "extVersion": {
+          "type": "string",
+          "description": "Extension build that produced this capture — lets a quality audit tell an old build's artifacts from a current regression."
         }
       }
     },

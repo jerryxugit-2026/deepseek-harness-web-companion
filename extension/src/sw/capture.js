@@ -107,6 +107,9 @@ export async function buildCapture(request) {
     protocolVersion: 1,
     captureId: request.captureId,
     trigger: request.trigger ?? 'button',
+    // Record which build produced this file: without it a quality audit cannot tell
+    // "captured by an older build" from "the current build regressed".
+    extVersion: chrome.runtime.getManifest().version,
     page: captured.page,
     content: request.mode === 'selection' && selectionText !== ''
       ? { markdown: selectionText, truncated: false, selection: { text: selectionText } }
