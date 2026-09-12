@@ -13,14 +13,14 @@
     "attachReply": {
       "ok": true,
       "value": {
-        "captureId": "cap-mtxsh5jj-aaee",
+        "captureId": "cap-mtxsxu3p-9112",
         "result": {
           "ok": true,
-          "captureId": "cap-mtxsh5jj-aaee",
-          "fileRef": "@网页捕获/2026-09-11-2251-m2-抓取夹具页-j-aaee.md",
-          "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-11-2251-m2-抓取夹具页-j-aaee.md",
+          "captureId": "cap-mtxsxu3p-9112",
+          "fileRef": "@网页捕获/2026-09-11-2304-m2-抓取夹具页-p-9112.md",
+          "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-11-2304-m2-抓取夹具页-p-9112.md",
           "deliveredTo": [
-            "client:2"
+            "client:4"
           ]
         },
         "meta": {
@@ -36,7 +36,7 @@
         }
       }
     },
-    "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-11-2251-m2-抓取夹具页-j-aaee.md",
+    "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-11-2304-m2-抓取夹具页-p-9112.md",
     "fileChecks": {
       "hasMarker": true,
       "hasCategoryChips": false,
@@ -57,14 +57,14 @@
     "selectionReply": {
       "ok": true,
       "value": {
-        "captureId": "cap-mtxsh5z2-95d4",
+        "captureId": "cap-mtxsxuj0-581b",
         "result": {
           "ok": true,
-          "captureId": "cap-mtxsh5z2-95d4",
-          "fileRef": "@网页捕获/2026-09-11-2251-m2-抓取夹具页-2-95d4.md",
-          "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-11-2251-m2-抓取夹具页-2-95d4.md",
+          "captureId": "cap-mtxsxuj0-581b",
+          "fileRef": "@网页捕获/2026-09-11-2304-m2-抓取夹具页-0-581b.md",
+          "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-11-2304-m2-抓取夹具页-0-581b.md",
           "deliveredTo": [
-            "client:2"
+            "client:4"
           ]
         },
         "meta": {
@@ -86,6 +86,11 @@
       "hasMarker": true,
       "chars": 303
     },
+    "emptySelection": {
+      "refusedWithCode": true,
+      "noFileWritten": true,
+      "swMessageStatesFact": true
+    },
     "retention": {
       "stale25hRemoved": true,
       "userFileKept": true
@@ -105,41 +110,45 @@
       "connected": true,
       "chips": [
         {
-          "captureId": "cap-mtxsh5jj-aaee",
+          "captureId": "cap-mtxsxu3p-9112",
           "status": "inserted",
           "mode": "page",
-          "label": "📄 网页: M2 抓取夹具页"
-        },
-        {
-          "captureId": "cap-mtxsh5z2-95d4",
-          "status": "inserted",
-          "mode": "selection+page",
           "label": "📄 网页: M2 抓取夹具页"
         }
       ],
       "acks": [
         {
-          "captureId": "cap-mtxsh5jj-aaee",
-          "status": "inserted"
-        },
-        {
-          "captureId": "cap-mtxsh5z2-95d4",
+          "captureId": "cap-mtxsxu3p-9112",
           "status": "inserted"
         }
       ],
       "lastAttach": {
-        "captureId": "cap-mtxsh5z2-95d4",
+        "captureId": "cap-mtxsxu3p-9112",
         "inserted": true,
         "detail": "",
-        "fileRef": "@网页捕获/2026-09-11-2251-m2-抓取夹具页-2-95d4.md",
-        "sessionId": "session-accdc35b-6690-4656-aec8-8991439b12d2",
+        "fileRef": "@网页捕获/2026-09-11-2304-m2-抓取夹具页-p-9112.md",
+        "sessionId": "session-16f392fc-0564-428d-976e-18137da339d8",
         "sessionMode": "new",
         "switched": true
       }
     },
     "sessionsAfter": {
-      "current": "session-accdc35b-6690-4656-aec8-8991439b12d2",
+      "current": "session-ee7d22c4-1e2d-4f8f-ab60-71f7df74d42f",
       "ids": [
+        "session-ee7d22c4-1e2d-4f8f-ab60-71f7df74d42f",
+        "session-16f392fc-0564-428d-976e-18137da339d8",
+        "session-dd85ff4c-a36c-400a-8627-e13c653d1383",
+        "session-02931670-6a54-4624-b2ed-13cbd8fccbeb",
+        "session-3f153ec7-2d8e-4feb-ae37-7cec7e449cc9",
+        "session-71f365f6-0abd-42e8-8704-318d46a17731",
+        "session-2f947a49-5532-4067-ba22-7444404bb423",
+        "session-02814d73-27aa-4f3d-b50d-1fe890baba66",
+        "session-a446bd7c-7825-4ba6-a432-79999e1d34af",
+        "session-506518b8-dfab-4b99-838a-e164a31d8094",
+        "session-5219b794-7ebe-4a7a-8347-26e2858644b2",
+        "session-9f9995ec-3838-4184-a30e-16a014106a9c",
+        "session-fd41d83c-c306-4900-9755-be52c819dc23",
+        "session-cf86b9ad-ecf5-420f-8e32-6ee657694457",
         "session-accdc35b-6690-4656-aec8-8991439b12d2",
         "session-f2a844d8-8736-433a-8bbc-b21eb6166d47",
         "session-17aa5a2d-e2ef-4fb2-8a80-f7e4569de740",
@@ -180,7 +189,7 @@
         "session-af4d394f-aeb1-4b76-850b-267a190e00dd",
         "session-6b8a1366-8e2f-422b-93c5-3d778059a7cc"
       ],
-      "count": 39
+      "count": 53
     },
     "newSessionCreated": true,
     "targetIsFreshSession": true,

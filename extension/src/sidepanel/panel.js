@@ -9,6 +9,7 @@
 import { createStore } from './state.js'
 import { startAgentChannel } from './agent-channel.js'
 import { controlUrl, pairingKey } from '../lib/urls.js'
+import { explainError } from './errors.js'
 
 const els = {
   gate: document.getElementById('gate'),
@@ -145,16 +146,6 @@ function askForPermission() {
   })
 }
 
-/** Turn extension errors into something a user can act on. */
-function explain(error) {
-  const message = String(error?.message ?? '')
-  if (/Cannot access contents of url|must request permission to access this host|Either the '<all_urls>' or 'activeTab'/u.test(message)) {
-    return '当前网页未获授权：请点「授权并抓取」授予一次「读取所有网站」权限；或在目标网页上点一次扩展图标（临时授权该标签页）后重试。'
-  }
-  if (error?.code === 'E_NO_WORKSPACE') return `没有可用的工作区：${message}`
-  if (error?.code === 'E_DSH_DOWN') return '本地 DSH 未运行：请先启动 dsh web。'
-  return message
-}
 
 /**
  * Shared capture trigger; `mode` picks page / selection / screenshot.
@@ -186,7 +177,7 @@ async function runCapture(mode, trigger = 'button') {
     store.dispatch({ attach: 'attached', lastFileRef: ref })
     return result
   }
-  const readable = explain(result.error)
+  const readable = explainError(result.error)
   els.status.textContent = `抓取失败：${readable}`
   store.dispatch({ attach: 'failed', message: readable })
   return { ok: false, error: { ...result.error, message: readable } }
@@ -318,7 +309,7 @@ const agentChannel = startAgentChannel({
     try {
       const result = await runCapture(mode ?? 'page', 'look_left')
       probe.intents.push({ mode: mode ?? 'page', reason: reason ?? 'look-left', ok: result?.ok === true, fileRef: result?.value?.result?.fileRef, error: result?.error })
-      if (result?.ok !== true) els.status.textContent = `「看左边」抓取失败：${explain(result?.error)}`
+      if (result?.ok !== true) els.status.textContent = `「看左边」抓取失败：${explainError(result?.error)}`
       return result
     } catch (error) {
       probe.errors.push(String(error?.message ?? error))

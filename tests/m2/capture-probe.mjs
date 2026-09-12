@@ -292,6 +292,26 @@ if (typeof selPath === 'string' && existsSync(selPath)) {
     chars: text.length,
   })
 }
+record('emptySelection', await (async () => {
+  // 先清掉选区，再请求选区抓取：必须明确失败且**不产生文件**
+  await evaluate(fixture.sessionId, '(() => { const s = window.getSelection(); s.removeAllRanges(); return s.toString() })()')
+  await browser.send('Target.activateTarget', { targetId: fixture.targetId })
+  await sleep(300)
+  const filesBefore = existsSync(attachDir) ? readdirSync(attachDir).length : 0
+  const reply = await evaluate(panel.sessionId, `(async () => {
+    const r = await chrome.runtime.sendMessage({ kind: 'capture', mode: 'selection', trigger: 'button' })
+    return JSON.stringify(r ?? null)
+  })()`, 30000)
+  const parsed = typeof reply === 'string' ? JSON.parse(reply) : reply
+  const filesAfter = existsSync(attachDir) ? readdirSync(attachDir).length : 0
+  return {
+    refusedWithCode: parsed?.ok === false && parsed?.error?.code === 'E_NO_SELECTION',
+    noFileWritten: filesAfter === filesBefore,
+    // SW 这层只说事实（面向用户的话术在面板 explainError，由单测覆盖）
+    swMessageStatesFact: /no text is selected/iu.test(String(parsed?.error?.message ?? '')),
+  }
+})())
+
 record('retention', {
   stale25hRemoved: !existsSync(stalePath),
   userFileKept: existsSync(userKeepPath),

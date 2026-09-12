@@ -103,6 +103,14 @@ export async function buildCapture(request) {
   const captured = await capturePageContent(tab.id)
   const selectionText = captured.content.selection?.text ?? ''
 
+  // A selection capture with nothing selected used to fall through to the whole page,
+  // which reads as "the button worked" while shipping a completely different (and much
+  // larger) amount of context than the user asked for. Refuse instead, with a message
+  // that says what to do.
+  if (request.mode === 'selection' && selectionText === '') {
+    throw Object.assign(new Error('no text is selected on the page'), { code: 'E_NO_SELECTION' })
+  }
+
   const body = {
     protocolVersion: 1,
     captureId: request.captureId,

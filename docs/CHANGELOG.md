@@ -5,7 +5,31 @@
 
 ---
 
-## v3.31 — 2026-09-11（当前）
+## v3.32 — 2026-09-11（当前）
+
+**触发**：修掉"没选中却点「Attach 选区」静默抓整页"—— 我先前只是**问了**要不要改，按纪律这类可逆小修应当直接做。
+
+### 变更
+
+| 位置 | 变更 |
+|---|---|
+| `extension/src/sw/capture.js` | 选区模式无选区 → 抛 `E_NO_SELECTION`，**不再回退整页**（旧行为让用户以为抓的是选区，实际塞进整页） |
+| `extension/src/sidepanel/errors.js` | **新增**：把错误码翻译成"你该做什么"的纯函数（从 panel.js 抽出），覆盖 E_NO_SELECTION / E_NO_WORKSPACE / E_DSH_DOWN / E_READONLY / E_EXT_OFFLINE / E_TARGET_BUSY / E_TIMEOUT 与三种权限消息 |
+| `tests/unit/panel-errors.test.mjs` | **新增** 11 断言：每个已知码都给出可操作提示；未知码原样透出；缺 message / undefined 不崩 |
+
+### 实测
+
+- `npm run test:panel-errors` 11/11；
+- `npm run probe:capture` 新增 `emptySelection` 断言：`{refusedWithCode: true, noFileWritten: true, swMessageStatesFact: true}`（明确失败 + **不产生文件**）；
+- 选区正常路径不受影响（`hasSelectionBlock` / `markdownIsSelectionOnly` 仍为 true）。
+
+### 分层教训（写进断言名）
+
+探针第一版断言"SW 返回的消息里应出现『选区』"→ 失败。原因不是缺提示，而是那句话**属于面板层**：SW/ops 只说事实，面板负责翻译。修正后两层各查各的，把口径写进断言名（`swMessageStatesFact`），避免以后再互相错怪。
+
+---
+
+## v3.31 — 2026-09-11
 
 **触发**：M4-2 多站点抓取质量回归 —— 只有把"五类页面"固定下来，噪音启发式改一处才不会在另一类页面上悄悄误删。
 

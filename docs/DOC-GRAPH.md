@@ -1,14 +1,14 @@
 # 文档与代码图谱（DOC-GRAPH）
 
 > **自动生成，请勿手改**：`node scripts/doc-graph.mjs`（校验：`node scripts/doc-graph.mjs --check`）
-> 生成时间：2026-09-12T03:04:08.074Z
+> 生成时间：2026-09-12T03:05:01.939Z
 >
 > **更新时机（随项目进展）**：
 > 1. 任一 `*.md` 或代码文件增删改后 → `npm run graph:sync`（代码图谱增量重建）+ `npm run graph:docs`（本文件重生成）；
 > 2. 每个里程碑（M1–M4）收尾必须执行一次，并把 `--check` 纳入交付前检查；
 > 3. `--check` 发现 broken-doc-link / missing-code-ref 时以非零码退出，作为质量门。
 
-## 1. 文档清单（32 份 / 150 个代码与配置文件）
+## 1. 文档清单（32 份 / 152 个代码与配置文件）
 
 | 文档 | 标题 | 版本 | 行数 | 二级标题数 | 代码引用数 |
 |---|---|---|---|---|---|
@@ -25,7 +25,7 @@
 | `docs/07-implementation-plan.md` | 07 · 实现计划（任务分解与完成判据） | — | 87 | 7 | 39 |
 | `docs/08-security.md` | 08 · 安全与威胁模型 | — | 73 | 6 | 1 |
 | `docs/09-manual-checklist.md` | 人工验收清单（有头 Chrome） | — | 48 | 7 | 0 |
-| `docs/CHANGELOG.md` | 变更记录（CHANGELOG） | v3.0 | 910 | 35 | 0 |
+| `docs/CHANGELOG.md` | 变更记录（CHANGELOG） | v3.0 | 934 | 36 | 0 |
 | `docs/DOC-GRAPH.md` | 文档与代码图谱（DOC-GRAPH） | — | 294 | 6 | 190 |
 | `docs/PROGRESS.md` | 进度与续跑规则（durable memory） | — | 32 | 5 | 0 |
 | `docs/REVIEW-v3.0.md` | 详细设计 v3.0 评审报告（Review of v3.0 → 修正为 v3.1） | v3.0 | 68 | 5 | 0 |
@@ -43,7 +43,7 @@
 | `docs/reviews/probe-keepalive.md` | M0a 探针报告 · 空闲 WebSocket 保活（probe-keepalive / Q8） | — | 29 | 4 | 0 |
 | `docs/reviews/probe-permission.md` | M0a 探针报告 · 权限实验（probe-permission） | — | 35 | 5 | 0 |
 | `scripts/review-prompts/design-adversarial.md` | scripts/review-prompts/design-adversarial.md | — | 27 | 4 | 0 |
-| `详细设计文档.md` | DSH Web Companion · 详细设计规范说明书 | v3.31 | 898 | 16 | 36 |
+| `详细设计文档.md` | DSH Web Companion · 详细设计规范说明书 | v3.32 | 900 | 16 | 37 |
 
 ## 2. 文档 ↔ 代码 覆盖矩阵
 
