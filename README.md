@@ -104,5 +104,7 @@ docs/              分册文档、研究、审核记录、探针报告
 - `/Users/mac/ai_tools/dsh project/网页插件/docs/11-台账.md` —— **对照设计的完成度台账**（哪些完成 / 哪些改了实现方式 / 哪些没做 + 证据索引）
 - `/Users/mac/ai_tools/dsh project/网页插件/docs/HANDOFF.md` —— **交接提示词**（可直接粘贴给新会话）+ 避坑清单
 - `/Users/mac/ai_tools/AGENT-SEARCH-TOOLS.md` —— **本机检索规范（唯一真源）**：文档问题走 semble、代码问题走 codegraph；本项目一切检索都要按它执行
-- `docs/CHANGELOG.md` —— 每个版本改了什么、为什么（含被推翻的结论）
-- `docs/reviews/` —— 探针报告与对抗审核结论
+- `/Users/mac/ai_tools/dsh project/网页插件/docs/CHANGELOG.md` —— 每个版本改了什么、为什么（含被推翻的结论）
+- `/Users/mac/ai_tools/dsh project/网页插件/docs/reviews/` —— 探针报告与对抗审核结论
+- `/Users/mac/ai_tools/dsh project/网页插件/docs/09-manual-checklist.md` —— 人工验收清单
+- `/Users/mac/ai_tools/dsh project/网页插件/docs/10-automation.md` —— 自动化分层
