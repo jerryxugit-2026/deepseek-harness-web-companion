@@ -21,7 +21,9 @@
 - [x] **M4-1 胶囊走 `conversation.input.dock` 插槽**（v3.33）：契约已取证并实现；DOM 条带保留为兜底；`probe:capture` 断言 `host === "slot"`，`probe:chip` 覆盖插入/✕/ack。
 - [x] **M4-2 多站点抓取质量回归**（v3.31）：`npm run probe:sites` 五类页面 16/16；夹具本地 HTML 不依赖外网。首轮抓出两个真缺陷（引用 Markdown 非法、`Load more` 漏清）。
 - [x] **M4-3 自动化/CI 说明**（v3.33）：`docs/10-automation.md` 四层分层 + `npm run probe:all` 一条命令跑完 7 个 Chrome 探针（实测 7/7）。
-- [ ] **M4-4 文档收口**：设计文档剩余"目标·未测"项复核；README 的已知限制随实现更新。
+- [x] **M4-4 文档收口**（v3.34）：G1/G2/G6 全部改为实测（`npm run probe:perf`），两条未达标如实记录并写明下一步；README 已知限制随实现更新。
+- [ ] **G1 优化（新）**：预加载 iframe 或核对 DSH 首屏路径 —— 目前 p50 2074ms vs 目标 1500ms，瓶颈在 iframe 内应用启动（非本插件）。
+- [ ] **G2 截图指标拆分（新）**：整页截图 p95 1861ms 超 1500ms 目标；拆成视口/整页两档，或给整页加高度上限。
 - [ ] **M3-剩余（仅用户可做）**：真模型调用一次 `browser_read`（工具已注册 + 逐层验证，但还没被模型调用过）；写操作审批弹窗的实际批准/拒绝交互。
 - [ ] **M4-5（仅用户可做）**：`docs/09-manual-checklist.md` 的有头人工项。
 

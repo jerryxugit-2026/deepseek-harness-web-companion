@@ -20,8 +20,8 @@
 import { capturePageContent } from '../capture.js'
 import { activeTab } from '../capture.js'
 import {
-  accessibilityTree, debuggerAvailable, detachAll, elementCenter, fullPageScreenshot,
-  positionCaret, trustedClick, trustedFocus, trustedKey, trustedType,
+  accessibilityTree, debuggerAvailable, detachAll, elementCenter,
+  pageScreenshot, positionCaret, trustedClick, trustedFocus, trustedKey, trustedType,
 } from './debugger.js'
 
 const MAX_WAIT_MS = 30000
@@ -253,16 +253,27 @@ export async function opNavigate(params = {}) {
 
 /* ─────────────────────────── screenshot / ax tree ─────────────────────────── */
 
-/** `browser_screenshot`: full page via debugger, viewport via `captureVisibleTab`. */
+/**
+ * `browser_screenshot`: viewport or full page.
+ *
+ * `fullPage` decides the *content*; the runtime switch only decides *how* it is taken
+ * (debugger bypasses the 2/s throttle and works on background tabs). Letting the
+ * switch imply full-page was the bug this probe caught.
+ */
 export async function opScreenshot(params = {}, settings = {}) {
   const tab = await resolveTab(params)
-  if (params.fullPage === true) {
-    if (!debuggerAvailable()) throw opError('E_NO_PERMISSION', 'full-page screenshots need chrome.debugger')
-    return { tabId: tab.id, url: tab.url, ...(await fullPageScreenshot(tab.id)), trusted: true }
+  const wantFullPage = params.fullPage === true
+  if (debuggerAvailable() && (wantFullPage || settings.browserControl === true)) {
+    const shot = await pageScreenshot(tab.id, { fullPage: wantFullPage })
+    return {
+      tabId: tab.id,
+      url: tab.url,
+      ...shot,
+      trusted: true,
+      ...(settings.browserControl === true ? { notes: ['浏览器控制已开启：走 debugger（不受 2 次/秒限流、可在后台标签页截图）'] } : {}),
+    }
   }
-  if (settings.browserControl === true && debuggerAvailable()) {
-    return { tabId: tab.id, url: tab.url, ...(await fullPageScreenshot(tab.id)), trusted: true, notes: ['浏览器控制已开启：走 debugger（不受 2 次/秒限流、可在后台标签页截图）'] }
-  }
+  if (wantFullPage) throw opError('E_NO_PERMISSION', 'full-page screenshots need chrome.debugger')
   try {
     const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'png' })
     const base64 = dataUrl.replace(/^data:image\/png;base64,/u, '')

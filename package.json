@@ -45,7 +45,8 @@
     "audit:captures": "node tests/quality/audit-captures.mjs",
     "probe:sites": "node tests/quality/probe-sites.mjs",
     "test:panel-errors": "node tests/unit/panel-errors.test.mjs",
-    "probe:all": "node scripts/probe-all.mjs"
+    "probe:all": "node scripts/probe-all.mjs",
+    "probe:perf": "node tests/m2/perf-probe.mjs"
   },
   "devDependencies": {
     "@colbymchenry/codegraph": "^1.6.0",

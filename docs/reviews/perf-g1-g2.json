@@ -1,0 +1,78 @@
+{
+  "probe": "m4/perf",
+  "at": "2026-09-12T03:14:11.060Z",
+  "dshPort": "3099",
+  "runs": 7,
+  "caveat": "headless Chrome, loopback, same machine — 这是基线而非承诺",
+  "targets": {
+    "g1HotStartMs": 1500,
+    "g2LightP50Ms": 300,
+    "g2StandardP95Ms": 800,
+    "g2ScreenshotP95Ms": 1500,
+    "g6BundleKb": 1024
+  },
+  "results": {
+    "g1HotStartMs": {
+      "min": 2036,
+      "p50": 2074,
+      "p95": 2209,
+      "max": 2209,
+      "n": 3
+    },
+    "g1PhasesMs": {
+      "panelDoc": {
+        "min": 580,
+        "p50": 585,
+        "p95": 644,
+        "max": 644,
+        "n": 3
+      },
+      "iframeTarget": {
+        "min": 632,
+        "p50": 691,
+        "p95": 819,
+        "max": 819,
+        "n": 3
+      },
+      "composerReady": {
+        "min": 2036,
+        "p50": 2074,
+        "p95": 2209,
+        "max": 2209,
+        "n": 3
+      }
+    },
+    "g2LightMs": {
+      "min": 28,
+      "p50": 66,
+      "p95": 94,
+      "max": 94,
+      "n": 7
+    },
+    "g2LightFailures": 0,
+    "g2StandardMs": {
+      "min": 35,
+      "p50": 92,
+      "p95": 533,
+      "max": 533,
+      "n": 7
+    },
+    "g2StandardFailures": 0,
+    "g2ScreenshotViewportMs": {
+      "min": 83,
+      "p50": 94,
+      "p95": 118,
+      "max": 118,
+      "n": 5
+    },
+    "g2ScreenshotViewportBytes": 214383,
+    "g2ScreenshotMs": {
+      "min": 1757,
+      "p50": 1764,
+      "p95": 1861,
+      "max": 1861,
+      "n": 5
+    },
+    "g6BundleKb": 127
+  }
+}

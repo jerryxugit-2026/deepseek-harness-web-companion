@@ -132,8 +132,8 @@
       "path": "docs/CHANGELOG.md",
       "title": "变更记录（CHANGELOG）",
       "version": "v3.0",
-      "lines": 963,
-      "sections": 37,
+      "lines": 992,
+      "sections": 38,
       "codeRefs": 0,
       "docRefs": 1
     },
@@ -150,7 +150,7 @@
       "path": "docs/PROGRESS.md",
       "title": "进度与续跑规则（durable memory）",
       "version": null,
-      "lines": 32,
+      "lines": 34,
       "sections": 5,
       "codeRefs": 0,
       "docRefs": 0
@@ -293,15 +293,15 @@
     {
       "path": "详细设计文档.md",
       "title": "DSH Web Companion · 详细设计规范说明书",
-      "version": "v3.33",
-      "lines": 923,
+      "version": "v3.34",
+      "lines": 925,
       "sections": 16,
-      "codeRefs": 39,
+      "codeRefs": 41,
       "docRefs": 4
     }
   ],
   "code": {
-    "indexedFiles": 153,
+    "indexedFiles": 155,
     "areas": {
       "extension": [
         "docs/01-protocol.md",

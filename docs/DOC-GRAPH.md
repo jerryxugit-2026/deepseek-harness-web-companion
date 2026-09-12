@@ -1,14 +1,14 @@
 # 文档与代码图谱（DOC-GRAPH）
 
 > **自动生成，请勿手改**：`node scripts/doc-graph.mjs`（校验：`node scripts/doc-graph.mjs --check`）
-> 生成时间：2026-09-12T03:10:30.299Z
+> 生成时间：2026-09-12T03:16:29.406Z
 >
 > **更新时机（随项目进展）**：
 > 1. 任一 `*.md` 或代码文件增删改后 → `npm run graph:sync`（代码图谱增量重建）+ `npm run graph:docs`（本文件重生成）；
 > 2. 每个里程碑（M1–M4）收尾必须执行一次，并把 `--check` 纳入交付前检查；
 > 3. `--check` 发现 broken-doc-link / missing-code-ref 时以非零码退出，作为质量门。
 
-## 1. 文档清单（33 份 / 153 个代码与配置文件）
+## 1. 文档清单（33 份 / 155 个代码与配置文件）
 
 | 文档 | 标题 | 版本 | 行数 | 二级标题数 | 代码引用数 |
 |---|---|---|---|---|---|
@@ -26,9 +26,9 @@
 | `docs/08-security.md` | 08 · 安全与威胁模型 | — | 73 | 6 | 1 |
 | `docs/09-manual-checklist.md` | 人工验收清单（有头 Chrome） | — | 48 | 7 | 0 |
 | `docs/10-automation.md` | 自动化分层：哪些能无人值守，哪些必须有人（M4-3） | — | 70 | 7 | 0 |
-| `docs/CHANGELOG.md` | 变更记录（CHANGELOG） | v3.0 | 963 | 37 | 0 |
+| `docs/CHANGELOG.md` | 变更记录（CHANGELOG） | v3.0 | 992 | 38 | 0 |
 | `docs/DOC-GRAPH.md` | 文档与代码图谱（DOC-GRAPH） | — | 296 | 6 | 191 |
-| `docs/PROGRESS.md` | 进度与续跑规则（durable memory） | — | 32 | 5 | 0 |
+| `docs/PROGRESS.md` | 进度与续跑规则（durable memory） | — | 34 | 5 | 0 |
 | `docs/REVIEW-v3.0.md` | 详细设计 v3.0 评审报告（Review of v3.0 → 修正为 v3.1） | v3.0 | 68 | 5 | 0 |
 | `docs/research/01-dsh-plugin-authoring.md` | 01 — Writing, building, installing and testing a THIRD-PARTY DSH plugin (host half + browser/client half) | — | 1137 | 18 | 0 |
 | `docs/research/02-dsh-client-composer-attach.md` | 02 — DSH Web GUI 客户端插件「插入 composer 内容 + 附件 + 上下文 chip」seam 调研 | — | 1446 | 22 | 0 |
@@ -44,7 +44,7 @@
 | `docs/reviews/probe-keepalive.md` | M0a 探针报告 · 空闲 WebSocket 保活（probe-keepalive / Q8） | — | 29 | 4 | 0 |
 | `docs/reviews/probe-permission.md` | M0a 探针报告 · 权限实验（probe-permission） | — | 35 | 5 | 0 |
 | `scripts/review-prompts/design-adversarial.md` | scripts/review-prompts/design-adversarial.md | — | 27 | 4 | 0 |
-| `详细设计文档.md` | DSH Web Companion · 详细设计规范说明书 | v3.33 | 923 | 16 | 39 |
+| `详细设计文档.md` | DSH Web Companion · 详细设计规范说明书 | v3.34 | 925 | 16 | 41 |
 
 ## 2. 文档 ↔ 代码 覆盖矩阵
 
