@@ -15,6 +15,13 @@
  *   - `Input.insertText` goes to the **focused** element, so focus must be set first.
  */
 
+/**
+ * Upper bound for a full-page screenshot's height. 12000 CSS px is ~15 screens of a
+ * 800px viewport: past that the PNG grows faster than its usefulness, and the frame
+ * budget would drop the pixels anyway (making the tool fail instead of answering).
+ */
+const MAX_FULL_PAGE_HEIGHT_PX = 12000
+
 /** Protocol version M3 pins (design §11.1). */
 const PROTOCOL_VERSION = '1.3'
 
@@ -186,12 +193,39 @@ export async function trustedKey(tabId, key) {
  * an order of magnitude cheaper). A flag that the caller sets and we ignore is
  * worse than no flag.
  */
-export async function pageScreenshot(tabId, { fullPage = false } = {}) {
+export async function pageScreenshot(tabId, { fullPage = false, maxHeightPx = MAX_FULL_PAGE_HEIGHT_PX } = {}) {
+  if (!fullPage) {
+    const shot = await withDebugger(tabId, (target) => chrome.debugger.sendCommand(target, 'Page.captureScreenshot', { format: 'png' }))
+    const base64 = String(shot?.data ?? '')
+    if (base64 === '') throw Object.assign(new Error('empty screenshot'), { code: 'E_TARGET' })
+    return { mime: 'image/png', base64, bytes: Math.round((base64.length * 3) / 4), fullPage: false }
+  }
+  // A very long page would otherwise produce a PNG big enough to be refused later
+  // (the frame budget drops it and the tool fails with E_STORAGE). Clipping to a
+  // stated height **succeeds with a truthful note** — a truncated image the caller
+  // can act on beats a hard failure they cannot.
+  const metrics = await withDebugger(tabId, (target) => chrome.debugger.sendCommand(target, 'Page.getLayoutMetrics'))
+  const content = metrics?.cssContentSize ?? metrics?.contentSize ?? {}
+  const contentHeight = Math.round(Number(content.height ?? 0))
+  const contentWidth = Math.round(Number(content.width ?? 0))
+  const clipped = contentHeight > maxHeightPx
+  const clip = clipped || contentWidth > 0
+    ? { x: 0, y: 0, width: Math.max(1, contentWidth || 1200), height: clipped ? maxHeightPx : Math.max(1, contentHeight || 800), scale: 1 }
+    : undefined
   const shot = await withDebugger(tabId, (target) => chrome.debugger.sendCommand(target, 'Page.captureScreenshot', {
     format: 'png',
-    ...(fullPage ? { captureBeyondViewport: true } : {}),
+    captureBeyondViewport: true,
+    ...(clip === undefined ? {} : { clip }),
   }))
   const base64 = String(shot?.data ?? '')
   if (base64 === '') throw Object.assign(new Error('empty screenshot'), { code: 'E_TARGET' })
-  return { mime: 'image/png', base64, bytes: Math.round((base64.length * 3) / 4), fullPage: fullPage === true }
+  return {
+    mime: 'image/png',
+    base64,
+    bytes: Math.round((base64.length * 3) / 4),
+    fullPage: true,
+    contentWidth,
+    contentHeight,
+    ...(clipped ? { clipped: true, clippedAtPx: maxHeightPx } : {}),
+  }
 }

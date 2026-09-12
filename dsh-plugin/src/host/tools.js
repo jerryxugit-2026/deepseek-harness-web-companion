@@ -226,6 +226,9 @@ export function buildBrowserTools({ hub, config, resolveWorkspace, log = () => {
           mime: str('MIME 类型'),
           fullPage: bool('是否整页'),
           trusted: bool('是否走 debugger（可信路径）'),
+          clipped: bool('整页截图是否被高度上限裁剪'),
+          clippedAtPx: num('裁剪高度（像素）'),
+          contentHeight: num('页面内容高度（像素）'),
         },
       }),
       render: (_args, value) => [{ type: 'text', text: renderValue(value) }],
@@ -251,7 +254,16 @@ export function buildBrowserTools({ hub, config, resolveWorkspace, log = () => {
         retentionHours: config.retentionHours ?? 24,
         log,
       })
-      return { ...saved, bytes: value.bytes ?? Math.round((value.base64.length * 3) / 4), mime: value.mime ?? 'image/png', fullPage: value.fullPage === true, trusted: value.trusted === true }
+      return {
+        ...saved,
+        bytes: value.bytes ?? Math.round((value.base64.length * 3) / 4),
+        mime: value.mime ?? 'image/png',
+        fullPage: value.fullPage === true,
+        trusted: value.trusted === true,
+        ...(value.clipped === true ? { clipped: true } : {}),
+        ...(value.clippedAtPx === undefined ? {} : { clippedAtPx: value.clippedAtPx }),
+        ...(value.contentHeight === undefined ? {} : { contentHeight: value.contentHeight }),
+      }
     },
   })
 

@@ -1,6 +1,6 @@
 {
   "probe": "m4/perf",
-  "at": "2026-09-12T03:19:45.336Z",
+  "at": "2026-09-12T03:22:51.487Z",
   "dshPort": "3099",
   "runs": 7,
   "caveat": "headless Chrome, loopback, same machine — 这是基线而非承诺",
@@ -13,32 +13,32 @@
   },
   "results": {
     "g1HotStartMs": {
-      "min": 2070,
-      "p50": 2221,
-      "p95": 2284,
-      "max": 2284,
+      "min": 2230,
+      "p50": 2253,
+      "p95": 2323,
+      "max": 2323,
       "n": 3
     },
     "g1PhasesMs": {
       "panelDoc": {
-        "min": 585,
-        "p50": 642,
-        "p95": 646,
-        "max": 646,
+        "min": 592,
+        "p50": 622,
+        "p95": 640,
+        "max": 640,
         "n": 3
       },
       "iframeTarget": {
-        "min": 638,
-        "p50": 776,
-        "p95": 876,
-        "max": 876,
+        "min": 624,
+        "p50": 756,
+        "p95": 811,
+        "max": 811,
         "n": 3
       },
       "composerReady": {
-        "min": 2070,
-        "p50": 2221,
-        "p95": 2284,
-        "max": 2284,
+        "min": 2230,
+        "p50": 2253,
+        "p95": 2323,
+        "max": 2323,
         "n": 3
       }
     },
@@ -50,41 +50,48 @@
       "n": 5
     },
     "g1IframeBootMs": {
-      "appRoot": 638,
-      "domComplete": 1511,
-      "composer": 2077
+      "appRoot": 640,
+      "domComplete": 1550,
+      "composer": 2222
     },
     "g2LightMs": {
-      "min": 24,
-      "p50": 80,
-      "p95": 108,
-      "max": 108,
+      "min": 25,
+      "p50": 79,
+      "p95": 131,
+      "max": 131,
       "n": 7
     },
     "g2LightFailures": 0,
     "g2StandardMs": {
-      "min": 29,
-      "p50": 96,
-      "p95": 128,
-      "max": 128,
+      "min": 58,
+      "p50": 110,
+      "p95": 221,
+      "max": 221,
       "n": 7
     },
     "g2StandardFailures": 0,
     "g2ScreenshotViewportMs": {
       "min": 81,
-      "p50": 94,
-      "p95": 605,
-      "max": 605,
+      "p50": 97,
+      "p95": 600,
+      "max": 600,
       "n": 5
     },
     "g2ScreenshotViewportBytes": 214383,
+    "g2FullPageShape": {
+      "ok": true,
+      "clipped": true,
+      "contentHeight": 15288,
+      "clippedAtPx": 12000,
+      "bytes": 3720783
+    },
     "g2ScreenshotMs": {
-      "min": 1769,
-      "p50": 1780,
-      "p95": 1865,
-      "max": 1865,
+      "min": 1412,
+      "p50": 1494,
+      "p95": 1512,
+      "max": 1512,
       "n": 5
     },
-    "g6BundleKb": 127
+    "g6BundleKb": 128
   }
 }

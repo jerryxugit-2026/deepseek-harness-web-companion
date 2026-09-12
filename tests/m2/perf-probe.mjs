@@ -288,6 +288,15 @@ const viewportShot = await measureShot(false)
 results.g2ScreenshotViewportMs = viewportShot.stats
 results.g2ScreenshotViewportBytes = viewportShot.bytes
 console.log(`   G2 视口截图：${JSON.stringify(viewportShot.stats)}（${String(viewportShot.bytes)} B）`)
+const full = await (async () => {
+  const reply = await evaluate(panel.sessionId, `(async () => {
+    const r = await chrome.runtime.sendMessage({ kind: 'op', tool: 'browser_screenshot', params: { fullPage: true }, allowWrite: false })
+    return JSON.stringify({ ok: r?.ok === true, clipped: r?.value?.clipped === true, contentHeight: r?.value?.contentHeight ?? null, clippedAtPx: r?.value?.clippedAtPx ?? null, bytes: r?.value?.bytes ?? 0 })
+  })()`, 120000)
+  return typeof reply === 'string' ? JSON.parse(reply) : { ok: false }
+})()
+results.g2FullPageShape = full
+console.log(`   整页截图形状：ok=${String(full.ok)} clipped=${String(full.clipped)} 内容高=${String(full.contentHeight)}px 裁剪到=${String(full.clippedAtPx)}px`)
 const shotStats = (await measureShot(true)).stats
 results.g2ScreenshotMs = shotStats
 console.log(`   G2 整页截图（debugger）：${JSON.stringify(shotStats)}  目标 p95 ≤ 1500ms（设计按视口定义）→ ${shotStats.p95 <= 1500 ? '✅' : '⚠️ 整页超目标（见报告说明）'}`)
