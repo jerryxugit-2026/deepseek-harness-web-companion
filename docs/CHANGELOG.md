@@ -5,7 +5,38 @@
 
 ---
 
-## v3.24 — 2026-09-11（当前）
+## v3.25 — 2026-09-11（当前）
+
+**触发**：用户实测提出 —— 抓取会在工作区 `网页捕获/` 里持续生成 `.md`，**没有任何东西会删它们**。
+
+### 策略（已实现并现场验证）
+
+**每次落盘后清扫同一目录**，删除**严格老于 `retentionHours`（默认 24h）**的文件；只挑**本插件命名**的文件（`yyyy-MM-dd-HHmm-<slug>-<id6>.md` 与崩溃残留的 `.tmp`），**用户自己放进该目录的文件永不删除**（计入 `kept`）。
+
+三个取舍写清楚，免得后来者"顺手改成定时器"：
+
+1. **落盘时清扫，不用定时器**：插件保持零后台工作，代价只在实际产生文件的那一刻付；一个不抓取的会话不付任何成本。
+2. **按名字白名单**：抓取目录是用户可见的普通目录，不能用"目录里所有旧文件"作为删除依据。
+3. **按 mtime 判龄**：复制/恢复/改名后 mtime 仍是真的；报告里同时带 `ageHours` 便于日志追溯。
+
+### 交付
+
+| 位置 | 变更 |
+|---|---|
+| `dsh-plugin/src/host/retention.js` | 新增 `sweepCaptures(dir, {retentionHours, now, log})`；导出 `CAPTURE_FILE` / `TEMP_FILE` 规则 |
+| `dsh-plugin/src/host/store.js` | `write()` 成功后调用清扫（放在写之后，保证不与写入竞争，且刚写的文件 mtime=now 永不入选）；返回值新增 `pruned`/`prunedFiles`（**只供内部与日志**，不进 `/ag/attach` 响应体，避免破坏扩展侧 schema 校验） |
+| `dsh-plugin/src/host/index.js` | 新配置 `retentionHours`（默认 24，`0`/负数关闭） |
+| `tests/unit/retention.test.mjs` | 新增 19 条断言：删旧的/留新的/留用户文件/不递归子目录/`.tmp` 清理/`0` 关闭/目录不存在不抛错/未来时间戳不误删/±1s 边界 |
+| `tests/m2/capture-probe.mjs` | 现场断言：埋入 25h 前的抓取文件与一个用户文件 → 真捕获一次 → `{stale25hRemoved: true, userFileKept: true}` |
+| `package.json` | `test:unit` 现在跑 tickets + retention（两个文件） |
+
+### 顺带记录的平台事实
+
+macOS/APFS 的 mtime 是**纳秒精度**，用毫秒精度的 `Date` 调 `utimesSync` 会存成 `….999ms` —— 于是"恰好 24h"实际比 cutoff 早约 **1µs**，第一版单测因此出现"假失败"。断言改为 ±1s 边距，比较符语义（`>=` 保留 / `<` 删除）写进断言名。
+
+---
+
+## v3.24 — 2026-09-11
 
 **触发**：你在 chrome://extensions 里看到 Chrome 的告警 —— `Permission 'debugger' cannot be listed as optional. This permission will be omitted.`
 

@@ -18,7 +18,7 @@
  */
 import { createServer } from 'node:http'
 import { execFileSync } from 'node:child_process'
-import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, utimesSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -203,6 +203,19 @@ const frameEval = async (expression, timeoutMs = 12000) => {
 const sessionsBefore = await frameEval(`JSON.stringify(globalThis.__AG_CLIENT__?.sessions?.() ?? null)`)
 record('sessionsBefore', typeof sessionsBefore === 'string' ? JSON.parse(sessionsBefore) : sessionsBefore)
 
+// 保留策略（v3.25）：在同目录埋一个 25h 前的「我们写的」抓取文件与一个用户文件
+console.log('1c. 埋入保留策略的测试文件（25h 前的抓取文件 + 用户自己的文件）')
+mkdirSync(join(WORKSPACE, '网页捕获'), { recursive: true })
+const staleName = '2026-09-10-2000-stale-retention-fixture-zz99.md'
+const stalePath = join(WORKSPACE, '网页捕获', staleName)
+const userKeepName = '我的笔记-不要删.md'
+const userKeepPath = join(WORKSPACE, '网页捕获', userKeepName)
+for (const [path, ageHours] of [[stalePath, 25], [userKeepPath, 200]]) {
+  writeFileSync(path, '# retention fixture\n', 'utf8')
+  const at = new Date(Date.now() - ageHours * 3600 * 1000)
+  utimesSync(path, at, at)
+}
+
 console.log('2. 让 fixture 页成为活动标签，然后从面板触发抓取')
 await browser.send('Target.activateTarget', { targetId: fixture.targetId })
 await sleep(600)
@@ -271,6 +284,11 @@ if (typeof selPath === 'string' && existsSync(selPath)) {
     chars: text.length,
   })
 }
+record('retention', {
+  stale25hRemoved: !existsSync(stalePath),
+  userFileKept: existsSync(userKeepPath),
+})
+
 record('hardeningChecks', (() => {
   // check the PAGE capture from THIS run — `latest` is the newest file at that
   // moment; reading `filePath` (undefined) silently turned this into `null`,

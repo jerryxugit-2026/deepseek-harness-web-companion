@@ -5,9 +5,13 @@
  * workspace's capture directory, atomically (tmp → rename) so the agent can
  * never read a half-written file. Also keeps a small pending queue so a capture
  * taken while no DSH page is open is delivered when one appears.
+ *
+ * Every write also prunes that directory (docs/03 §7): captures are agent input,
+ * so an unbounded directory is a context cost as much as a disk cost.
  */
 import { mkdir, rename, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { sweepCaptures } from './retention.js'
 
 /** Filesystem-safe, human-readable slug from a page title. */
 export function slugify(title) {
@@ -78,7 +82,19 @@ export function createStore(config) {
       const tmp = `${filePath}.tmp`
       await writeFile(tmp, body, 'utf8')
       await rename(tmp, filePath)
-      return { filePath, fileRef: `@${config.attachDir}/${name}`, bytes }
+      // Retention runs AFTER the new file exists, so the sweep can never race the
+      // write, and the file just written is never a candidate (mtime is now).
+      const swept = config.retentionHours > 0
+        ? await sweepCaptures(dir, { retentionHours: config.retentionHours, log: config.log })
+        : { removed: [], kept: 0, disabled: true }
+      return {
+        filePath,
+        fileRef: `@${config.attachDir}/${name}`,
+        bytes,
+        // internal only (not part of /ag/attach's response body)
+        pruned: swept.removed.length,
+        prunedFiles: swept.removed.map((entry) => entry.name),
+      }
     },
 
     /** Queue an event for delivery to the next client that connects. */

@@ -13,12 +13,12 @@
     "attachReply": {
       "ok": true,
       "value": {
-        "captureId": "cap-mtxgulki-5e3b",
+        "captureId": "cap-mtxrnm1x-63a3",
         "result": {
           "ok": true,
-          "captureId": "cap-mtxgulki-5e3b",
-          "fileRef": "@网页捕获/2026-09-11-1726-m2-抓取夹具页-i-5e3b.md",
-          "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-11-1726-m2-抓取夹具页-i-5e3b.md",
+          "captureId": "cap-mtxrnm1x-63a3",
+          "fileRef": "@网页捕获/2026-09-11-2228-m2-抓取夹具页-x-63a3.md",
+          "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-11-2228-m2-抓取夹具页-x-63a3.md",
           "deliveredTo": [
             "client:1"
           ]
@@ -36,7 +36,7 @@
         }
       }
     },
-    "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-11-1726-m2-抓取夹具页-i-5e3b.md",
+    "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-11-2228-m2-抓取夹具页-x-63a3.md",
     "fileChecks": {
       "hasMarker": true,
       "hasCategoryChips": false,
@@ -57,12 +57,12 @@
     "selectionReply": {
       "ok": true,
       "value": {
-        "captureId": "cap-mtxgulwf-a04d",
+        "captureId": "cap-mtxrnmgu-d801",
         "result": {
           "ok": true,
-          "captureId": "cap-mtxgulwf-a04d",
-          "fileRef": "@网页捕获/2026-09-11-1726-m2-抓取夹具页-f-a04d.md",
-          "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-11-1726-m2-抓取夹具页-f-a04d.md",
+          "captureId": "cap-mtxrnmgu-d801",
+          "fileRef": "@网页捕获/2026-09-11-2228-m2-抓取夹具页-u-d801.md",
+          "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-11-2228-m2-抓取夹具页-u-d801.md",
           "deliveredTo": [
             "client:1"
           ]
@@ -86,6 +86,10 @@
       "hasMarker": true,
       "chars": 282
     },
+    "retention": {
+      "stale25hRemoved": true,
+      "userFileKept": true
+    },
     "hardeningChecks": {
       "javascriptUrlDropped": true,
       "zeroWidthStripped": true,
@@ -95,31 +99,43 @@
       "connected": true,
       "chips": [
         {
-          "captureId": "cap-mtxgulki-5e3b",
+          "captureId": "cap-mtxrnm1x-63a3",
           "status": "inserted",
           "mode": "page",
+          "label": "📄 网页: M2 抓取夹具页"
+        },
+        {
+          "captureId": "cap-mtxrnmgu-d801",
+          "status": "inserted",
+          "mode": "selection+page",
           "label": "📄 网页: M2 抓取夹具页"
         }
       ],
       "acks": [
         {
-          "captureId": "cap-mtxgulki-5e3b",
+          "captureId": "cap-mtxrnm1x-63a3",
+          "status": "inserted"
+        },
+        {
+          "captureId": "cap-mtxrnmgu-d801",
           "status": "inserted"
         }
       ],
       "lastAttach": {
-        "captureId": "cap-mtxgulki-5e3b",
+        "captureId": "cap-mtxrnmgu-d801",
         "inserted": true,
         "detail": "",
-        "fileRef": "@网页捕获/2026-09-11-1726-m2-抓取夹具页-i-5e3b.md",
-        "sessionId": "session-a0afb54f-226d-482c-98c1-2ec81a0e178b",
+        "fileRef": "@网页捕获/2026-09-11-2228-m2-抓取夹具页-u-d801.md",
+        "sessionId": "session-a67bc245-bd4f-4f54-b630-69db2acecd93",
         "sessionMode": "new",
         "switched": true
       }
     },
     "sessionsAfter": {
-      "current": "session-855fa26d-be4d-41dc-a9b1-8d5c027db888",
+      "current": "session-a67bc245-bd4f-4f54-b630-69db2acecd93",
       "ids": [
+        "session-a67bc245-bd4f-4f54-b630-69db2acecd93",
+        "session-fe3e044a-2a70-462d-8992-1bc48ec8c666",
         "session-855fa26d-be4d-41dc-a9b1-8d5c027db888",
         "session-a0afb54f-226d-482c-98c1-2ec81a0e178b",
         "session-1baa40f7-1146-4f89-9931-942c61c4ee26",
@@ -148,7 +164,7 @@
         "session-af4d394f-aeb1-4b76-850b-267a190e00dd",
         "session-6b8a1366-8e2f-422b-93c5-3d778059a7cc"
       ],
-      "count": 27
+      "count": 29
     },
     "newSessionCreated": true,
     "targetIsFreshSession": true,

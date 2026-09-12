@@ -52,6 +52,9 @@ export function apply(ctx, config = {}) {
     pendingLimit: config.pendingLimit ?? 32,
     defaultWorkspace: config.defaultWorkspace,
     attachSessionMode: config.attachSessionMode ?? 'new',
+    // 0 (or negative) disables the sweep; see docs/03 §7 and host/retention.js
+    retentionHours: config.retentionHours ?? 24,
+    log: (line) => ctx.logger?.info?.(`[dsh-web-companion-bridge] ${line}`),
     intentEnabled: config.intentEnabled ?? true,
     intentCaptureMode: config.intentCaptureMode ?? 'page',
   }

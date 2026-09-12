@@ -128,6 +128,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
 | `keyFile` | string | `$DSH_HOME/dsh-web-companion.json` | 预共享 key 文件 |
 | `attachDir` | string | `网页捕获` | 相对工作区的落盘目录 |
 | `attachMaxBytes` | number | `8388608` | 单次捕获上限（含截图 base64） |
+| `retentionHours` | number | `24` | 抓取目录保留期：**每次落盘后**清掉同目录里严格老于此值、且文件名属于本插件（`yyyy-MM-dd-HHmm-*.md` 与 `.tmp`）的文件；`0`（或负数）关闭。用户自己放进目录的文件永不删（v3.25） |
 | `markdownMaxChars` | number | `120000` | 写入文件的正文上限 |
 | `toolTimeoutMs` | number | `10000` | 浏览器操作默认超时 |
 | `allowBrowserWriteOps` | boolean | `false` | 是否允许 click/type/navigate（默认只读，见 DESIGN §8） |
@@ -300,6 +301,16 @@ writeMarkdown(capture): Promise<{ fileRef: string, filePath: string }>
 // 内容：YAML front-matter(title/url/domain/capturedAt/mode) + 可选「选区引用块」+ 正文 Markdown
 // 原子写：先写 .tmp 再 rename（复用 DSH atomic-write 约定），避免半截文件被 Agent 读到
 // fileRef：`@<attachDir>/<file>.md`（工作区相对路径，可直接作为 @ 引用文本）
+
+pruneCaptures(dir): Promise<{ removed: {name, ageHours}[], kept: number }>
+// 保留策略（v3.25，用户实测提出）：抓取目录每抓一次多一个 .md，而任何东西都不删它们，
+// 于是"无限膨胀" —— 更贵的是它同时是 Agent 的输入（上下文成本，不只是磁盘）。
+// 策略：write() 成功后清扫同一目录：只挑**我们自己命名**的文件（stamp 规则 + .tmp 残留），
+//       按 mtime 判断「严格老于 retentionHours」才删；用户放进去的文件计入 kept，永不动。
+// 实测：tests/unit/retention.test.mjs（19 断言）+ tests/m2/capture-probe.mjs 的现场断言
+//       （埋 25h 前的抓取文件 → 真捕获一次 → 该文件消失、用户文件保留）。
+// 平台事实：macOS/APFS 的 mtime 是纳秒精度，毫秒级 Date 经 utimes 会存成 `….999ms`，
+//       因此单测断言用 ±1s 边距，不钉"恰好相等"。
 
 admitImage(png: Buffer): Promise<{ attachmentId: string }>
 // 走 DSH 的持久 attachment 服务（ctx.attachments / dsh-attachment-local）
