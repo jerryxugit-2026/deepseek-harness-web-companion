@@ -31,12 +31,12 @@
     },
     {
       "path": "README.md",
-      "title": "DSH Web Companion（DeepSeek Harness 网页侧边栏智能伴侣）",
+      "title": "DSH Web Companion（Antigravity Web Companion）",
       "version": null,
-      "lines": 81,
-      "sections": 7,
+      "lines": 102,
+      "sections": 9,
       "codeRefs": 0,
-      "docRefs": 15
+      "docRefs": 0
     },
     {
       "path": "docs/01-protocol.md",
@@ -111,11 +111,20 @@
       "docRefs": 0
     },
     {
+      "path": "docs/09-manual-checklist.md",
+      "title": "人工验收清单（有头 Chrome）",
+      "version": null,
+      "lines": 48,
+      "sections": 7,
+      "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
       "path": "docs/CHANGELOG.md",
       "title": "变更记录（CHANGELOG）",
       "version": "v3.0",
-      "lines": 841,
-      "sections": 32,
+      "lines": 863,
+      "sections": 33,
       "codeRefs": 0,
       "docRefs": 1
     },
@@ -123,7 +132,7 @@
       "path": "docs/DOC-GRAPH.md",
       "title": "文档与代码图谱（DOC-GRAPH）",
       "version": null,
-      "lines": 292,
+      "lines": 293,
       "sections": 6,
       "codeRefs": 190,
       "docRefs": 0
@@ -266,7 +275,7 @@
     {
       "path": "详细设计文档.md",
       "title": "DSH Web Companion · 详细设计规范说明书",
-      "version": "v3.28",
+      "version": "v3.29",
       "lines": 896,
       "sections": 16,
       "codeRefs": 36,

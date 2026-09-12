@@ -13,19 +13,19 @@
     "attachReply": {
       "ok": true,
       "value": {
-        "captureId": "cap-mtxrnm1x-63a3",
+        "captureId": "cap-mtxsdntr-7cc5",
         "result": {
           "ok": true,
-          "captureId": "cap-mtxrnm1x-63a3",
-          "fileRef": "@网页捕获/2026-09-11-2228-m2-抓取夹具页-x-63a3.md",
-          "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-11-2228-m2-抓取夹具页-x-63a3.md",
+          "captureId": "cap-mtxsdntr-7cc5",
+          "fileRef": "@网页捕获/2026-09-11-2249-m2-抓取夹具页-r-7cc5.md",
+          "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-11-2249-m2-抓取夹具页-r-7cc5.md",
           "deliveredTo": [
-            "client:1"
+            "client:3"
           ]
         },
         "meta": {
-          "chars": 248,
-          "cleaner": 3,
+          "chars": 505,
+          "cleaner": 4,
           "description": "用于验证正文抽取的夹具页面",
           "headings": [
             "M2 抓取夹具",
@@ -36,7 +36,7 @@
         }
       }
     },
-    "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-11-2228-m2-抓取夹具页-x-63a3.md",
+    "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-11-2249-m2-抓取夹具页-r-7cc5.md",
     "fileChecks": {
       "hasMarker": true,
       "hasCategoryChips": false,
@@ -51,25 +51,25 @@
       "hasCodeBlock": true,
       "hasAbsoluteLink": true,
       "frontMatter": true,
-      "chars": 422
+      "chars": 679
     },
     "selectionSet": "FIXTURE-ARTICLE-MARKER-77 这是主内容第一段，用于验证抽取与落盘。",
     "selectionReply": {
       "ok": true,
       "value": {
-        "captureId": "cap-mtxrnmgu-d801",
+        "captureId": "cap-mtxsdo9b-b51a",
         "result": {
           "ok": true,
-          "captureId": "cap-mtxrnmgu-d801",
-          "fileRef": "@网页捕获/2026-09-11-2228-m2-抓取夹具页-u-d801.md",
-          "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-11-2228-m2-抓取夹具页-u-d801.md",
+          "captureId": "cap-mtxsdo9b-b51a",
+          "fileRef": "@网页捕获/2026-09-11-2249-m2-抓取夹具页-b-b51a.md",
+          "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-11-2249-m2-抓取夹具页-b-b51a.md",
           "deliveredTo": [
-            "client:1"
+            "client:3"
           ]
         },
         "meta": {
-          "chars": 248,
-          "cleaner": 3,
+          "chars": 505,
+          "cleaner": 4,
           "description": "用于验证正文抽取的夹具页面",
           "headings": [
             "M2 抓取夹具",
@@ -90,6 +90,12 @@
       "stale25hRemoved": true,
       "userFileKept": true
     },
+    "placeholderAnchors": {
+      "bareAnchorJunkGone": true,
+      "realShortLabelKept": true,
+      "proseWithShortAnchorKept": true,
+      "longDocLinksKept": true
+    },
     "hardeningChecks": {
       "javascriptUrlDropped": true,
       "zeroWidthStripped": true,
@@ -99,41 +105,37 @@
       "connected": true,
       "chips": [
         {
-          "captureId": "cap-mtxrnm1x-63a3",
+          "captureId": "cap-mtxsdntr-7cc5",
           "status": "inserted",
           "mode": "page",
-          "label": "📄 网页: M2 抓取夹具页"
-        },
-        {
-          "captureId": "cap-mtxrnmgu-d801",
-          "status": "inserted",
-          "mode": "selection+page",
           "label": "📄 网页: M2 抓取夹具页"
         }
       ],
       "acks": [
         {
-          "captureId": "cap-mtxrnm1x-63a3",
-          "status": "inserted"
-        },
-        {
-          "captureId": "cap-mtxrnmgu-d801",
+          "captureId": "cap-mtxsdntr-7cc5",
           "status": "inserted"
         }
       ],
       "lastAttach": {
-        "captureId": "cap-mtxrnmgu-d801",
+        "captureId": "cap-mtxsdntr-7cc5",
         "inserted": true,
         "detail": "",
-        "fileRef": "@网页捕获/2026-09-11-2228-m2-抓取夹具页-u-d801.md",
-        "sessionId": "session-a67bc245-bd4f-4f54-b630-69db2acecd93",
+        "fileRef": "@网页捕获/2026-09-11-2249-m2-抓取夹具页-r-7cc5.md",
+        "sessionId": "session-544624c5-cdea-45ee-be1a-31476c727962",
         "sessionMode": "new",
         "switched": true
       }
     },
     "sessionsAfter": {
-      "current": "session-a67bc245-bd4f-4f54-b630-69db2acecd93",
+      "current": "session-1bc1c96b-d620-487e-b7b6-ece47971c64b",
       "ids": [
+        "session-1bc1c96b-d620-487e-b7b6-ece47971c64b",
+        "session-544624c5-cdea-45ee-be1a-31476c727962",
+        "session-f40033cf-e3e6-4277-92c0-5f32a4748dc0",
+        "session-ba953ddb-f6ec-4b9a-abd2-1915aa094ee8",
+        "session-fc5c3137-b0f6-4824-a5d9-6da2dbb1586d",
+        "session-6178ce29-fe1f-4c29-91a8-a45793cc5dc6",
         "session-a67bc245-bd4f-4f54-b630-69db2acecd93",
         "session-fe3e044a-2a70-462d-8992-1bc48ec8c666",
         "session-855fa26d-be4d-41dc-a9b1-8d5c027db888",
@@ -164,7 +166,7 @@
         "session-af4d394f-aeb1-4b76-850b-267a190e00dd",
         "session-6b8a1366-8e2f-422b-93c5-3d778059a7cc"
       ],
-      "count": 29
+      "count": 35
     },
     "newSessionCreated": true,
     "targetIsFreshSession": true,

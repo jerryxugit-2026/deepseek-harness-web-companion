@@ -53,21 +53,32 @@ export function extractPage(options = {}) {
    * rules — all measured against the ClawHub page and the fixture:
    *
    *   A. chip rows: 3+ sibling leaf elements whose text is short and unpunctuated
-   *      (category tags, breadcrumbs, "SKILL.md / Files / Versions" tabs);
+   *      (category tags, breadcrumbs, "SKILL.md / Files / Versions" tabs). The
+   *      length bound is 12 characters on purpose: at 24 it also swallowed the
+   *      short-labelled items of a real link list (measured 2026-09-11 with the
+   *      fixture's `[Go]` / `doc/2` items). Longer labels are content links; the
+   *      tab-strip case is still covered by rule B's explicit allowlist;
    *   B. action labels: an exact-match allowlist of UI verbs;
    *   C. trailing meta blocks: download counts, "Last updated …", version/license
    *      lines near the end of the document.
+   *   D. placeholder anchors (v3.29): a list item whose whole link text is 1–2
+   *      characters AND whose href is a bare in-page anchor (`#` / same-page `#x`).
+   *      Found in a real capture (apexnc.org): two `- [A](…#)` lines sitting above
+   *      the real content. Deliberately narrow — it does NOT touch short real
+   *      labels ("Home") or any link that navigates somewhere.
    */
   const text = (el) => String(el.textContent ?? '').replace(/\s+/g, ' ').trim()
   const sentences = (value) => /[。．.!?；;：:]|\s\S{40,}/u.test(value)
 
+  /** Chips are labels; anything longer is treated as content (see the note above). */
+  const CHIP_LABEL_MAX = 12
   const stripChipRows = () => {
     for (const parent of [...clone.querySelectorAll('*')]) {
       const kids = [...parent.children]
       if (kids.length < 3) continue
       const leafish = kids.filter((kid) => {
         const value = text(kid)
-        return value !== '' && value.length <= 24 && !sentences(value) && kid.children.length <= 1
+        return value !== '' && value.length <= CHIP_LABEL_MAX && !sentences(value) && kid.children.length <= 1
       })
       // a row where *most* children are short unpunctuated labels is a chip/tab strip
       if (leafish.length >= 3 && leafish.length >= kids.length - 1) {
@@ -98,7 +109,26 @@ export function extractPage(options = {}) {
     }
   }
 
+  const stripPlaceholderAnchors = () => {
+    for (const item of [...clone.querySelectorAll('li, p, div, span')]) {
+      if (item.children.length > 1) continue
+      const links = [...item.querySelectorAll('a')]
+      if (links.length !== 1) continue
+      const link = links[0]
+      const label = text(link)
+      if (label.length === 0 || label.length > 2) continue
+      const href = String(link.getAttribute('href') ?? '').trim()
+      // `#`, `#fragment`, or the same document with a fragment: a no-op navigation
+      const isBareAnchor = /^#/u.test(href) || (href !== '' && href.startsWith('#') === false && /#$/u.test(href) && href.split('#')[0].startsWith(location.href.split('#')[0]))
+      if (!isBareAnchor) continue
+      // keep the item when it carries real text beyond the placeholder link
+      if (text(item).replace(label, '').trim() !== '') continue
+      item.remove()
+    }
+  }
+
   const applied = []
+  if (options.stripPlaceholderAnchors !== false) { stripPlaceholderAnchors(); applied.push('placeholder-anchors') }
   if (options.stripChipRows !== false) { stripChipRows(); applied.push('chip-rows') }
   if (options.stripActionLabels !== false) { stripActionLabels(); applied.push('action-labels') }
   if (options.stripTrailingMeta !== false) { stripTrailingMeta(); applied.push('trailing-meta') }

@@ -57,7 +57,15 @@ const fixtureServer = createServer((_req, res) => {
     <a href="/c/knowledge">Knowledge</a><a href="/c/automation">Automation</a><a href="/c/creative">Creative</a>
   </div>
   <p>${MARKER} 这是主内容第一段，用于验证抽取与落盘。</p>
-  <h2>小节标题</h2>
+  <ul class="doc-list">
+  <li><a href="#placeholder-anchor-junk">A</a></li>
+  <li><a href="http://127.0.0.1:${String(FIXTURE_PORT)}/#x">B</a></li>
+  <li><a href="http://127.0.0.1:${String(FIXTURE_PORT)}/relative/path">Go</a></li>
+  <li><a href="http://127.0.0.1:${String(FIXTURE_PORT)}/doc/1">这是一份真实文档链接，标题很长不会被当成 chip</a></li>
+  <li><a href="http://127.0.0.1:${String(FIXTURE_PORT)}/doc/2">另一份同样很长的真实文档链接标题</a></li>
+</ul>
+<p>真实正文里的短标签反例：<a href="#real-section">Home</a> 必须保留。</p>
+<h2>小节标题</h2>
   <ul><li>要点一</li><li>要点二</li></ul>
   <pre><code class="language-js">const answer = 42</code></pre>
   <p>外部链接：<a href="/relative/path">相对链接</a></p>
@@ -288,6 +296,18 @@ record('retention', {
   stale25hRemoved: !existsSync(stalePath),
   userFileKept: existsSync(userKeepPath),
 })
+
+record('placeholderAnchors', (() => {
+  const body = typeof pagePathFromReply === 'string' && existsSync(pagePathFromReply) ? readFileSync(pagePathFromReply, 'utf8') : ''
+  return {
+    // 1–2 字 + 纯页内锚点的列表项应被清掉
+    bareAnchorJunkGone: !/^- \[[AB]\]\(/mu.test(body),
+    // 短标签但真的会跳转的链接必须保留（反例）
+    realShortLabelKept: body.includes('[Go]('),
+    proseWithShortAnchorKept: body.includes('[Home]('),
+    longDocLinksKept: body.includes('doc/1') && body.includes('doc/2'),
+  }
+})())
 
 record('hardeningChecks', (() => {
   // check the PAGE capture from THIS run — `latest` is the newest file at that

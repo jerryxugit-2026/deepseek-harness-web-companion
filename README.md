@@ -1,80 +1,101 @@
-# DSH Web Companion（DeepSeek Harness 网页侧边栏智能伴侣）
+# DSH Web Companion（Antigravity Web Companion）
 
-在 Chrome 侧边栏里直接驱动本机 **DeepSeek Harness (DSH)** 完全体 Agent：点开即用原生 DSH 界面，写下「看左边」或点顶栏按钮，把左侧网页快照（正文 Markdown + 视口截图 + best-effort 字幕/元数据）注入本地工作区，打通「网页信息获取 → 本地工程修改与命令执行」闭环。
+点一下浏览器按钮即开侧边栏、直接看到**本地 DSH agent**，并把你正在看的网页一键交给他 —— 同时给 agent 读写磁盘、执行命令、反向操作浏览器的能力。
 
-> **Agent 内核 = DSH**（本机真实运行，带本地文件读写、沙箱终端、子 agent 与权限审批）。桥接层以 **DSH 进程内插件**实现，复用既有 3080 端口，**0 新增常驻进程**。
-> ⚠️ 内嵌复用的是 DSH 的**视觉与交互层**；上下文胶囊、意图嗅探、草稿写入等**桥接逻辑仍需自写 client 插件**（详见详设 §0.3）。
+> 设计真源：`详细设计文档.md`（v3.29）。所有结论都带证据标签（【实测】/【源码】/【文档】/【推理】/【目标·未测】）；本 README 只做入口与现状汇总。
 
----
+## 它长什么样
 
-## 当前状态
-
-| 阶段 | 状态 |
-|---|---|
-| 可行性验证（真实 Chrome 内嵌 DSH + 认证方案） | ✅ [FINDINGS.md](./FINDINGS.md)（含截图与实测矩阵） |
-| 详细设计 **v3.1**（已吸收两份独立审核的修正） | ✅ [详细设计文档.md](./详细设计文档.md) |
-| 内部评审 + PiMoa 多模型对抗审核 | ✅ [docs/REVIEW-v3.0.md](./docs/REVIEW-v3.0.md) · [docs/reviews/](./docs/reviews/) |
-| 文档 ↔ 代码双图谱 | ✅ [docs/DOC-GRAPH.md](./docs/DOC-GRAPH.md) + `.codegraph/`（CodeGraph 1.6.0） |
-| **待你拍板** | ⏳ **H4**：DSH 未运行时是否自动拉起（详设 [§0.2](./详细设计文档.md)；本版按「做」设计） |
-| 代码实现 | ⏸ M1 骨架已写但**暂停**；评审通过后从 **M0 最小闭环 spike** 开工 |
-
----
-
-## 三条已实测的关键事实
-
-1. 扩展页面**不能**直连 DSH `/api`（Origin/Sec-Fetch 围栏 → 403），但 iframe 内 DSH 页面自身的同源请求合法 → 自建 `/ag/*` 路由（自行校验预共享 key + 钉死扩展 ID）。
-2. DSH 原生的 `SameSite=Strict` cookie 在扩展 iframe 内 **fetch 能过、WebSocket 握手 401**（界面卡在 `connection lost`）；改签 **`SameSite=None; Secure`** 后完整可用 —— 截图 `spike/out/panel-none-secure.png`。
-3. Chrome 137+ 已移除命令行 `--load-extension` → 自动化测试走 CDP `Extensions.loadUnpacked`；本机**没有 pnpm** → 开发期用 profile `cordis.patch.yml` 绝对路径条目安装插件（已实测跑通）。
-
----
-
-## 文档导航
-
-| 文档 | 内容 |
-|---|---|
-| **[详细设计文档.md](./详细设计文档.md)** | ★ **唯一权威（v3.1）**：量化验收、硬约束、架构、ADR、协议契约、模块函数级设计、时序与降级矩阵、测试方案、安全模型、里程碑、平台速查、未决问题与最脆弱假设 |
-| [DESIGN.md](./DESIGN.md) | 设计摘要（与详设一致；**冲突时以详设为准**并视为阻断项） |
-| [PRD_需求定义说明书.md](./PRD_需求定义说明书.md) | 需求定义（v3.0） |
-| [FINDINGS.md](./FINDINGS.md) | 可行性实证：约束、变体矩阵、复现方式 |
-| [docs/REVIEW-v3.0.md](./docs/REVIEW-v3.0.md) | 内部评审：12 条硬错误 + 11 处信息丢失 + 优化建议 |
-| [docs/reviews/](./docs/reviews/) | PiMoa 多模型对抗审核结果（8 阻断 / 10 MAJOR / 3 内部矛盾） |
-| [docs/CHANGELOG.md](./docs/CHANGELOG.md) | 变更纪律与历史（防止重写丢信息） |
-| [docs/DOC-GRAPH.md](./docs/DOC-GRAPH.md) | 文档 ↔ 代码图谱（自动生成，随进展更新） |
-| [docs/01](./docs/01-protocol.md) · [02](./docs/02-extension.md) · [03](./docs/03-bridge-plugin.md) · [04](./docs/04-client-plugin.md) · [05](./docs/05-native-host.md) · [06](./docs/06-test-plan.md) · [07](./docs/07-implementation-plan.md) · [08](./docs/08-security.md) | 模块详版（协议/扩展/host 插件/client 插件/native host/测试/计划/安全） |
-| [docs/research/](./docs/research/) | 三份平台调研（DSH 插件规范 / composer 接缝 / Chrome 约束，带 citations） |
-
----
-
-## 工程纪律（质量门）
-
-```sh
-npm run graph:sync     # 代码图谱增量重建（CodeGraph，本地 SQLite + FTS5）
-npm run graph:docs     # 文档图谱重生成（docs/DOC-GRAPH.md + doc-graph.json）
-npm run graph:check    # 校验图谱是否最新 + 引用是否断裂（必须 0 问题）
-
-# 对抗审核（本地 PiMoa MCP，127.0.0.1:8758；用 ~/ai_tools/PiMoa/bin/pimoa-service.sh status 查看服务）
-node scripts/pimoa-review.mjs --tool moa_verify \
-  --prompt-file scripts/review-prompts/design-adversarial.md \
-  --context 详细设计文档.md docs/REVIEW-v3.0.md \
-  --out docs/reviews/pimoa-<milestone>.md
+```
+┌─ Chrome ──────────────────────┐        ┌─ 本机 DSH（dsh web） ─────────────┐
+│ 侧边栏（panel.html 微壳）      │        │ 桥接插件 dsh-web-companion-bridge │
+│  ├ 状态灯 / Attach 网页 / 选区 │←─WS───→│  /ag/agent  /ag/client            │
+│  ├ 授权并抓取 / 浏览器控制/写操作│  HTTP  │  /ag/enter /ag/attach /ag/control│
+│  └ iframe：真正的 DSH GUI      │←──────→│                                   │
+└───────────────────────────────┘        └───────────────────────────────────┘
+        │ chrome.scripting / chrome.debugger
+        ▼
+   左侧当前网页（正文抽取 / 截图 / 可信点击与输入）
 ```
 
-**每个里程碑收尾必须**：①刷新两个图谱 ②跑 PiMoa 复评 ③`graph:check` 与复评任一不过，不得进入下一阶段。
+三条通道刻意分开：`/ag/client`（DSH 页面半通道：抓取推送、意图、ack）、`/ag/agent`（扩展：意图转发、`browser_*` 工具调用）、HTTP 控制面（配对票据、进入握手、运行期开关）。
 
----
+## 快速开始
+
+```bash
+cd "dsh project/网页插件"
+
+npm install                       # 根依赖（含 ws、codegraph）
+node scripts/init-key.mjs         # 生成配对 key（幂等）→ ~/.dsh/dsh-web-companion.json
+node native-host/install.mjs      # 安装 native messaging host（用于自动拉起 dsh web）
+npm run build:ext                 # 构建扩展 → extension/dist
+
+dsh web                           # 启动 DSH（web profile，默认 3080）
+```
+
+然后在 `chrome://extensions` 里 **加载已解压的扩展程序** → 选 `extension/dist`，点侧边栏图标即可。
+
+> 插件安装（开发期）：在 `~/.dsh/profiles/web/cordis.patch.yml` 加一行
+> `- insert: [{ id: dsh-web-companion-bridge, name: '<绝对路径>/dsh-plugin/src/host/index.js' }]`，
+> 然后重启 `dsh web`。
+
+## 现在能做什么（每条都有实测）
+
+| 能力 | 用法 | 证据 |
+|---|---|---|
+| 侧边栏内嵌真实 DSH GUI | 点图标 → 面板 iframe | E2E-1 真实 GUI 通过 |
+| 抓取整页正文为 Markdown | 面板「Attach 网页」/ 右键菜单 | UI 噪音三条启发式 + 占位锚点清理；真站（apexnc.org）实测 |
+| 抓取选区 | 先在网页划选，再点「Attach 选区」 | 选区文件仅含选区（282 字），含 `> **用户选区**` 块 |
+| 输入框写「看左边」自动抓当前页 | 在 DSH 输入框写「看左边」 | 全链路 16/16（无 `<all_urls>` 授权下）：嗅探 → 转发 → 抓取 → 落盘 → 回推 → 胶囊 + 引用写入当前会话 |
+| agent 反向操作浏览器 | 开「浏览器控制」；模型调用 `browser_read/click/type/navigate/tabs/wait/screenshot/ax` | ops 31/31（真 Chrome）：非可信/可信两条路径都真的改变页面，`trusted` 如实标注 |
+| 写操作开关 + 审批 | 面板「写操作」开关 | 控制面 10/10：能力集 5↔8 无需重启；本机部署 `approvalMode: "ask"`（每次写操作先请求批准） |
+| 抓取目录不膨胀 | 自动（每次落盘后清扫 24h 前的本插件文件） | 单测 19 断言 + 现场断言（25h 前文件被清、用户文件保留） |
+
+## 安全模型（三道闸门 + 一条保留策略）
+
+1. **配对**：`key + 精确扩展 Origin`（F2/F3），iframe 用一次性 ticket（30s、单次）而非长期 key；DSH 自身 `/api` 围栏**未**被削弱。
+2. **写操作三层**：`allowBrowserWriteOps=false` 时写类工具**不注册**（模型看不见）→ 扩展对同一帧复核（`E_READONLY`）→ `tools/pre-execute` waterfall 交给 DSH 审批逐次批准。
+3. **调试器**：`debugger` 是必需权限（Chrome 拒绝 optional，ADR-12），但**默认不 attach**，由「浏览器控制」开关决定，关闭即释放。
+4. **保留策略**：每次落盘后清掉同目录 24h 前**本插件命名**的文件；用户自己放进目录的文件永不删。
+
+## 测试与门禁
+
+```bash
+npm run check          # 七道门：协议一致性 → 图谱同步 → 文档图谱 → 反模式黑名单 → 协议契约 → 单测 → 构建
+npm run check:strict   # 交付前：文档图谱逐字节比对
+
+npm run test:unit              # tickets + retention + frame-budget + browser-tools + write-gate
+npm run probe:look-left        # 「看左边」桥接跳（11 断言，需 dev 实例）
+npm run probe:look-left-e2e    # 「看左边」全链路（16 断言，真 Chrome）
+npm run probe:capture          # 抓取：整页/选区/噪音/硬化/保留（真 Chrome）
+npm run probe:m3-ops           # 浏览器 op 层（31 断言，真 Chrome）
+npm run probe:m3-control       # 写操作开关控制面（10 断言，真 Chrome + dev 实例）
+npm run probe:m3-debugger      # debugger 能力前置（14 断言）
+```
+
+需要 dev 实例的探针先跑：`DSH_HOME="$PWD/.devhome" dsh web --no-open --port 3099 &`。
 
 ## 目录结构
 
 ```
-网页插件/
-├── 详细设计文档.md / PRD_需求定义说明书.md / DESIGN.md / FINDINGS.md / README.md
-├── docs/            # 模块详版、平台调研、评审报告、对抗审核、图谱、变更记录
-├── protocol/        # 单源消息 schema + codegen（M1）
-├── extension/       # Chrome MV3（TypeScript + Vite）
-├── dsh-plugin/      # DSH 插件（host 桥接 + client composer 注入）
-├── native-host/     # native messaging 宿主（M2，H4 决策后）
-├── scripts/         # init-key / doc-graph / pimoa-review / review-prompts
-├── tests/e2e/       # E2E harness（CDP 驱动真实 Chrome）
-├── spike/           # 已跑通的可行性实验（回归基线）
-└── .devhome/        # 隔离 DSH_HOME（dev/e2e 用，已 gitignore）
+protocol/          单源协议（messages.schema.json → codegen 生成三份产物 + 契约测试向量）
+dsh-plugin/        桥接插件：host 半（路由/hub/工具/保留策略）+ client 半（DSH 页面内）
+extension/         MV3 扩展：sw（抓取、ops）/ content（抽取器）/ sidepanel（微壳 + agent 通道）
+native-host/       native messaging host（自动拉起 dsh web）
+scripts/           配对、文档图谱、反模式黑名单、PiMoa 对抗审核
+tests/             单测 + 各里程碑探针（m0a/m0b/m1/m2/m3）
+docs/              分册文档、研究、审核记录、探针报告
 ```
+
+## 已知限制（诚实清单）
+
+- **多站点抓取质量**：启发式是保守的；导航型短链接列表在某些站点仍可能被误删（可用 `stripChipRows: false` 等开关逐条关闭）。
+- **`browser_screenshot` 的工具结果给的是文件路径**，不是图片块：像素落 `<workspace>/网页捕获/assets/`，避免猜 DSH 图片块的形状。
+- **意图抓取依赖扩展侧授权**：未授予 `<all_urls>` 时，只能抓已持 host 权限的站点（如 `127.0.0.1`）；面板会给出可操作的提示。
+- **M4 未完成项**：胶囊目前是 DOM 注入（设计里想改用 `conversation.input.dock` 插槽）；多站点质量回归探针；CI 化。
+
+## 相关文档
+
+- `详细设计文档.md` —— 架构、ADR、协议、模块、测试方案、安全模型、里程碑
+- `docs/CHANGELOG.md` —— 每个版本改了什么、为什么（含被推翻的结论）
+- `docs/reviews/` —— 探针报告与对抗审核结论
