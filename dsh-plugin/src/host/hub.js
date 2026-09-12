@@ -51,6 +51,8 @@ export function createHub({
 
   const attach = (channel) => (req, socket, head) => {
     servers[channel].handleUpgrade(req, socket, head, (ws) => {
+      // `lastSeen` is refreshed by every inbound frame — the liveness signal a call
+      // selection can trust (see callAgent).
       const entry = { ws, lastSeen: Date.now(), id: `client:${Math.random().toString(16).slice(2, 6)}`, inflight: new Set() }
       sockets[channel].add(entry)
       log(`hub: ${channel} peer connected (${String(sockets[channel].size)})`)
@@ -73,6 +75,21 @@ export function createHub({
         }
         if (channel === 'client') onClientFrame(frame, entry)
         else onAgentFrame(frame, entry)
+      })
+      ws.on('close', (code) => {
+        // v3.37 修复：这一支在"清理调试日志"时被整块删掉了，只剩 error 分支 —— 而
+        // 心跳的 terminate() 与对端干净关闭都只触发 `close`，于是死亡 socket 永远留在
+        // 集合里：它们收得到广播的 ping、吞掉只发给"第一个"的工具调用（真事故：模型看到
+        // "The extension timed out"）。没有这一支，集合还会无限增长。
+        sockets[channel].delete(entry)
+        for (const id of [...entry.inflight]) {
+          const pending = inflight.get(id)
+          inflight.delete(id)
+          entry.inflight.delete(id)
+          clearTimeout(pending?.timer)
+          pending?.reject(Object.assign(new Error('extension disconnected while the call was in flight'), { code: 'E_EXT_OFFLINE' }))
+        }
+        log(`hub: ${channel} peer closed (code=${String(code)} now=${String(sockets[channel].size)})`)
       })
       ws.on('error', () => { sockets[channel].delete(entry) })
     })
@@ -99,6 +116,8 @@ export function createHub({
     if (pending === undefined) return
     inflight.delete(id)
     pending.entry?.inflight.delete(id)
+    // It answered, so it is alive: clear any earlier suspicion.
+    if (pending.entry !== undefined) delete pending.entry.suspectAt
     clearTimeout(pending.timer)
     const elapsedMs = Date.now() - pending.startedAt
     log(`hub: agent call ${pending.tool} ${frame.ok === true ? 'ok' : `failed (${String(frame.error?.code ?? '?')})`} in ${String(elapsedMs)}ms`)
@@ -132,40 +151,76 @@ export function createHub({
      * @param {{timeoutMs?: number}} [options]
      */
     callAgent(request, options = {}) {
-      const entry = [...sockets.agent][0]
-      if (entry === undefined) {
+      // Selection + retry, both earned by a real failure (2026-09-11):
+      //   - a panel that died without a clean close stays in the set until the
+      //     heartbeat prunes it, and heartbeats are BROADCAST while a call goes to
+      //     exactly ONE socket — so the corpse can answer pings and still eat the
+      //     tool call (the model then reports "The extension timed out");
+      //   - ordering by `lastSeen` is not enough either: a socket that answers pings
+      //     but not calls is *recently seen* by definition (caught by
+      //     tests/unit/agent-selection.test.mjs).
+      // So: try candidates most-recently-seen first, cap each attempt, mark the ones
+      // that do not answer, and only report E_TIMEOUT when the whole budget is gone.
+      const candidates = [...sockets.agent].sort((a, b) => (b.lastSeen ?? 0) - (a.lastSeen ?? 0))
+        .sort((a, b) => (a.suspectAt === undefined ? 0 : 1) - (b.suspectAt === undefined ? 0 : 1))
+      if (candidates.length === 0) {
         return Promise.reject(Object.assign(new Error('no browser extension is connected (open the side panel)'), { code: 'E_EXT_OFFLINE' }))
       }
-      callSeq += 1
-      const id = `tool-${Date.now().toString(36)}-${String(callSeq)}`
-      const timeoutMs = options.timeoutMs ?? 15000
-      const frame = {
-        type: 'tool-call',
-        protocolVersion: options.protocolVersion ?? 1,
-        id,
-        tool: request.tool,
-        params: request.params ?? {},
-        ...(request.allowWrite === true ? { allowWrite: true } : {}),
-      }
-      return new Promise((resolve, reject) => {
-        const timer = setTimeout(() => {
-          inflight.delete(id)
-          entry.inflight.delete(id)
-          reject(Object.assign(new Error(`extension did not answer ${request.tool} within ${String(timeoutMs)}ms`), { code: 'E_TIMEOUT' }))
-        }, timeoutMs)
-        timer.unref?.()
-        inflight.set(id, { resolve, reject, timer, entry, tool: request.tool, startedAt: Date.now() })
-        entry.inflight.add(id)
-        try {
-          entry.ws.send(JSON.stringify(frame))
-        } catch (error) {
-          inflight.delete(id)
-          entry.inflight.delete(id)
-          clearTimeout(timer)
-          sockets.agent.delete(entry)
-          reject(Object.assign(new Error(`could not reach the extension: ${String(error?.message ?? error)}`), { code: 'E_EXT_OFFLINE' }))
+      const totalBudget = options.timeoutMs ?? 15000
+      const deadline = Date.now() + totalBudget
+
+      const attempt = (entry, budget) => {
+        callSeq += 1
+        const id = `tool-${Date.now().toString(36)}-${String(callSeq)}`
+        const frame = {
+          type: 'tool-call',
+          protocolVersion: options.protocolVersion ?? 1,
+          id,
+          tool: request.tool,
+          params: request.params ?? {},
+          ...(request.allowWrite === true ? { allowWrite: true } : {}),
         }
-      })
+        return new Promise((resolve, reject) => {
+          const timer = setTimeout(() => {
+            inflight.delete(id)
+            entry.inflight.delete(id)
+            // Remember which socket failed to answer, so the next candidate goes first.
+            entry.suspectAt = Date.now()
+            reject(Object.assign(new Error(`extension did not answer ${request.tool} within ${String(budget)}ms`), { code: 'E_TIMEOUT' }))
+          }, budget)
+          timer.unref?.()
+          inflight.set(id, { resolve, reject, timer, entry, tool: request.tool, startedAt: Date.now() })
+          entry.inflight.add(id)
+          try {
+            entry.ws.send(JSON.stringify(frame))
+          } catch (error) {
+            inflight.delete(id)
+            entry.inflight.delete(id)
+            clearTimeout(timer)
+            sockets.agent.delete(entry)
+            reject(Object.assign(new Error(`could not reach the extension: ${String(error?.message ?? error)}`), { code: 'E_EXT_OFFLINE' }))
+          }
+        })
+      }
+
+      return (async () => {
+        let lastError
+        for (const [index, entry] of candidates.entries()) {
+          const remaining = deadline - Date.now()
+          const isLast = index === candidates.length - 1
+          if (remaining <= 0) break
+          // Leave room for a retry on another socket: the last candidate gets whatever
+          // is left, earlier ones get at most half of it.
+          const budget = isLast ? remaining : Math.max(200, Math.floor(remaining / 2))
+          try {
+            return await attempt(entry, budget)
+          } catch (error) {
+            lastError = error
+            log(`hub: agent call ${request.tool} failed on ${entry.id} (${String(error?.code ?? '?')})${isLast ? '' : ' — trying another socket'}`)
+          }
+        }
+        throw lastError ?? Object.assign(new Error('no browser extension is connected'), { code: 'E_EXT_OFFLINE' })
+      })()
     },
 
     /** In-flight calls (diagnostics). */

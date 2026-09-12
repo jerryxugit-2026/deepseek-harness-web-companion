@@ -1,0 +1,46 @@
+{
+  "probe": "m3/agent-turn",
+  "prompt": "请用 browser_read 工具读取我当前正在看的那个网页，然后只回答一句话：正文里出现的特定标记是什么？不要猜测，必须真的调用工具。",
+  "context": {
+    "id": 1,
+    "origin": "http://127.0.0.1:3099",
+    "name": "",
+    "uniqueId": "6015580469058213184.-6064235182285754086",
+    "auxData": {
+      "isDefault": true,
+      "type": "default",
+      "frameId": "B4E425D4B8C2ED02680B076F6C5ABD3A"
+    }
+  },
+  "clientReady": true,
+  "dsh": {
+    "sessionId": null,
+    "conversationMethods": [
+      "constructor",
+      "send",
+      "sendSession",
+      "createDraftImages",
+      "draftImages",
+      "serializeDraftImages",
+      "releaseDraftImage",
+      "releaseDraftImages",
+      "updateQueue",
+      "cancel",
+      "loadOlder",
+      "scopedSession",
+      "scopeId",
+      "requireSessions",
+      "settleSubmittedImages",
+      "serializeImages",
+      "encodeImage"
+    ],
+    "shellMethods": []
+  },
+  "capabilities": [
+    "browser_read",
+    "browser_tabs",
+    "browser_wait",
+    "browser_screenshot",
+    "browser_ax"
+  ]
+}

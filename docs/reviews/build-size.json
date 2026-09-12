@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-09-12T03:25:07.586Z",
+  "generatedAt": "2026-09-12T04:19:23.360Z",
   "criterion": {
     "limitBytes": 1048576,
     "metric": "dist/ total, uncompressed"
   },
-  "totalBytes": 131235,
+  "totalBytes": 131332,
   "gzipBytes": 399,
   "pass": true,
   "files": [
@@ -14,7 +14,7 @@
     },
     {
       "path": "src/sidepanel/panel.js",
-      "bytes": 50087
+      "bytes": 50184
     },
     {
       "path": "src/sidepanel/panel.css",

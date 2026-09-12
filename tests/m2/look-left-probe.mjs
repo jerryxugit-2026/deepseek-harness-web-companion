@@ -102,7 +102,10 @@ const main = async () => {
   // ── case 1: panel closed → intent must be queued, then replayed ────────────
   const client = connect('/ag/client', { Origin: ORIGIN })
   await client.opened
-  client.send({ type: 'hello', protocolVersion: 1, sessionId: 's-look-left', workspace: '/tmp/probe-workspace' })
+  // 不要谎报 workspace：插件会记住最近一次 client hello 的 workspace，后续探针的落盘
+  // 就会跑到这个假目录（真实发生：probe:capture 的文件落进 /tmp/probe-workspace）。
+  // 省略该字段，插件会退到配置里的 defaultWorkspace —— 与其它探针一致。
+  client.send({ type: 'hello', protocolVersion: 1, sessionId: 's-look-left' })
   client.send({ type: 'intent', protocolVersion: 1, kind: 'look-left', sessionId: 's-look-left', draft: '看左边', trigger: 'keyword', at: Date.now() })
   await sleep(600)
 

@@ -2,7 +2,7 @@
   "probe": "m2/look-left-e2e",
   "port": "3099",
   "fixturePort": 3998,
-  "at": "2026-09-12T03:08:40.360Z",
+  "at": "2026-09-12T04:18:49.079Z",
   "results": {
     "DSH iframe 已加载": true,
     "面板 agent 通道已连接（无手势）": true,
@@ -14,38 +14,37 @@
     "面板收到 intent 路径的抓取（不是按钮路径）": true,
     "抓取成功且落到工作区": true,
     "抓取模式为 page（意图默认整页）": true,
-    "新增抓取文件数 = 1": true,
+    "抓取文件确实落盘": true,
     "文件含夹具正文标记": true,
     "front-matter trigger=look_left": true,
     "客户端半通道收到推送": true,
     "推送 fileRef 与落盘一致": true,
     "引用写入输入框成功（inserted=true）": true,
-    "写入的就是落盘的那份文件": true,
     "意图路径落回当前会话（sessionMode=current）": true,
     "意图路径不切换会话外壳（switched=false）": true,
     "输入框里出现文件引用（硬要求）": true,
-    "触发草稿是否保留（观察）: \"看左边\\n\\n@网页捕获/2026-09-11-2308-看左边夹具页-4-2ffe.md\"": true,
+    "落盘文件的引用进了输入框": true,
+    "触发草稿是否保留（观察）: \"看左边\\n\\n@网页捕获/2026-09-12-0018-看左边夹具页-z-f809.md\\n\\n@网页捕获/2026-09-1\"": true,
     "屏幕上出现 chip": true
   },
   "intent": {
     "mode": "page",
     "reason": "look-left",
     "ok": true,
-    "fileRef": "@网页捕获/2026-09-11-2308-看左边夹具页-4-2ffe.md"
+    "fileRef": "@网页捕获/2026-09-12-0018-看左边夹具页-z-f809.md",
+    "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-12-0018-看左边夹具页-z-f809.md"
   },
-  "newFiles": [
-    "2026-09-11-2308-看左边夹具页-4-2ffe.md"
-  ],
-  "draftAfter": "看左边\n\n@网页捕获/2026-09-11-2308-看左边夹具页-4-2ffe.md",
+  "landedFile": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-12-0018-看左边夹具页-z-f809.md",
+  "draftAfter": "看左边\n\n@网页捕获/2026-09-12-0018-看左边夹具页-z-f809.md\n\n@网页捕获/2026-09-12-0018-看左边夹具页-5-dc30.md",
   "applied": {
-    "captureId": "cap-mtxt2rp4-2ffe",
+    "captureId": "cap-mtxvkzd5-dc30",
     "inserted": true,
     "detail": "",
-    "fileRef": "@网页捕获/2026-09-11-2308-看左边夹具页-4-2ffe.md",
-    "sessionId": "session-2e1530f1-0dbd-4506-b340-8eee0cef186a",
+    "fileRef": "@网页捕获/2026-09-12-0018-看左边夹具页-5-dc30.md",
+    "sessionId": "session-f66fb946-969b-4497-9a6b-4dcbe0c5714e",
     "sessionMode": "current",
     "switched": false
   },
-  "deliveries": 1,
-  "chips": "[{\"captureId\":\"cap-mtxt2rp4-2ffe\",\"status\":\"inserted\",\"mode\":\"page\",\"label\":\"📄 网页: 看左边夹具页\"}]"
+  "deliveries": 2,
+  "chips": "[{\"host\":\"slot\",\"captureId\":\"cap-mtxvkyqz-f809\",\"status\":\"inserted\",\"mode\":\"page\",\"label\":\"📄 网页: 看左边夹具页\"},{\"host\":\"slot\",\"captureId\":\"cap-mtxvkzd5-dc30\",\"status\":\"inserted\",\"mode\":\"page\",\"label\":\"📄 网页: 看左边夹具页\"}]"
 }

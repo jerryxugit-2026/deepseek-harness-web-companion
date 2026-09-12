@@ -25,7 +25,7 @@
     "check:strict": "npm run protocol:check && npm run graph:sync && npm run graph:check && npm run check:consistency && npm run test:protocol && npm run test:unit && npm run build:ext",
     "probe:attach": "node tests/m0b/attach-probe.mjs",
     "probe:chip": "node tests/m0b/chip-probe.mjs",
-    "test:unit": "node tests/unit/tickets.test.mjs && node tests/unit/retention.test.mjs && node tests/unit/frame-budget.test.mjs && node tests/unit/browser-tools.test.mjs && node tests/unit/write-gate.test.mjs && node tests/unit/panel-errors.test.mjs",
+    "test:unit": "node tests/unit/tickets.test.mjs && node tests/unit/retention.test.mjs && node tests/unit/frame-budget.test.mjs && node tests/unit/browser-tools.test.mjs && node tests/unit/write-gate.test.mjs && node tests/unit/panel-errors.test.mjs && node tests/unit/agent-selection.test.mjs",
     "build:ext": "node extension/build.mjs",
     "size:ext": "node extension/build.mjs --report-only",
     "probe:panel": "node tests/m1/panel-probe.mjs",
@@ -46,7 +46,8 @@
     "probe:sites": "node tests/quality/probe-sites.mjs",
     "test:panel-errors": "node tests/unit/panel-errors.test.mjs",
     "probe:all": "node scripts/probe-all.mjs",
-    "probe:perf": "node tests/m2/perf-probe.mjs"
+    "probe:perf": "node tests/m2/perf-probe.mjs",
+    "probe:agent-turn": "node tests/m3/agent-turn-probe.mjs"
   },
   "devDependencies": {
     "@colbymchenry/codegraph": "^1.6.0",

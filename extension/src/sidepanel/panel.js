@@ -308,7 +308,15 @@ const agentChannel = startAgentChannel({
     els.status.textContent = reason === 'look-left' ? '「看左边」→ 正在抓取…' : '正在抓取…'
     try {
       const result = await runCapture(mode ?? 'page', 'look_left')
-      probe.intents.push({ mode: mode ?? 'page', reason: reason ?? 'look-left', ok: result?.ok === true, fileRef: result?.value?.result?.fileRef, error: result?.error })
+      // 带上 filePath：探针要以**落盘事实**为准，而不是假定某个工作区目录
+      probe.intents.push({
+        mode: mode ?? 'page',
+        reason: reason ?? 'look-left',
+        ok: result?.ok === true,
+        fileRef: result?.value?.result?.fileRef,
+        filePath: result?.value?.result?.filePath,
+        error: result?.error,
+      })
       if (result?.ok !== true) els.status.textContent = `「看左边」抓取失败：${explainError(result?.error)}`
       return result
     } catch (error) {

@@ -253,6 +253,9 @@ window.__ModuleLoader__.load({
           React.useEffect(() => {
             state.dockMounted = true
             state.dockSessionId = sessionId
+            // `inputActions` is the slot's stable public action face — stash it so the
+            // harness can drive a real user turn (see tests/m3/agent-turn-probe.mjs).
+            state.inputActions = props?.inputActions
             const off = subscribeChips(() => { force((n) => n + 1) })
             force((n) => n + 1)
             return () => { off(); state.dockMounted = false }
@@ -527,6 +530,91 @@ window.__ModuleLoader__.load({
           return dismissCapture({ captureId, ...entry })
         },
         reconnect: connect,
+        /** Harness: create + open a session so an agent turn has somewhere to go. */
+        newSession: async () => {
+          const fresh = await openFreshSession(currentWorkspace() ?? undefined)
+          await sleep(800)
+          return { ...fresh, sessionId: fresh?.sessionId ?? currentSessionId() ?? null }
+        },
+        /** Harness: which input/ send actions exist right now (no guessing). */
+        actions: () => {
+          const conversation = ctx.get('conversation')
+          return {
+            sessionId: currentSessionId() ?? null,
+            hasInputActions: state.inputActions !== undefined,
+            inputActionKeys: state.inputActions === undefined ? [] : Object.keys(state.inputActions),
+            conversationHasSend: typeof conversation?.send === 'function',
+            conversationHasSendSession: typeof conversation?.sendSession === 'function',
+          }
+        },
+        /**
+         * Harness: deliver one user message. Tries the candidates in order and stops at
+         * the first that does not throw — the goal is to learn the real call shape of
+         * THIS DSH version empirically instead of hard-coding a guessed name.
+         */
+        trySend: async (text) => {
+          const conversation = ctx.get('conversation')
+          const id = currentSessionId()
+          const attempted = []
+          const attempt = async (label, fn) => {
+            try {
+              const returned = await fn()
+              attempted.push({ label, ok: true, returned: returned === undefined ? 'undefined' : String(typeof returned) })
+              return true
+            } catch (error) {
+              attempted.push({ label, ok: false, error: String(error?.message ?? error).slice(0, 160) })
+              return false
+            }
+          }
+          if (typeof id !== 'string') { attempted.push({ label: 'no-session', ok: false, error: 'currentSessionId() is not a string' }); return attempted }
+          const scope = ctx.get('sessions').scope(id)
+          const shell = conversation.input.for(scope)
+          try { shell.setDraft(text) } catch (error) { attempted.push({ label: 'setDraft', ok: false, error: String(error?.message ?? error).slice(0, 120) }) }
+          // Discovered empirically (the error text was the documentation):
+          //   - `conversation.send` needs a SESSION SCOPE: `ctx.sessions.scope(id).conversation`
+          //   - the slot's public action face exposes `submit`, not `send`
+          if (state.inputActions?.submit !== undefined) {
+            if (await attempt('inputActions.setDraft+submit', async () => { state.inputActions.setDraft(text); return state.inputActions.submit() })) return attempted
+          }
+          const scoped = ctx.get('sessions').scope(id)?.conversation
+          if (typeof scoped?.send === 'function') {
+            if (await attempt('scopedConversation.send(text)', () => scoped.send(text))) return attempted
+          }
+          if (typeof shell?.submit === 'function') {
+            if (await attempt('shell.setDraft+submit', async () => { shell.setDraft(text); return shell.submit() })) return attempted
+          }
+          if (typeof conversation.sendSession === 'function') {
+            await attempt('conversation.sendSession([id], text)', () => conversation.sendSession([id], text))
+          }
+          return attempted
+        },
+        /**
+         * Introspect the pieces an agent turn needs (harness-only): which methods the
+         * conversation service and the session input shell actually expose in THIS
+         * DSH version. Used by tests/m3/agent-turn-probe.mjs to find the send action
+         * instead of guessing a name that may not exist.
+         */
+        api: () => {
+          const describe = (object, label) => {
+            if (object === undefined || object === null) return { label, missing: true }
+            const own = Object.keys(object)
+            const proto = Object.getOwnPropertyNames(Object.getPrototypeOf(object) ?? {})
+            const fns = [...new Set([...own, ...proto])].filter((k) => {
+              try { return typeof object[k] === 'function' } catch { return false }
+            })
+            return { label, type: typeof object, own: own.slice(0, 40), methods: fns.slice(0, 60) }
+          }
+          const conversation = ctx.get('conversation')
+          const sessionId = currentSessionId()
+          const shell = typeof sessionId === 'string' ? conversation?.input?.for(ctx.get('sessions').scope(sessionId)) : undefined
+          return {
+            sessionId: sessionId ?? null,
+            conversation: describe(conversation, 'conversation'),
+            input: describe(conversation?.input, 'conversation.input'),
+            shell: describe(shell, 'shell'),
+            inputActions: Object.keys(globalThis.__AG_PANEL_INPUT_ACTIONS__ ?? {}).slice(0, 40),
+          }
+        },
         sessions: () => {
           try {
             const snapshot = ctx.get('sessions')?.list?.getSnapshot?.()

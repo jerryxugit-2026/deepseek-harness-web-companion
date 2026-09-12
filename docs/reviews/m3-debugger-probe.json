@@ -1,7 +1,7 @@
 {
   "probe": "m3/debugger",
   "fixturePort": 3996,
-  "at": "2026-09-12T03:05:27.063Z",
+  "at": "2026-09-12T04:12:17.700Z",
   "manifestPermissions": [
     "sidePanel",
     "storage",
@@ -67,6 +67,6 @@
     "before": 1,
     "during": 2,
     "after": 1,
-    "secondAttach": "Another debugger is already attached to the tab with id: 457306886."
+    "secondAttach": "Another debugger is already attached to the tab with id: 61953799."
   }
 }

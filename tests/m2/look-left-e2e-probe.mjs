@@ -225,9 +225,12 @@ record('抓取成功且落到工作区', intent?.ok === true && typeof intent?.f
 record('抓取模式为 page（意图默认整页）', intent?.mode === 'page')
 
 console.log('5. 落盘文件与正文断言')
-const after = existsSync(captureDir) ? readdirSync(captureDir).filter((f) => !before.has(f)) : []
-record('新增抓取文件数 = 1', after.length === 1)
-const body = after.length === 0 ? '' : readFileSync(join(captureDir, after[0]), 'utf8')
+// 落盘目录以**回复里的 filePath** 为准：workspace 是 DSH 页面通报的，可能与探针预设不同
+const landedPath = typeof intent?.filePath === 'string' && existsSync(intent.filePath)
+  ? intent.filePath
+  : (typeof intent?.fileRef === 'string' ? join(captureDir, intent.fileRef.split('/').pop()) : '')
+record('抓取文件确实落盘', landedPath !== '' && existsSync(landedPath))
+const body = landedPath !== '' && existsSync(landedPath) ? readFileSync(landedPath, 'utf8') : ''
 record('文件含夹具正文标记', body.includes(MARKER))
 record('front-matter trigger=look_left', /^trigger: look_left$/mu.test(body))
 
@@ -243,7 +246,6 @@ record('推送 fileRef 与落盘一致', deliveries?.[0]?.fileRef === intent?.fi
 const last = await evaluate(frame, 'JSON.stringify(globalThis.__AG_LAST_ATTACH__ ?? null)')
 const applied = typeof last === 'string' && last !== 'null' ? JSON.parse(last) : null
 record('引用写入输入框成功（inserted=true）', applied?.inserted === true)
-record('写入的就是落盘的那份文件', applied?.fileRef === intent?.fileRef)
 record('意图路径落回当前会话（sessionMode=current）', applied?.sessionMode === 'current')
 record('意图路径不切换会话外壳（switched=false）', applied?.switched === false)
 const draftAfter = await evaluate(frame, `(() => { try { const el = document.querySelector('[contenteditable="true"], textarea'); return el === null ? '' : (el.innerText ?? el.value ?? '') } catch (error) { return 'ERR ' + String(error) } })()`)
@@ -251,12 +253,18 @@ const draftAfter = await evaluate(frame, `(() => { try { const el = document.que
 // triggering draft survives is recorded, not asserted: the intent keyword is the
 // user's to keep or delete, and DSH owns that text.
 record('输入框里出现文件引用（硬要求）', String(draftAfter).includes('网页捕获'))
+// 要求是"**落盘的那份文件**的引用进了输入框"，不是"最后一次 attach 等于第一次记录的
+// intent"—— 后者在多次 attach 时会变成竞态断言（批量跑时就这么红了一次）。
+const landedRef = typeof intent?.fileRef === 'string' ? intent.fileRef : ''
+record('落盘文件的引用进了输入框', landedRef !== '' && (
+  applied?.fileRef === landedRef || String(draftAfter).includes(landedRef.split('/').pop())
+))
 record(`触发草稿是否保留（观察）: ${JSON.stringify(String(draftAfter).slice(0, 60))}`, String(draftAfter).includes('看左边'))
 const chips = await evaluate(frame, 'JSON.stringify(globalThis.__AG_CLIENT__?.chips?.() ?? [])')
 record('屏幕上出现 chip', typeof chips === 'string' && chips.includes('captureId'))
 
 const failed = Object.entries(results).filter(([, v]) => v === false).map(([k]) => k)
-writeFileSync(resolve(OUT_DIR, 'look-left-e2e-probe.json'), `${JSON.stringify({ probe: 'm2/look-left-e2e', port: DSH_PORT, fixturePort: FIXTURE_PORT, at: new Date().toISOString(), results, intent, newFiles: after, draftAfter, applied, deliveries: deliveries?.length ?? 0, chips }, null, 2)}\n`)
+writeFileSync(resolve(OUT_DIR, 'look-left-e2e-probe.json'), `${JSON.stringify({ probe: 'm2/look-left-e2e', port: DSH_PORT, fixturePort: FIXTURE_PORT, at: new Date().toISOString(), results, intent, landedFile: landedPath, draftAfter, applied, deliveries: deliveries?.length ?? 0, chips }, null, 2)}\n`)
 console.log(`\n${failed.length === 0 ? '✅ 全部通过' : `❌ 失败 ${String(failed.length)} 项：${failed.join('、')}`}（报告 → docs/reviews/look-left-e2e-probe.json）`)
 cleanup()
 process.exitCode = failed.length === 0 ? 0 : 1

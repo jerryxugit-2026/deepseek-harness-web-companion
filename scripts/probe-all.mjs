@@ -36,6 +36,7 @@ const PROBES = [
   { script: 'probe:m3-ops', file: 'tests/m3/ops-probe.mjs', note: '浏览器 op 层（真 Chrome）' },
   { script: 'probe:m3-control', file: 'tests/m3/control-probe.mjs', note: '写操作控制面（真 Chrome + dev 实例）' },
   { script: 'probe:look-left-e2e', file: 'tests/m2/look-left-e2e-probe.mjs', note: '「看左边」全链路（真 Chrome + dev 实例）' },
+  { script: 'probe:agent-turn', file: 'tests/m3/agent-turn-probe.mjs', note: '真模型回合：模型真的调用 browser_read（最重，需要模型可用）' },
 ]
 const selected = only === '' ? PROBES : PROBES.filter((p) => only.split(',').some((name) => p.script === name.trim()))
 

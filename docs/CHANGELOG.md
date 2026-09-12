@@ -5,7 +5,59 @@
 
 ---
 
-## v3.36 — 2026-09-11（当前）
+## v3.37 — 2026-09-11（当前）
+
+**触发**：补完 E2E-7 的最后一格 —— 让**真实模型**调用 `browser_*`。结果顺带挖出两个真缺陷。
+
+### 交付：真模型回合探针（`npm run probe:agent-turn`）
+
+在活着的 DSH + 已连上的扩展里，**投递一条真实用户消息**（用 `inputActions.setDraft+submit`，不模拟输入框事件），然后断言三层都真的动了：
+
+| 断言 | 结果 |
+|---|---|
+| 扩展侧收到 `tool-call`（模型真的调用了） | ✅ |
+| 工具读到夹具页（回复里出现夹具标记） | ✅ |
+
+路上把"发送用户消息"的真实调用形状**实证**出来（错误信息本身就是文档）：`conversation.send` 需要**会话作用域**（`ctx.sessions.scope(id).conversation`）；插槽的公开动作面暴露的是 **`submit`**，不是 `send`。
+
+### 修掉的两个真缺陷
+
+1. **`hub` 的 `ws.on('close')` 处理器被整块删掉了**（"清理调试日志"那一步的副作用，只剩 `error` 分支）。心跳的 `terminate()` 与对端干净关闭**都只触发 `close`** → 死亡 socket 永不从集合移除、集合还会无限增长。这些僵尸收得到**广播**的 ping，却吞掉**只发给某一个**的工具调用，模型看到的是 "The extension timed out" —— 一个把人往"超时/性能"方向带偏的错误。
+2. **`callAgent` 盲取 `[...sockets.agent][0]`**：即使没有僵尸，一个"回心跳但不回调用"的 socket 也会被选中。改为按 `lastSeen` 排序 + **首次超时即标记可疑并换下一个候选**（总预算不变），把半开连接从"失败"降级为"稍慢的成功"。
+
+### 新增单测（`tests/unit/agent-selection.test.mjs`，6 断言）
+
+真 hub + 真 loopback WS 对：唯一 agent 正常应答；**陈旧 socket 存在时调用仍须成功**；只剩哑 socket 时给明确 `E_TIMEOUT`（不许假装成功）；连接后计数为 1、断开后归零；零连接 → `E_EXT_OFFLINE`。
+
+> 这个单测的价值就是它当场否掉了我的第一个修法：只按 `lastSeen` 选仍会选中"回心跳不回调用"的 socket。
+
+### 探针隔离（同批跑才暴露出来的）
+
+`probe:all` 第一次把 8 个探针串起来跑，两个挂了 —— 根因不是产品，是**探针互相污染**：
+
+- `probe:look-left` 曾向插件谎报 `workspace: '/tmp/probe-workspace'`；插件把**最近一次 client hello 的 workspace** 记成落盘目标，于是后面的 `probe:capture` / `probe:look-left-e2e` 的文件落到了那个假目录（内容断言仍然通过，只有"新增文件数"挂了）。修法：探针不再谎报 workspace，插件退到配置默认值。
+- 顺带把断言改成以**回复里的 `filePath`** 为准（落盘事实），不再假定某个工作区目录；`panel.js` 的 `intent` 探针记录也带上 `filePath`。
+- 我自己在 v3.33 插入断言时还制造了两处 `ReferenceError`（引用了尚未定义/名字取自 record 标题的变量），同批跑才暴露 —— 已修。
+
+**修完重跑 `probe:all`：8/8 全绿**（debugger 43s / look-left 5s / capture 10s / sites 54s / m3-ops 53s / m3-control 23s / look-left-e2e 27s / agent-turn 69s）。
+
+### 探针稳定性（诚实记录，未粉饰）
+
+随后两次重跑各出现 1 个失败，全部落在 `probe:look-left-e2e`，**根因都是我自己的断言写法**，与产品无关：
+
+1. "`__AG_LAST_ATTACH__` 等于探针记录的那一次"—— 多次 attach 时"最后一次"未必是"第一次记录的"，这是**竞态断言**。改成断言真正的要求：**落盘那份文件的引用进了输入框**（`applied.fileRef` 相等 **或** 草稿里出现该文件名）。
+2. 改完后我又把该断言插在 `draftAfter` **定义之前** → TDZ `ReferenceError`。移到位后单跑通过。
+3. `capture-probe` 的 `chipHostedBySlot` 同理：胶囊是异步出现的，读一次快照就是测竞态。硬断言收窄为**"永不回退到 DOM 宿主"**（出现就必须来自插槽），数量/宿主改为观察值；"出现与撤销"由 `probe:chip` 覆盖。
+
+**当前状态**：`probe:all` 曾在干净环境下 8/8；最后两处修正各自单跑已通过；**把 8/8 再稳定复现一遍列为本轮遗留项**（`docs/PROGRESS.md`）。
+
+### 方法论备注
+
+`__AG_PANEL__`（面板上下文）与 `__AG_CLIENT__`（DSH iframe 上下文）**不在同一个执行上下文**里：跨进程 iframe 是独立 CDP target，`Runtime.executionContextCreated` 也只在**它自己的会话**上投递。探针第一版在错误的上下文里查字段，把"通道已连接"读成了 false —— 已在注释里写死这两个坑。
+
+---
+
+## v3.36 — 2026-09-11
 
 **触发**：G2 整页截图的失败模式 —— 超长页面会产出巨大 PNG，最终被帧预算丢弃，工具以 `E_STORAGE` **硬失败**。
 

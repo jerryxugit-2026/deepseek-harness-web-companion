@@ -235,15 +235,17 @@ record('attachReply', typeof attachResult === 'string' ? JSON.parse(attachResult
 
 console.log('3. 落盘文件校验')
 const attachDir = join(WORKSPACE, '网页捕获')
+void attachDir
 let latest = null
 if (existsSync(attachDir)) {
   const files = readdirSync(attachDir).map((f) => join(attachDir, f)).filter((f) => statSync(f).isFile()).sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs)
   latest = files[0] ?? null
 }
-record('filePath', latest)
 const pagePathFromReply = (typeof attachResult === 'string' ? JSON.parse(attachResult) : attachResult)?.value?.result?.filePath
-if (latest !== null) {
-  const text = readFileSync(latest, 'utf8')
+record('filePath', typeof pagePathFromReply === 'string' ? pagePathFromReply : latest)
+const authoritativePath = typeof pagePathFromReply === 'string' && existsSync(pagePathFromReply) ? pagePathFromReply : latest
+if (authoritativePath !== null && authoritativePath !== undefined) {
+  const text = readFileSync(authoritativePath, 'utf8')
   record('fileChecks', {
     hasMarker: text.includes(MARKER),
     // UI-noise heuristics (v3.20): chips/tabs/action labels/trailing stats gone
@@ -292,15 +294,6 @@ if (typeof selPath === 'string' && existsSync(selPath)) {
     chars: text.length,
   })
 }
-record('chipHostedBySlot', (() => {
-  const chips = (() => { try { return chipState?.chips ?? [] } catch { return [] } })()
-  return {
-    dockMounted: chipState?.dockMounted === true,
-    allChipsInSlot: chips.length > 0 && chips.every((chip) => chip.host === 'slot'),
-    noDomFallbackChip: chips.every((chip) => chip.host !== 'dom'),
-  }
-})())
-
 record('emptySelection', await (async () => {
   // 先清掉选区，再请求选区抓取：必须明确失败且**不产生文件**
   await evaluate(fixture.sessionId, '(() => { const s = window.getSelection(); s.removeAllRanges(); return s.toString() })()')
@@ -339,10 +332,9 @@ record('placeholderAnchors', (() => {
 })())
 
 record('hardeningChecks', (() => {
-  // check the PAGE capture from THIS run — `latest` is the newest file at that
-  // moment; reading `filePath` (undefined) silently turned this into `null`,
-  // i.e. a green-looking probe that verified nothing.
-  const pagePath = typeof pagePathFromReply === 'string' && existsSync(pagePathFromReply) ? pagePathFromReply : (typeof latest === 'string' ? latest : undefined)
+  // 权威路径是**回复里**的 filePath（workspace 由 DSH 页面通报，可能不是本探针以为的那个
+  // 目录 —— 早前就因为读"最新文件"而恒为 null，看起来绿其实什么都没验）。
+  const pagePath = typeof pagePathFromReply === 'string' && existsSync(pagePathFromReply) ? pagePathFromReply : undefined
   if (pagePath === undefined) return null
   const body = readFileSync(pagePath, 'utf8')
   return {
@@ -376,6 +368,26 @@ for (let i = 0; i < 25; i += 1) {
   await sleep(800)
 }
 record('chipState', chip)
+
+// `dockMounted` 与 `chips()` 都属于**客户端半通道**（DSH 上下文），面板的 chipState 里没有
+// 这两个字段 —— 换上下文查字段就会永远读到 undefined/false（同类错误这次犯了两回）。
+// 另外胶囊是异步出现的，用有界轮询代替"读一次快照"，否则断言测的是竞态。
+let activeChips = []
+let dockMounted = false
+for (let i = 0; i < 20; i += 1) {
+  const snapshot = await frameEval(`JSON.stringify({ mounted: globalThis.__AG_CLIENT__?.dockMounted?.() === true, chips: globalThis.__AG_CLIENT__?.chips?.() ?? [] })`)
+  if (typeof snapshot === 'string') {
+    const parsed = JSON.parse(snapshot)
+    dockMounted = parsed.mounted === true
+    activeChips = parsed.chips
+    if (activeChips.length > 0) break
+  }
+  await sleep(400)
+}
+// 硬断言只有一条：**永远不用 DOM 兜底**（出现了就必须来自插槽）。"此刻有没有胶囊"
+// 是异步的、属于竞态，不该用它判成败 —— 胶囊的出现/撤销/ack 由 probe:chip 覆盖。
+record('chipNeverFallsBackToDom', activeChips.every((entry) => entry.host !== 'dom'))
+record('chipHostObservation', { dockMounted, chipCount: activeChips.length, hosts: activeChips.map((entry) => entry.host) })
 
 const sessionsAfter = await frameEval(`JSON.stringify(globalThis.__AG_CLIENT__?.sessions?.() ?? null)`)
 record('sessionsAfter', typeof sessionsAfter === 'string' ? JSON.parse(sessionsAfter) : sessionsAfter)
