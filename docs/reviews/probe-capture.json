@@ -13,12 +13,12 @@
     "attachReply": {
       "ok": true,
       "value": {
-        "captureId": "cap-mtxvdp23-5a21",
+        "captureId": "cap-mtxvtabe-ad26",
         "result": {
           "ok": true,
-          "captureId": "cap-mtxvdp23-5a21",
-          "fileRef": "@网页捕获/2026-09-12-0013-m2-抓取夹具页-3-5a21.md",
-          "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-12-0013-m2-抓取夹具页-3-5a21.md",
+          "captureId": "cap-mtxvtabe-ad26",
+          "fileRef": "@网页捕获/2026-09-12-0025-m2-抓取夹具页-e-ad26.md",
+          "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-12-0025-m2-抓取夹具页-e-ad26.md",
           "deliveredTo": [
             "client:1"
           ]
@@ -36,7 +36,7 @@
         }
       }
     },
-    "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-12-0013-m2-抓取夹具页-3-5a21.md",
+    "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-12-0025-m2-抓取夹具页-e-ad26.md",
     "fileChecks": {
       "hasMarker": true,
       "hasCategoryChips": false,
@@ -57,12 +57,12 @@
     "selectionReply": {
       "ok": true,
       "value": {
-        "captureId": "cap-mtxvdpm5-879a",
+        "captureId": "cap-mtxvtaxq-3fa4",
         "result": {
           "ok": true,
-          "captureId": "cap-mtxvdpm5-879a",
-          "fileRef": "@网页捕获/2026-09-12-0013-m2-抓取夹具页-5-879a.md",
-          "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-12-0013-m2-抓取夹具页-5-879a.md",
+          "captureId": "cap-mtxvtaxq-3fa4",
+          "fileRef": "@网页捕获/2026-09-12-0025-m2-抓取夹具页-q-3fa4.md",
+          "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-12-0025-m2-抓取夹具页-q-3fa4.md",
           "deliveredTo": [
             "client:1"
           ]
@@ -111,7 +111,7 @@
       "chips": [
         {
           "host": "slot",
-          "captureId": "cap-mtxvdpm5-879a",
+          "captureId": "cap-mtxvtaxq-3fa4",
           "status": "inserted",
           "mode": "selection+page",
           "label": "📄 网页: M2 抓取夹具页"
@@ -119,20 +119,20 @@
       ],
       "acks": [
         {
-          "captureId": "cap-mtxvdp23-5a21",
+          "captureId": "cap-mtxvtabe-ad26",
           "status": "inserted"
         },
         {
-          "captureId": "cap-mtxvdpm5-879a",
+          "captureId": "cap-mtxvtaxq-3fa4",
           "status": "inserted"
         }
       ],
       "lastAttach": {
-        "captureId": "cap-mtxvdpm5-879a",
+        "captureId": "cap-mtxvtaxq-3fa4",
         "inserted": true,
         "detail": "",
-        "fileRef": "@网页捕获/2026-09-12-0013-m2-抓取夹具页-5-879a.md",
-        "sessionId": "session-f8cf3871-1780-4386-ad40-f91208d68e3d",
+        "fileRef": "@网页捕获/2026-09-12-0025-m2-抓取夹具页-q-3fa4.md",
+        "sessionId": "session-00166282-7027-4230-93fa-57ab9603002d",
         "sessionMode": "new",
         "switched": true
       }
@@ -146,8 +146,24 @@
       ]
     },
     "sessionsAfter": {
-      "current": "session-f8cf3871-1780-4386-ad40-f91208d68e3d",
+      "current": "session-00166282-7027-4230-93fa-57ab9603002d",
       "ids": [
+        "session-00166282-7027-4230-93fa-57ab9603002d",
+        "session-36da9114-c4f2-4a84-a02e-b124e4b65472",
+        "session-c08e95c3-9d8a-4590-9bb6-94cc0551b8d6",
+        "session-364335f1-a398-4975-aa9c-f6070c963a7b",
+        "session-d338b1ea-0e43-4a21-8341-a987d75bd033",
+        "session-e6ffec9d-ab0e-4dda-9d75-929e2055c0ce",
+        "session-fc9595d2-b633-4e0e-8268-fbbeda3b8b4f",
+        "session-cb95c45e-b9ed-4ff6-ba6e-7bffec11290a",
+        "session-917e00bb-6b81-48c7-b6ed-e0436bd9724d",
+        "session-5946d9af-3e1b-4ee2-8c14-63319475e662",
+        "session-119a2964-8603-4d23-ba8d-c48a8080e0e0",
+        "session-f66fb946-969b-4497-9a6b-4dcbe0c5714e",
+        "session-5aa1e2f7-1d36-4894-b908-23fc641f462a",
+        "session-e26507c1-8af5-497d-b465-681fd146090d",
+        "session-945cc3b5-a854-40a2-ac14-4eda888b1d41",
+        "session-b7766983-43dd-4e2e-b762-a84e8acc4fe7",
         "session-f8cf3871-1780-4386-ad40-f91208d68e3d",
         "session-5559af7e-be78-433f-a92e-82c38d178db4",
         "session-80f5ccf0-f570-41a6-b43c-2333641e2b3a",
@@ -318,7 +334,7 @@
         "session-af4d394f-aeb1-4b76-850b-267a190e00dd",
         "session-6b8a1366-8e2f-422b-93c5-3d778059a7cc"
       ],
-      "count": 169
+      "count": 185
     },
     "newSessionCreated": true,
     "targetIsFreshSession": true,
