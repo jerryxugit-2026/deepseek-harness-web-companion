@@ -87,7 +87,7 @@ export function extractPage(options = {}) {
     }
   }
 
-  const ACTION_LABELS = /^(read more|show more|show less|see more|view all|more|report|share|copy|copy link|copy code|download|stats & details|stats and details|files|versions|skill card|overview|details)$/iu
+  const ACTION_LABELS = /^(read more|load more|show more|show less|see more|view all|more|report|share|copy|copy link|copy code|download|stats & details|stats and details|files|versions|skill card|overview|details)$/iu
   const stripActionLabels = () => {
     for (const el of [...clone.querySelectorAll('button, a, span, div')]) {
       if (el.children.length > 0) continue
@@ -161,7 +161,24 @@ export function extractPage(options = {}) {
           out.push(`\n\n\`\`\`${lang}\n${String(node.innerText).trimEnd()}\n\`\`\`\n\n`); break
         }
         case 'code': out.push(`\`${String(node.innerText)}\``); break
-        case 'blockquote': out.push('\n\n> '); inner(); out.push('\n\n'); break
+        case 'blockquote': {
+          // A lone `>` followed by a blank line is NOT a quote: renderers show an
+          // empty quote and the text as a normal paragraph (measured 2026-09-11 on
+          // the news fixture). Emit real quote syntax: prefix every line, and keep
+          // the blank separator lines prefixed too, so multi-paragraph quotes stay
+          // one quote block.
+          const before = out.length
+          inner()
+          const quoted = out.splice(before).join('')
+            .split('\n')
+            .map((line) => (line.trim() === '' ? '>' : `> ${line}`))
+            .join('\n')
+            // collapse the quote's own leading/trailing blank lines
+            .replace(/^(?:>\n)+/u, '')
+            .replace(/(?:\n>)+$/u, '')
+          out.push(`\n\n${quoted === '' ? '>' : quoted}\n\n`)
+          break
+        }
         case 'a': {
           const href = safeUrl(node.getAttribute('href'), 'link')
           const text = clean(String(node.innerText ?? '').trim())

@@ -1,0 +1,19 @@
+<!doctype html><html lang="zh"><head><meta charset="utf-8"><title>API 参考 · Widget 库</title>
+<meta name="description" content="Widget 库的 API 参考文档"></head><body>
+<header><nav><a href="/">首页</a><a href="/docs">文档</a><a href="/blog">博客</a><a href="#">A</a><a href="#">A</a></nav></header>
+<main><article>
+<h1>Widget 库 API 参考</h1>
+<div class="chips"><a href="/c/api">API</a><a href="/c/guide">Guide</a><a href="/c/faq">FAQ</a></div>
+<p>WIDGET-API-MARKER 本文档描述 Widget 库的公开接口，包括初始化、渲染与销毁三个阶段。</p>
+<h2>初始化</h2>
+<p>调用 <code>createWidget(options)</code> 创建实例。options 支持 container、theme、locale 三个字段。</p>
+<pre><code class="language-js">const w = createWidget({ container: '#app', theme: 'dark' })
+w.render()</code></pre>
+<h2>销毁</h2>
+<p>调用 <code>destroy()</code> 释放事件监听与 DOM 引用，避免内存泄漏。</p>
+<ul><li>destroy() 会解绑全部事件</li><li>重复调用是安全的</li></ul>
+<p><a href="/relative/api/more">更多示例</a></p>
+</article>
+<aside><h3>相关</h3><ul><li><a href="/docs/a">快速开始</a></li><li><a href="/docs/b">迁移指南</a></li></ul></aside>
+</main>
+<footer><p>版权噪音 版权噪音</p></footer></body></html>

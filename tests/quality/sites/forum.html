@@ -1,0 +1,14 @@
+<!doctype html><html lang="zh"><head><meta charset="utf-8"><title>如何在 CI 里缓存依赖 - 论坛</title></head><body>
+<div class="crumbs"><a href="/">论坛</a> › <a href="/c/build">构建</a> › 帖子</div>
+<main><article>
+<h1>如何在 CI 里缓存依赖</h1>
+<div class="post"><div class="meta">楼主 · 3 小时前</div>
+<p>FORUM-MARKER 我们的流水线每次都要重新装依赖，想请教大家怎么缓存最稳妥。</p>
+<p>目前用的是自托管 runner，缓存目录挂在 SSD 上。</p></div>
+<div class="post"><div class="meta">1 楼 · 2 小时前</div>
+<p>按 lockfile 的哈希做 key，命中率会稳定很多。</p>
+<pre><code>key: deps-${{ hashFiles('**/lock') }}</code></pre></div>
+<div class="post"><div class="meta">2 楼 · 1 小时前</div>
+<p>建议再加一层 restore-keys 兜底，避免哈希变动时完全 miss。</p></div>
+<div class="actions"><span>Share</span><span>Report</span><span>Copy link</span></div>
+</article></main></body></html>

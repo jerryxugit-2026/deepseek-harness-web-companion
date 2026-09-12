@@ -42,7 +42,8 @@
     "probe:m3-ops": "node tests/m3/ops-probe.mjs",
     "probe:m3-control": "node tests/m3/control-probe.mjs",
     "test:write-gate": "node tests/unit/write-gate.test.mjs",
-    "audit:captures": "node tests/quality/audit-captures.mjs"
+    "audit:captures": "node tests/quality/audit-captures.mjs",
+    "probe:sites": "node tests/quality/probe-sites.mjs"
   },
   "devDependencies": {
     "@colbymchenry/codegraph": "^1.6.0",
