@@ -1,5 +1,7 @@
 # DSH Web Companion
 
+![The side panel: DSH connected, the four buttons (attach page / attach selection / browser control / write actions), and a captured page referenced in the chat as @文件](assets/panel.png)
+
 **English** (this section) · [中文](#中文) · [Install guide](./docs/13-installation.md) · [安装部署](./docs/13-安装部署.md)
 
 An AI agent that sits **next to the web page you are looking at**, in the Chrome side panel.
