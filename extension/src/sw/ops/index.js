@@ -179,7 +179,7 @@ export async function opClick(params = {}, settings = {}) {
     return { tabId: tab.id, ok: true, matched: target.matched, tag: target.tag, text: target.text, coords: point, trusted: true }
   }
   if (settings.browserControl === true && debuggerAvailable()) notes.push('trusted path needs a CSS selector; used the untrusted DOM click')
-  else notes.push('浏览器控制未开启：使用 DOM 合成点击（页面若检查 isTrusted 会忽略）')
+  else notes.push('browser control is off: used a synthesized DOM click (pages that check isTrusted will ignore it)')
   const clicked = await inPage(tab.id, (spec) => {
     const el = spec.selector !== null && spec.selector !== undefined && spec.selector !== ''
       ? document.querySelector(spec.selector)
@@ -210,7 +210,7 @@ export async function opType(params = {}, settings = {}) {
     if (params.submit === true) await trustedKey(tab.id, 'Enter')
     return { tabId: tab.id, ok: true, typed: text.length, trusted: true, replace: params.replace === true, submitted: params.submit === true }
   }
-  notes.push('浏览器控制未开启：使用原生 setter + input 事件（React 等受控组件可用，但不产生 isTrusted 事件）')
+  notes.push('browser control is off: used the native setter + input event (works with controlled components such as React, but fires no isTrusted event)')
   value = await inPage(tab.id, (spec) => {
     const el = spec.selector === null || spec.selector === '' ? document.activeElement : document.querySelector(spec.selector)
     if (el === null || el === undefined) return { error: 'target-not-found' }
@@ -278,13 +278,13 @@ export async function opScreenshot(params = {}, settings = {}) {
       url: tab.url,
       ...shot,
       trusted: true,
-      notes: ['浏览器控制已开启：走 debugger（不受 2 次/秒限流、可在后台标签页截图）'],
+      notes: ['browser control is on: used the debugger (not throttled to 2/s, and can capture background tabs)'],
     }
   }
   if (wantFullPage) {
     throw opError(
       'E_NO_PERMISSION',
-      '整页截图需要先打开「浏览器控制」开关（它要 attach 调试器，页面上会出现不可消除的「正在调试」横幅）。也可以只用视口截图。',
+      'full-page screenshots need the "browser control" switch first (it attaches the debugger and shows an unremovable "being debugged" banner). You can also take a viewport-only screenshot.',
     )
   }
   try {
@@ -293,7 +293,7 @@ export async function opScreenshot(params = {}, settings = {}) {
     return { tabId: tab.id, url: tab.url, mime: 'image/png', base64, bytes: Math.round((base64.length * 3) / 4), fullPage: false, trusted: false }
   } catch (error) {
     const message = String(error?.message ?? error)
-    throw opError(/Either the '<all_urls>' or 'activeTab'/u.test(message) ? 'E_NO_PERMISSION' : 'E_TARGET', `${message}（提示：captureVisibleTab 只能抓当前活动标签页，且限流 2 次/秒；开「浏览器控制」可绕过）`)
+    throw opError(/Either the '<all_urls>' or 'activeTab'/u.test(message) ? 'E_NO_PERMISSION' : 'E_TARGET', `${message} (hint: captureVisibleTab only captures the current active tab and is throttled to 2/s; turning on "browser control" bypasses both)`)
   }
 }
 
@@ -305,7 +305,7 @@ export async function opScreenshot(params = {}, settings = {}) {
 export async function opAx(params = {}, settings = {}) {
   const tab = await resolveTab(params)
   if (settings.browserControl !== true) {
-    throw opError('E_NO_PERMISSION', '无障碍树需要先打开「浏览器控制」开关（它要 attach 调试器，页面上会出现「正在调试」横幅）')
+    throw opError('E_NO_PERMISSION', 'the accessibility tree needs the "browser control" switch first (it attaches the debugger and shows a "being debugged" banner)')
   }
   if (!debuggerAvailable()) throw opError('E_NO_PERMISSION', 'accessibility tree needs chrome.debugger')
   const tree = await accessibilityTree(tab.id, { maxNodes: Number.isFinite(params.maxNodes) ? params.maxNodes : 400 })

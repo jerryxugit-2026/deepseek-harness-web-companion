@@ -30,13 +30,22 @@
       "docRefs": 2
     },
     {
+      "path": "README.en.md",
+      "title": "DSH Web Companion",
+      "version": null,
+      "lines": 155,
+      "sections": 9,
+      "codeRefs": 0,
+      "docRefs": 6
+    },
+    {
       "path": "README.md",
       "title": "DSH Web Companion（Antigravity Web Companion）",
       "version": null,
-      "lines": 111,
+      "lines": 140,
       "sections": 9,
       "codeRefs": 0,
-      "docRefs": 0
+      "docRefs": 2
     },
     {
       "path": "docs/01-protocol.md",
@@ -147,11 +156,29 @@
       "docRefs": 0
     },
     {
+      "path": "docs/13-installation.md",
+      "title": "Install & deploy (the bootstrapper)",
+      "version": null,
+      "lines": 225,
+      "sections": 17,
+      "codeRefs": 0,
+      "docRefs": 6
+    },
+    {
+      "path": "docs/13-安装部署.md",
+      "title": "安装与部署（引导程序）",
+      "version": null,
+      "lines": 219,
+      "sections": 17,
+      "codeRefs": 0,
+      "docRefs": 1
+    },
+    {
       "path": "docs/CHANGELOG.md",
       "title": "变更记录（CHANGELOG）",
       "version": "v3.0",
-      "lines": 1717,
-      "sections": 45,
+      "lines": 2320,
+      "sections": 47,
       "codeRefs": 0,
       "docRefs": 1
     },
@@ -463,7 +490,7 @@
     }
   ],
   "code": {
-    "indexedFiles": 188,
+    "indexedFiles": 219,
     "areas": {
       "extension": [
         "docs/01-protocol.md",
@@ -851,10 +878,6 @@
         "ref": "out/e2e9.json"
       },
       {
-        "doc": "docs/06-test-plan.md",
-        "ref": "uninstall.mjs"
-      },
-      {
         "doc": "docs/07-implementation-plan.md",
         "ref": "E2E/cases/e2e1-embed.mjs"
       },
@@ -1025,18 +1048,6 @@
       {
         "doc": "docs/11-台账.md",
         "ref": "hub.ts"
-      },
-      {
-        "doc": "docs/11-台账.md",
-        "ref": "uninstall.mjs"
-      },
-      {
-        "doc": "docs/HANDOFF.md",
-        "ref": "uninstall.mjs"
-      },
-      {
-        "doc": "docs/PROGRESS.md",
-        "ref": "uninstall.mjs"
       },
       {
         "doc": "详细设计文档.md",

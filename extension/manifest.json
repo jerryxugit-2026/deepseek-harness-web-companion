@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "DeepSeek 浏览器插件",
+  "name": "__MSG_extName__",
   "version": "0.1.0",
-  "description": "Chrome side panel that embeds the local DeepSeek Harness agent GUI and attaches the current page to it.",
+  "description": "__MSG_extDescription__",
+  "default_locale": "en",
   "minimum_chrome_version": "116",
   "background": {
     "service_worker": "src/sw/index.js",
@@ -12,7 +13,7 @@
     "default_path": "src/sidepanel/panel.html"
   },
   "action": {
-    "default_title": "DeepSeek 浏览器插件"
+    "default_title": "__MSG_extName__"
   },
   "permissions": [
     "sidePanel",

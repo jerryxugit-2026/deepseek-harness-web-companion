@@ -72,9 +72,14 @@ if (failed) process.exit(1)
  * 该文件不存在时（CI / 干净机器）不判失败，但**明说基准缺失**，不假装检查过。
  */
 const pairingPort = (() => {
+  // 尊重 DSH_HOME：引导程序允许把数据目录装在别处，那时基准也在别处。
+  // （以前这里写死 `~/.dsh` —— 自定义 DSH_HOME 的安装会拿错基准，属于同类硬编码。）
+  const dshHome = typeof process.env.DSH_HOME === 'string' && process.env.DSH_HOME.trim() !== ''
+    ? process.env.DSH_HOME.trim()
+    : join(homedir(), '.dsh')
   let raw
   try {
-    raw = readFileSync(join(homedir(), '.dsh', 'dsh-web-companion.json'), 'utf8')
+    raw = readFileSync(join(dshHome, 'dsh-web-companion.json'), 'utf8')
   } catch (error) {
     // Distinguish "this machine simply has no pairing file" (CI, clean box) from "the check
     // itself is broken". A blanket `catch { return undefined }` turned an undefined-`homedir`
@@ -93,7 +98,7 @@ const pairingPort = (() => {
   return String(parsed.port)
 })()
 if (pairingPort === undefined) {
-  console.log('dist-config: 注意 —— 本机没有 ~/.dsh/dsh-web-companion.json，无法用真实配对文件做独立基准（本次只校验了 source==dist）')
+  console.log(`dist-config: 注意 —— ${typeof process.env.DSH_HOME === 'string' && process.env.DSH_HOME.trim() !== '' ? process.env.DSH_HOME.trim() : '~/.dsh'} 下没有 dsh-web-companion.json，无法用真实配对文件做独立基准（本次只校验了 source==dist）`)
 } else if (pairingPort !== expectedPort) {
   console.error(`✗ 源码 dev-config.js 的端口是 ${expectedPort}，而真实配对文件是 ${pairingPort}`)
   console.error('  → 典型原因：某个探针改写了 dev-config.js 却没还原（崩溃/SIGINT），或你换了端口但没重新 init-key。')

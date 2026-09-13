@@ -46,6 +46,7 @@ globalThis.fetch = async (url) => {
 }
 
 const { ensureReady } = await import('../../extension/src/sw/dsh-session.js')
+const { MESSAGES } = await import('../../extension/src/lib/messages.generated.js')
 
 const results = {}
 const record = (name, value) => {
@@ -70,8 +71,22 @@ console.log('\n2. ★票据失败（重试后仍失败）：必须 fail-closed �
   record('ok = false（不再静默降级为"能进就行"）', ready.ok === false)
   record('没有返回可用的 url', ready.url === undefined)
   record('★任何返回字段里都不含长期密钥', !JSON.stringify(ready).includes(KEY))
-  record('错误可诊断（点名票据失败 + 修法）', /票据/u.test(String(ready.error?.message)) && /init-key/u.test(String(ready.error?.message)))
-  record('错误里说明了"为不把密钥写进 URL 而停止"', /密钥/u.test(String(ready.error?.message)))
+  const msg = String(ready.error?.message)
+  /*
+   * 英文版改造后，这里的文案**来自文案表**（可本地化），所以断言改成与措辞无关的性质：
+   *   ① 带上错误码与服务端给的原因（可诊断）；
+   *   ② 带上修法；
+   *   ③ 默认语言下**不再含汉字**（证明它真的走了文案表，而不是某处还写死着中文）——
+   *      这一条在改造前是红的（那时这句是硬编码中文）。
+   * 原来直接断言中文字符串（`/票据/`、`/密钥/`），一翻译就会红：那种断言锁的是措辞。
+   */
+  record('★文案来自文案表（默认语言无汉字），且带错误码 + 服务端原因',
+    /[\u4e00-\u9fff]/u.test(msg) === false && msg.includes('E_AUTH') && msg.includes('403'))
+  record('错误可诊断（点名票据失败 + 给出修法）', /ticket/iu.test(msg) && /init-key/u.test(msg))
+  record('错误里说明了"为不把长期密钥写进 URL 而停止"', /key/iu.test(msg) && /URL/u.test(msg))
+  // 插值有没有串位：模板里有 2 个占位，渲染结果里不该还剩占位符
+  record('文案表模板有 2 个占位符', (String(MESSAGES.en.errTicketFailed).match(/\$\d/gu) ?? []).length === 2)
+  record('★渲染后没有残留的 $1/$2（插值真的被替换了）', /\$\d/u.test(msg) === false)
   record('state.handshake 如实标记为 ticket-failed', ready.state?.handshake === 'ticket-failed')
   record('复用已有错误码 E_UNPAIRED（不新增协议码）', ready.error?.code === 'E_UNPAIRED')
 }

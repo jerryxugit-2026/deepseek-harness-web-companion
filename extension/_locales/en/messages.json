@@ -1,0 +1,176 @@
+{
+  "extName": {
+    "message": "DeepSeek Browser Companion"
+  },
+  "extDescription": {
+    "message": "Chrome side panel that embeds the local DeepSeek Harness agent GUI and attaches the current page to it."
+  },
+  "statusTitle": {
+    "message": "DSH status"
+  },
+  "statusPreparing": {
+    "message": "Preparing…"
+  },
+  "statusUp": {
+    "message": "DSH connected"
+  },
+  "statusConnecting": {
+    "message": "Connecting…"
+  },
+  "statusDown": {
+    "message": "DSH not connected"
+  },
+  "statusConnectingDsh": {
+    "message": "Connecting to the local DSH…"
+  },
+  "hintStartDsh": {
+    "message": "$1\n\nHint: start `dsh web` first (or install the native host so it can auto-start), then click “Retry”."
+  },
+  "gatePermissionBody": {
+    "message": "A one-time grant is needed to read the text and screenshots of any web page. Everything stays on this machine (written into your workspace and handed to your local DSH) — nothing goes to any service outside this extension."
+  },
+  "statusGrantFailed": {
+    "message": "Grant failed: $1"
+  },
+  "statusNotGranted": {
+    "message": "Not granted yet: click the extension icon once on the target page (that grants the tab temporarily), then retry."
+  },
+  "statusAttached": {
+    "message": "Attached: $1"
+  },
+  "statusCaptureFailed": {
+    "message": "Capture failed: $1"
+  },
+  "statusCapturing": {
+    "message": "Capturing…"
+  },
+  "statusLookLeftCapturing": {
+    "message": "“Look left” → capturing…"
+  },
+  "statusLookLeftFailed": {
+    "message": "“Look left” capture failed: $1"
+  },
+  "statusBrowserControlFailed": {
+    "message": "Could not toggle browser control: $1"
+  },
+  "statusBrowserControlOn": {
+    "message": "Browser control is on: clicks and typing use real input events (Chrome shows a “being debugged” banner while it runs)."
+  },
+  "statusBrowserControlOff": {
+    "message": "Browser control is off: the debugger was released."
+  },
+  "statusWriteOpsUnavailable": {
+    "message": "Write-actions switch unavailable: $1"
+  },
+  "statusWriteOpsFailed": {
+    "message": "Could not toggle write actions: $1"
+  },
+  "statusWriteOpsOn": {
+    "message": "Write actions are on: the model can see $1 browser tools ($2)."
+  },
+  "statusWriteOpsOff": {
+    "message": "Write actions are off: the model only has read-only tools."
+  },
+  "gateAsk": {
+    "message": "Every click and typing first asks for approval (per the default policy; a session set to “never” is refused outright)."
+  },
+  "gateNoApprovalService": {
+    "message": "This deployment has no approval service: only this switch gates write access."
+  },
+  "gatePolicyNever": {
+    "message": "Approval policy is “never”: no prompt appears and write actions are refused outright (set the policy back to “ask” first)."
+  },
+  "gateApprovalOff": {
+    "message": "Approval is disabled in the configuration."
+  },
+  "attachPageLabel": {
+    "message": "Attach page"
+  },
+  "attachPageTitle": {
+    "message": "Attach the current page (full-page Markdown)"
+  },
+  "attachSelectionLabel": {
+    "message": "Attach selection"
+  },
+  "attachSelectionTitle": {
+    "message": "Attach the currently selected text"
+  },
+  "browserControlLabel": {
+    "message": "Browser control"
+  },
+  "browserControlTitle": {
+    "message": "Uses the DevTools protocol to send real input events (trusted click/type, full-page screenshots, accessibility tree). While it is on, Chrome shows a “being debugged” banner."
+  },
+  "writeOpsLabel": {
+    "message": "Write actions"
+  },
+  "writeOpsTitle": {
+    "message": "Lets the agent click, type and navigate in your pages (browser_click / browser_type / browser_navigate). Off by default — these tools are only registered for the model after you turn it on."
+  },
+  "openWindowLabel": {
+    "message": "Open in window"
+  },
+  "openWindowTitle": {
+    "message": "Open in a separate window"
+  },
+  "gateAllow": {
+    "message": "Grant & capture"
+  },
+  "gateCancel": {
+    "message": "Cancel"
+  },
+  "retry": {
+    "message": "Retry"
+  },
+  "errNoHostPermission": {
+    "message": "This page is not authorized yet: click “Grant & capture” to grant “read all websites” once, or click the extension icon on the target page (that grants the tab temporarily) and retry."
+  },
+  "errNoSelection": {
+    "message": "No selection detected: select some text on the page first, then click “Attach selection” — or use “Attach page” to capture the whole page."
+  },
+  "errNoWorkspace": {
+    "message": "No workspace available: $1"
+  },
+  "errDshDown": {
+    "message": "The local DSH is not running: start it with `dsh web`."
+  },
+  "errReadonly": {
+    "message": "This action needs write access: turn on the “Write actions” switch in the panel (only then are the click/type/navigate tools registered for the model)."
+  },
+  "errExtOffline": {
+    "message": "The browser extension is not connected: open the side panel (the /ag/agent channel only exists while the panel is open)."
+  },
+  "errTargetBusy": {
+    "message": "The target tab is held by another debugger (usually another extension debugging that page): close that debugger and retry."
+  },
+  "errTimeout": {
+    "message": "Timed out: $1. The page may still be loading; try again in a moment."
+  },
+  "shotNoImage": {
+    "message": "Screenshot failed: the extension got no image at all (the page text was still delivered)."
+  },
+  "shotReasonUnstated": {
+    "message": "reason not stated"
+  },
+  "shotFailedWithReason": {
+    "message": "Screenshot failed; the page text was still delivered: $1"
+  },
+  "shotEmptyImage": {
+    "message": "Screenshot failed: the image was empty (the page text was still delivered)."
+  },
+  "dshDownNoNativeHost": {
+    "message": "DSH is not running and the native host is not installed. Run `node native-host/install.mjs` first, or start `dsh web` manually."
+  },
+  "dshAutoStartFailed": {
+    "message": "DSH is not running and auto-start failed: $1"
+  },
+  "dshNotReady": {
+    "message": "DSH did not become ready: $1"
+  },
+  "errNotPaired": {
+    "message": "The extension and the plugin are not paired yet — run `node scripts/init-key.mjs` and reload the extension."
+  },
+  "errTicketFailed": {
+    "message": "Could not get a one-time entry ticket ($1): $2\n\nAutomatic entry was stopped so that the long-lived key never enters the iframe URL. Reopen the side panel to retry; if it keeps failing, run `node scripts/init-key.mjs` and reload the extension."
+  }
+}

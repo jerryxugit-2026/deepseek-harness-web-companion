@@ -55,6 +55,9 @@ export function apply(ctx, config = {}) {
     cookieMode: config.cookieMode ?? 'none-secure',
     keyFile: config.keyFile ?? companionPath(),
     attachDir: config.attachDir ?? '网页捕获',
+    // 面向**模型**的文案语言（工具 description / 字段说明 / 错误提示）：宿主没有
+    // chrome.i18n，所以由插件自带的表（host/model-text.js）按这个值取词。
+    locale: config.locale ?? 'en',
     attachMaxBytes: config.attachMaxBytes ?? 8 * 1024 * 1024,
     pendingLimit: config.pendingLimit ?? 32,
     defaultWorkspace: config.defaultWorkspace,

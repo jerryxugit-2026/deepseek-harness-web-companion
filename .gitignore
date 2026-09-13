@@ -13,6 +13,11 @@ node_modules/
 scripts/.dev-extension-key.json
 extension/src/lib/dev-config.js
 
+# generated native-messaging launcher — contains THIS machine's absolute node path
+# and install path, so it must never be committed (it is written by
+# bootstrap/install.mjs / native-host/install.mjs at install time)
+native-host/run-host.sh
+
 # test run outputs
 spike/out/
 tests/e2e/out/

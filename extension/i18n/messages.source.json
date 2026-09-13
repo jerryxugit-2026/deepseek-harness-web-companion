@@ -1,0 +1,234 @@
+{
+  "extName": {
+    "en": "DeepSeek Browser Companion",
+    "zh_CN": "DeepSeek 浏览器插件"
+  },
+  "extDescription": {
+    "en": "Chrome side panel that embeds the local DeepSeek Harness agent GUI and attaches the current page to it.",
+    "zh_CN": "把本地 DeepSeek Harness agent 嵌进浏览器侧边栏，并把当前网页交给它。"
+  },
+  "statusTitle": {
+    "en": "DSH status",
+    "zh_CN": "DSH 状态"
+  },
+  "statusPreparing": {
+    "en": "Preparing…",
+    "zh_CN": "准备中…"
+  },
+  "statusUp": {
+    "en": "DSH connected",
+    "zh_CN": "DSH 已连接"
+  },
+  "statusConnecting": {
+    "en": "Connecting…",
+    "zh_CN": "正在连接…"
+  },
+  "statusDown": {
+    "en": "DSH not connected",
+    "zh_CN": "DSH 未连接"
+  },
+  "statusConnectingDsh": {
+    "en": "Connecting to the local DSH…",
+    "zh_CN": "正在连接本地 DSH…"
+  },
+  "hintStartDsh": {
+    "en": "$1\n\nHint: start `dsh web` first (or install the native host so it can auto-start), then click “Retry”.",
+    "zh_CN": "$1\n\n提示：先启动 dsh web（或安装 native host 后自动拉起），再点“重试”。"
+  },
+  "gatePermissionBody": {
+    "en": "A one-time grant is needed to read the text and screenshots of any web page. Everything stays on this machine (written into your workspace and handed to your local DSH) — nothing goes to any service outside this extension.",
+    "zh_CN": "需要一次性授权，才能读取任意网页的正文与截图。内容只在本机处理（写入工作区 + 交给本地 DSH），不会经过本扩展外的任何服务。"
+  },
+  "statusGrantFailed": {
+    "en": "Grant failed: $1",
+    "zh_CN": "授权失败：$1"
+  },
+  "statusNotGranted": {
+    "en": "Not granted yet: click the extension icon once on the target page (that grants the tab temporarily), then retry.",
+    "zh_CN": "未授权：可在目标网页点一次扩展图标（临时授权）后重试"
+  },
+  "statusAttached": {
+    "en": "Attached: $1",
+    "zh_CN": "已附加：$1"
+  },
+  "statusCaptureFailed": {
+    "en": "Capture failed: $1",
+    "zh_CN": "抓取失败：$1"
+  },
+  "statusCapturing": {
+    "en": "Capturing…",
+    "zh_CN": "抓取中…"
+  },
+  "statusLookLeftCapturing": {
+    "en": "“Look left” → capturing…",
+    "zh_CN": "「看左边」→ 正在抓取…"
+  },
+  "statusLookLeftFailed": {
+    "en": "“Look left” capture failed: $1",
+    "zh_CN": "「看左边」抓取失败：$1"
+  },
+  "statusBrowserControlFailed": {
+    "en": "Could not toggle browser control: $1",
+    "zh_CN": "切换浏览器控制失败：$1"
+  },
+  "statusBrowserControlOn": {
+    "en": "Browser control is on: clicks and typing use real input events (Chrome shows a “being debugged” banner while it runs).",
+    "zh_CN": "浏览器控制已开启：点击/输入走真实输入事件（浏览器会显示「正在调试」横幅）"
+  },
+  "statusBrowserControlOff": {
+    "en": "Browser control is off: the debugger was released.",
+    "zh_CN": "浏览器控制已关闭：已释放调试器"
+  },
+  "statusWriteOpsUnavailable": {
+    "en": "Write-actions switch unavailable: $1",
+    "zh_CN": "写操作开关不可用：$1"
+  },
+  "statusWriteOpsFailed": {
+    "en": "Could not toggle write actions: $1",
+    "zh_CN": "切换写操作失败：$1"
+  },
+  "statusWriteOpsOn": {
+    "en": "Write actions are on: the model can see $1 browser tools ($2).",
+    "zh_CN": "写操作已开启：模型可见 $1 个浏览器工具（$2）"
+  },
+  "statusWriteOpsOff": {
+    "en": "Write actions are off: the model only has read-only tools.",
+    "zh_CN": "写操作已关闭：模型只剩只读工具"
+  },
+  "gateAsk": {
+    "en": "Every click and typing first asks for approval (per the default policy; a session set to “never” is refused outright).",
+    "zh_CN": "每次点击/输入都会先请求批准（按默认策略；某会话若被设为 never，会被当场拒绝）"
+  },
+  "gateNoApprovalService": {
+    "en": "This deployment has no approval service: only this switch gates write access.",
+    "zh_CN": "本部署无审批服务：仅由这个开关把关"
+  },
+  "gatePolicyNever": {
+    "en": "Approval policy is “never”: no prompt appears and write actions are refused outright (set the policy back to “ask” first).",
+    "zh_CN": "审批策略是 never：不会弹提示，写操作会被直接拒绝（先把策略改回 ask）"
+  },
+  "gateApprovalOff": {
+    "en": "Approval is disabled in the configuration.",
+    "zh_CN": "审批已在配置里关闭"
+  },
+  "attachPageLabel": {
+    "en": "Attach page",
+    "zh_CN": "Attach 网页"
+  },
+  "attachPageTitle": {
+    "en": "Attach the current page (full-page Markdown)",
+    "zh_CN": "Attach 当前网页（整页 Markdown）"
+  },
+  "attachSelectionLabel": {
+    "en": "Attach selection",
+    "zh_CN": "Attach 选区"
+  },
+  "attachSelectionTitle": {
+    "en": "Attach the currently selected text",
+    "zh_CN": "Attach 当前选中文本"
+  },
+  "browserControlLabel": {
+    "en": "Browser control",
+    "zh_CN": "浏览器控制"
+  },
+  "browserControlTitle": {
+    "en": "Uses the DevTools protocol to send real input events (trusted click/type, full-page screenshots, accessibility tree). While it is on, Chrome shows a “being debugged” banner.",
+    "zh_CN": "开启后用 DevTools 协议发送真实输入事件（可信点击/输入、整页截图、无障碍树）。开启期间浏览器会显示「正在调试」横幅。"
+  },
+  "writeOpsLabel": {
+    "en": "Write actions",
+    "zh_CN": "写操作"
+  },
+  "writeOpsTitle": {
+    "en": "Lets the agent click, type and navigate in your pages (browser_click / browser_type / browser_navigate). Off by default — these tools are only registered for the model after you turn it on.",
+    "zh_CN": "允许 Agent 在你的页面上点击/输入/导航（browser_click / browser_type / browser_navigate）。默认关闭；开启后这些工具才会被注册给模型。"
+  },
+  "openWindowLabel": {
+    "en": "Open in window",
+    "zh_CN": "独立窗口"
+  },
+  "openWindowTitle": {
+    "en": "Open in a separate window",
+    "zh_CN": "在独立窗口打开"
+  },
+  "gateAllow": {
+    "en": "Grant & capture",
+    "zh_CN": "授权并抓取"
+  },
+  "gateCancel": {
+    "en": "Cancel",
+    "zh_CN": "取消"
+  },
+  "retry": {
+    "en": "Retry",
+    "zh_CN": "重试"
+  },
+  "errNoHostPermission": {
+    "en": "This page is not authorized yet: click “Grant & capture” to grant “read all websites” once, or click the extension icon on the target page (that grants the tab temporarily) and retry.",
+    "zh_CN": "当前网页未获授权：请点「授权并抓取」授予一次「读取所有网站」权限；或在目标网页上点一次扩展图标（临时授权该标签页）后重试。"
+  },
+  "errNoSelection": {
+    "en": "No selection detected: select some text on the page first, then click “Attach selection” — or use “Attach page” to capture the whole page.",
+    "zh_CN": "没有检测到选区：请先在网页上划选文字再点「Attach 选区」，或改用「Attach 网页」抓整页。"
+  },
+  "errNoWorkspace": {
+    "en": "No workspace available: $1",
+    "zh_CN": "没有可用的工作区：$1"
+  },
+  "errDshDown": {
+    "en": "The local DSH is not running: start it with `dsh web`.",
+    "zh_CN": "本地 DSH 未运行：请先启动 dsh web。"
+  },
+  "errReadonly": {
+    "en": "This action needs write access: turn on the “Write actions” switch in the panel (only then are the click/type/navigate tools registered for the model).",
+    "zh_CN": "这次操作需要写权限：请在面板打开「写操作」开关（模型侧才会注册点击/输入/导航工具）。"
+  },
+  "errExtOffline": {
+    "en": "The browser extension is not connected: open the side panel (the /ag/agent channel only exists while the panel is open).",
+    "zh_CN": "浏览器扩展没有连上：请打开侧边栏面板（面板打开时才会建立 /ag/agent 通道）。"
+  },
+  "errTargetBusy": {
+    "en": "The target tab is held by another debugger (usually another extension debugging that page): close that debugger and retry.",
+    "zh_CN": "目标标签页已被另一个调试器占用（通常是另一个扩展在调试该页）：关掉那个调试器再试。"
+  },
+  "errTimeout": {
+    "en": "Timed out: $1. The page may still be loading; try again in a moment.",
+    "zh_CN": "操作超时：$1。页面可能仍在加载，可稍后重试。"
+  },
+  "shotNoImage": {
+    "en": "Screenshot failed: the extension got no image at all (the page text was still delivered).",
+    "zh_CN": "截图没成功：扩展没有取到任何图像（正文已照常投递）。"
+  },
+  "shotReasonUnstated": {
+    "en": "reason not stated",
+    "zh_CN": "未说明原因"
+  },
+  "shotFailedWithReason": {
+    "en": "Screenshot failed; the page text was still delivered: $1",
+    "zh_CN": "截图没成功，正文已照常投递：$1"
+  },
+  "shotEmptyImage": {
+    "en": "Screenshot failed: the image was empty (the page text was still delivered).",
+    "zh_CN": "截图没成功：图像是空的（正文已照常投递）。"
+  },
+  "dshDownNoNativeHost": {
+    "en": "DSH is not running and the native host is not installed. Run `node native-host/install.mjs` first, or start `dsh web` manually.",
+    "zh_CN": "DSH 未运行，且未安装 native host。请先运行：node native-host/install.mjs，或手动启动 dsh web。"
+  },
+  "dshAutoStartFailed": {
+    "en": "DSH is not running and auto-start failed: $1",
+    "zh_CN": "DSH 未运行且自动拉起失败：$1"
+  },
+  "dshNotReady": {
+    "en": "DSH did not become ready: $1",
+    "zh_CN": "DSH 未能就绪：$1"
+  },
+  "errNotPaired": {
+    "en": "The extension and the plugin are not paired yet — run `node scripts/init-key.mjs` and reload the extension.",
+    "zh_CN": "扩展与插件尚未配对 —— 请运行 `node scripts/init-key.mjs`，然后重新加载扩展。"
+  },
+  "errTicketFailed": {
+    "en": "Could not get a one-time entry ticket ($1): $2\n\nAutomatic entry was stopped so that the long-lived key never enters the iframe URL. Reopen the side panel to retry; if it keeps failing, run `node scripts/init-key.mjs` and reload the extension.",
+    "zh_CN": "取一次性进入票据失败（$1）：$2\n\n为不把长期密钥写进 iframe URL，已停止自动进入。请重开侧边栏重试；若持续失败，运行 node scripts/init-key.mjs 后重新加载扩展。"
+  }
+}

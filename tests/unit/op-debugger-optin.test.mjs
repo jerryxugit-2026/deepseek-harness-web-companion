@@ -64,7 +64,9 @@ console.log('1. 「浏览器控制」关着：整页截图必须被拒，且**�
   const refused = await attempt(() => opScreenshot({ tabId: 1, fullPage: true }, { browserControl: false }))
   record('被拒（不是静默成功）', refused.ok === false)
   record('错误码是 E_NO_PERMISSION', refused.code === 'E_NO_PERMISSION')
-  record('提示里点名开关与后果（可操作）', /浏览器控制/u.test(refused.message) && /调试/u.test(refused.message))
+  // ops 层面向模型的文案已固定为英文（SW 拿不到宿主插件配置，见 extension/src/sw/ops/index.js），
+  // 所以这里匹配英文措辞：断言的是"提示里点名了开关与后果"，不是具体某一句中文。
+  record('提示里点名开关与后果（可操作）', /browser control/iu.test(refused.message) && /debug/iu.test(refused.message))
   record('**没有 attach 调试器**（横幅不会出现）', attachAttempts === 0)
 }
 
@@ -74,7 +76,7 @@ console.log('\n2. 「浏览器控制」关着：无障碍树同样必须被拒�
   const refused = await attempt(() => opAx({ tabId: 1 }, { browserControl: false }))
   record('被拒', refused.ok === false)
   record('错误码 E_NO_PERMISSION', refused.code === 'E_NO_PERMISSION')
-  record('提示里点名开关', /浏览器控制/u.test(refused.message))
+  record('提示里点名开关', /browser control/iu.test(refused.message))
   record('**没有 attach 调试器**', attachAttempts === 0)
 }
 
@@ -94,8 +96,8 @@ console.log('\n4. 开关关着的**视口**截图仍然可用（不能把正常�
   const shot = await attempt(() => opScreenshot({ tabId: 1, fullPage: false }, { browserControl: false }))
   // 我的桩故意让 captureVisibleTab 抛权限错（真实会出现），所以这里期望"走到那条路并如实报错"。
   // 关键断言是：它**不是**被"需要先打开开关"那条闸门拦下的（回退路径的提示文案里**故意**会提到
-  // 「浏览器控制」作为限流绕过建议，所以不能用"消息里有没有这四个字"来判别），也没有 attach 调试器。
-  record('没有被"需要先打开开关"闸门拦下', /需要先打开/u.test(String(shot.message ?? '')) === false)
+  // 「浏览器控制」作为限流绕过建议，所以不能用"消息里有没有这几个字"来判别），也没有 attach 调试器。
+  record('没有被"需要先打开开关"闸门拦下', /need the "browser control" switch first/u.test(String(shot.message ?? '')) === false)
   record('没有 attach 调试器', attachAttempts === 0)
   record('如实报了权限错误（可诊断）', shot.ok === false && String(shot.message).includes('activeTab'))
 }

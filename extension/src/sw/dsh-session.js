@@ -13,6 +13,7 @@ import { fetchWithTimeout, fail, ok } from '../lib/result.js'
 import { PROTOCOL_VERSION, validateAs } from '../lib/protocol.generated.js'
 import { DEV_CONFIG } from '../lib/dev-config.js'
 import { ensureDsh as nativeEnsureDsh } from './native-host.js'
+import { t } from '../lib/i18n.js'
 
 const DEV_KEY = DEV_CONFIG.key
 import { dshOrigin, dshPort, enterUrl, enterUrlWithTicket, isPaired, pingUrl, ticketUrl } from '../lib/urls.js'
@@ -83,13 +84,13 @@ export async function ensureReady() {
         error: {
           code: started_.error.code === 'E_NATIVE_MISSING' ? 'E_NATIVE_MISSING' : 'E_DSH_DOWN',
           message: started_.error.code === 'E_NATIVE_MISSING'
-            ? 'DSH 未运行，且未安装 native host。请先运行：node native-host/install.mjs，或手动启动 dsh web。'
-            : `DSH 未运行且自动拉起失败：${started_.error.message}`,
+            ? t('dshDownNoNativeHost')
+            : t('dshAutoStartFailed', [started_.error.message]),
         },
       }
     }
     if (!ping.ok) {
-      return { ok: false, state: { dsh: 'down', native: nativeNote }, error: { code: 'E_DSH_DOWN', message: `DSH 未能就绪：${dshOrigin()}` } }
+      return { ok: false, state: { dsh: 'down', native: nativeNote }, error: { code: 'E_DSH_DOWN', message: t('dshNotReady', [dshOrigin()]) } }
     }
   }
   const info = ping.value
@@ -102,7 +103,7 @@ export async function ensureReady() {
       state: { dsh: 'up', plugin: info },
       error: {
         code: 'E_UNPAIRED',
-        message: 'extension and plugin are not paired yet — run `node scripts/init-key.mjs` and reload the extension',
+        message: t('errNotPaired'),
       },
     }
   }
@@ -129,7 +130,7 @@ export async function ensureReady() {
     state: { dsh: 'up', port: dshPort(), plugin: info, handshake: 'ticket-failed', ticketError: ticket.error.code },
     error: {
       code: 'E_UNPAIRED',
-      message: `取一次性进入票据失败（${String(ticket.error.code)}）：${String(ticket.error.message)}\n\n为不把长期密钥写进 iframe URL，已停止自动进入。请重开侧边栏重试；若持续失败，运行 node scripts/init-key.mjs 后重新加载扩展。`,
+      message: t('errTicketFailed', [String(ticket.error.code), String(ticket.error.message)]),
     },
   }
 }

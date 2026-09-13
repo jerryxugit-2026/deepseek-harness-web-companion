@@ -10,6 +10,14 @@ import { createStore } from './state.js'
 import { startAgentChannel } from './agent-channel.js'
 import { controlUrl, pairingKey } from '../lib/urls.js'
 import { explainError } from './errors.js'
+import { applyI18n, t } from '../lib/i18n.js'
+
+/*
+ * 先把静态文案按当前语言填好，再干别的。
+ * Chrome 没有声明式本地化，panel.html 里写的是英文默认值 + data-i18n 标记，
+ * 这一步才会把它们换成用户语言（中文用户看到的就是中文）。
+ */
+applyI18n()
 
 const els = {
   gate: document.getElementById('gate'),
@@ -48,10 +56,10 @@ store.subscribe((state) => {
 })
 
 function statusLabel(state) {
-  if (state.dsh === 'up') return 'DSH 已连接'
-  if (state.dsh === 'starting') return '正在连接…'
-  if (state.dsh === 'down') return 'DSH 未连接'
-  return '准备中…'
+  if (state.dsh === 'up') return t('statusUp')
+  if (state.dsh === 'starting') return t('statusConnecting')
+  if (state.dsh === 'down') return t('statusDown')
+  return t('statusPreparing')
 }
 
 /** Send one message to the service worker and unwrap its Result. */
@@ -74,12 +82,12 @@ function mount(url) {
 
 /** Probe → mount, reporting every failure state into the panel. */
 async function connect() {
-  store.dispatch({ dsh: 'starting', message: '正在连接本地 DSH…' })
+  store.dispatch({ dsh: 'starting', message: t('statusConnectingDsh') })
   const ready = await ask({ kind: 'ensure-dsh' })
   if (!ready.ok) {
     store.dispatch({
       dsh: 'down',
-      message: `${ready.error.message}\n\n提示：先启动 dsh web（或安装 native host 后自动拉起），再点“重试”。`,
+      message: t('hintStartDsh', [ready.error.message]),
     })
     return
   }
@@ -120,7 +128,7 @@ async function hasCapturePermission() {
 /** Show the inline gate; resolves true when the user grants, false otherwise. */
 function askForPermission() {
   return new Promise((resolve) => {
-    els.gateText.textContent = '需要一次性授权，才能读取任意网页的正文与截图。内容只在本机处理（写入工作区 + 交给本地 DSH），不会经过本扩展外的任何服务。'
+    els.gateText.textContent = t('gatePermissionBody')
     els.gate.hidden = false
     const cleanup = () => {
       els.gate.hidden = true
@@ -134,7 +142,7 @@ function askForPermission() {
           // the click IS the gesture Chrome requires
           granted = await chrome.permissions.request({ origins: ['*://*/*'] })
         } catch (error) {
-          els.status.textContent = `授权失败：${String(error)}`
+          els.status.textContent = t('statusGrantFailed', [String(error)])
         }
         cleanup()
         resolve(granted)
@@ -166,19 +174,19 @@ async function runCapture(mode, trigger = 'button') {
   if (!gestureless && !(await hasCapturePermission())) {
     const granted = await askForPermission()
     if (!granted) {
-      els.status.textContent = '未授权：可在目标网页点一次扩展图标（临时授权）后重试'
+      els.status.textContent = t('statusNotGranted')
       return { ok: false, error: { code: 'E_PERMISSION', message: 'user denied the capture permission' } }
     }
   }
   const result = await ask({ kind: 'capture', mode, trigger })
   if (result.ok) {
     const ref = result.value?.result?.fileRef ?? ''
-    els.status.textContent = `已附加：${ref}`
+    els.status.textContent = t('statusAttached', [ref])
     store.dispatch({ attach: 'attached', lastFileRef: ref })
     return result
   }
   const readable = explainError(result.error)
-  els.status.textContent = `抓取失败：${readable}`
+  els.status.textContent = t('statusCaptureFailed', [readable])
   store.dispatch({ attach: 'failed', message: readable })
   return { ok: false, error: { ...result.error, message: readable } }
 }
@@ -199,15 +207,15 @@ async function initBrowserControl() {
     void (async () => {
       const reply = await ask({ kind: 'browser-control', enabled: els.bcToggle.checked })
       if (!reply.ok) {
-        els.status.textContent = `切换浏览器控制失败：${String(reply.error?.message ?? '')}`
+        els.status.textContent = t('statusBrowserControlFailed', [String(reply.error?.message ?? '')])
         els.bcToggle.checked = !els.bcToggle.checked
         return
       }
       probe.browserControl = reply.value.browserControl === true
       probe.detached = reply.value.detached ?? []
       els.status.textContent = probe.browserControl
-        ? '浏览器控制已开启：点击/输入走真实输入事件（浏览器会显示「正在调试」横幅）'
-        : '浏览器控制已关闭：已释放调试器'
+        ? t('statusBrowserControlOn')
+        : t('statusBrowserControlOff')
     })()
   })
 }
@@ -234,7 +242,7 @@ async function initWriteOps() {
     probe.approvalMode = payload?.approvalMode
   } catch (error) {
     // The plugin may be older than this panel; the switch stays hidden then.
-    els.status.textContent = `写操作开关不可用：${String(error?.message ?? error).slice(0, 80)}`
+    els.status.textContent = t('statusWriteOpsUnavailable', [String(error?.message ?? error).slice(0, 80)])
     void reply
     return
   }
@@ -258,19 +266,19 @@ async function initWriteOps() {
         // 单个会话可以被设成 `never`，那时写操作会被当场拒绝而不会弹提示（v3.41 实测：本会话就是 never，
         // 工具返回的是「审批策略是 never」而不是「用户拒绝了」）。所以措辞里点明是默认策略。
         const gate = payload.approvalMode === 'ask'
-          ? '每次点击/输入都会先请求批准（按默认策略；某会话若被设为 never，会被当场拒绝）'
+          ? t('gateAsk')
           : payload.approvalMode === 'switch-only'
-            ? '本部署无审批服务：仅由这个开关把关'
+            ? t('gateNoApprovalService')
             : payload.approvalMode === 'policy-never'
               // 服务在、策略 never：引擎会在问任何人之前就拒绝。这里以前显示"会先向你请求批准"，
               // 而实际每次都被自动拒（台账 §5-12）。
-              ? '审批策略是 never：不会弹提示，写操作会被直接拒绝（先把策略改回 ask）'
-              : '审批已在配置里关闭'
+              ? t('gatePolicyNever')
+              : t('gateApprovalOff')
         els.status.textContent = probe.writeOps
-          ? `写操作已开启：模型可见 ${String((payload.capabilities ?? []).length)} 个浏览器工具（${gate}）`
-          : '写操作已关闭：模型只剩只读工具'
+          ? t('statusWriteOpsOn', [String((payload.capabilities ?? []).length), gate])
+          : t('statusWriteOpsOff')
       } catch (error) {
-        els.status.textContent = `切换写操作失败：${String(error?.message ?? error).slice(0, 80)}`
+        els.status.textContent = t('statusWriteOpsFailed', [String(error?.message ?? error).slice(0, 80)])
         els.woToggle.checked = !els.woToggle.checked
       }
     })()
@@ -281,7 +289,7 @@ async function initWriteOps() {
 async function runCaptureFromButton(mode, button) {
   const label = button.textContent
   button.disabled = true
-  button.textContent = '抓取中…'
+  button.textContent = t('statusCapturing')
   try {
     await runCapture(mode, 'button')
   } finally {
@@ -312,7 +320,7 @@ const agentChannel = startAgentChannel({
     probe.lastFrame = frame
   },
   runCapture: async (mode, reason) => {
-    els.status.textContent = reason === 'look-left' ? '「看左边」→ 正在抓取…' : '正在抓取…'
+    els.status.textContent = reason === 'look-left' ? t('statusLookLeftCapturing') : t('statusCapturing')
     try {
       const result = await runCapture(mode ?? 'page', 'look_left')
       // 带上 filePath：探针要以**落盘事实**为准，而不是假定某个工作区目录
@@ -324,7 +332,7 @@ const agentChannel = startAgentChannel({
         filePath: result?.value?.result?.filePath,
         error: result?.error,
       })
-      if (result?.ok !== true) els.status.textContent = `「看左边」抓取失败：${explainError(result?.error)}`
+      if (result?.ok !== true) els.status.textContent = t('statusLookLeftFailed', [explainError(result?.error)])
       return result
     } catch (error) {
       probe.errors.push(String(error?.message ?? error))

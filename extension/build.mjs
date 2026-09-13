@@ -25,7 +25,8 @@ const ENTRIES = {
   'src/sidepanel/panel.js': 'panel.js',
   'src/content/content.js': 'content.js',
 }
-const STATIC = ['manifest.json', 'src/sidepanel/panel.html', 'src/sidepanel/panel.css']
+// `_locales` 是 Chrome 找语言包的固定位置（与 manifest.json 同级），必须一起进 dist
+const STATIC = ['manifest.json', 'src/sidepanel/panel.html', 'src/sidepanel/panel.css', '_locales']
 
 /** Bytes of every file under `dir`, recursively. */
 function walkSizes(dir) {
@@ -69,7 +70,8 @@ if (!REPORT_ONLY) {
   for (const rel of STATIC) {
     const target = join(DIST, rel)
     mkdirSync(dirname(target), { recursive: true })
-    cpSync(join(HERE, rel), target)
+    // recursive:true 是必须的 —— `_locales/` 是目录（Chrome 要求它与 manifest.json 同级）
+    cpSync(join(HERE, rel), target, { recursive: true })
   }
   const inputs = Object.keys(result.metafile.inputs).length
   console.log(`build: ${String(entryPoints.length)} entry points, ${String(inputs)} modules bundled`)

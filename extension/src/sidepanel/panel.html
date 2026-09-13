@@ -1,39 +1,44 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>DeepSeek 浏览器插件</title>
+    <!--
+      Chrome 没有声明式本地化（data-l10n 是 Firefox 的），所以这里写的是**英文默认文案**，
+      并在元素上标 data-i18n / data-i18n-title；panel.js 启动时用 applyI18n() 按当前语言覆盖。
+      改文案请改 extension/i18n/messages.source.json，不要只改这里。
+    -->
+    <title data-i18n="extName">DeepSeek Browser Companion</title>
     <link rel="stylesheet" href="panel.css" />
   </head>
   <body>
     <header id="bar">
-      <span id="status-dot" data-state="unknown" title="DSH 状态"></span>
-      <span id="status-text">准备中…</span>
+      <span id="status-dot" data-state="unknown" data-i18n-title="statusTitle" title="DSH status"></span>
+      <span id="status-text" data-i18n="statusPreparing">Preparing…</span>
       <span class="spacer"></span>
-      <button id="attach-page" data-ag-action="attach-page" title="Attach 当前网页（整页 Markdown）">Attach 网页</button>
-      <button id="attach-selection" data-ag-action="attach-selection" title="Attach 当前选中文本">Attach 选区</button>
+      <button id="attach-page" data-ag-action="attach-page" data-i18n="attachPageLabel" data-i18n-title="attachPageTitle" title="Attach the current page (full-page Markdown)">Attach page</button>
+      <button id="attach-selection" data-ag-action="attach-selection" data-i18n="attachSelectionLabel" data-i18n-title="attachSelectionTitle" title="Attach the currently selected text">Attach selection</button>
       <label id="browser-control" class="toggle" hidden>
         <input type="checkbox" id="bc-toggle">
-        <span title="开启后用 DevTools 协议发送真实输入事件（可信点击/输入、整页截图、无障碍树）。开启期间浏览器会显示「正在调试」横幅。">浏览器控制</span>
+        <span data-i18n="browserControlLabel" data-i18n-title="browserControlTitle" title="Uses the DevTools protocol to send real input events (trusted click/type, full-page screenshots, accessibility tree). While it is on, Chrome shows a “being debugged” banner.">Browser control</span>
       </label>
       <label id="write-ops" class="toggle danger" hidden>
         <input type="checkbox" id="wo-toggle">
-        <span title="允许 Agent 在你的页面上点击/输入/导航（browser_click / browser_type / browser_navigate）。默认关闭；开启后这些工具才会被注册给模型。">写操作</span>
+        <span data-i18n="writeOpsLabel" data-i18n-title="writeOpsTitle" title="Lets the agent click, type and navigate in your pages (browser_click / browser_type / browser_navigate). Off by default — these tools are only registered for the model after you turn it on.">Write actions</span>
       </label>
-      <button id="open-window" hidden title="在独立窗口打开">独立窗口</button>
+      <button id="open-window" hidden data-i18n="openWindowLabel" data-i18n-title="openWindowTitle" title="Open in a separate window">Open in window</button>
     </header>
     <section id="gate" hidden>
       <p id="gate-text"></p>
       <div class="gate-actions">
-        <button id="gate-allow" class="primary">授权并抓取</button>
-        <button id="gate-cancel">取消</button>
+        <button id="gate-allow" class="primary" data-i18n="gateAllow">Grant &amp; capture</button>
+        <button id="gate-cancel" data-i18n="gateCancel">Cancel</button>
       </div>
     </section>
     <main id="host">
       <section id="notice" hidden>
         <p id="notice-text"></p>
-        <button id="retry">重试</button>
+        <button id="retry" data-i18n="retry">Retry</button>
       </section>
       <iframe id="dsh" hidden title="DeepSeek Harness"></iframe>
     </main>

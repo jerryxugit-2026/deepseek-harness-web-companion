@@ -3,29 +3,33 @@
     "limitBytes": 1048576,
     "metric": "dist/ total, uncompressed"
   },
-  "totalBytes": 140142,
+  "totalBytes": 156783,
   "gzipBytes": 399,
   "pass": true,
   "files": [
     {
       "path": "src/sw/index.js",
-      "bytes": 81930
+      "bytes": 86777
     },
     {
       "path": "src/sidepanel/panel.js",
-      "bytes": 52438
+      "bytes": 56960
+    },
+    {
+      "path": "_locales/en/messages.json",
+      "bytes": 6492
+    },
+    {
+      "path": "src/sidepanel/panel.html",
+      "bytes": 2857
     },
     {
       "path": "src/sidepanel/panel.css",
       "bytes": 2575
     },
     {
-      "path": "src/sidepanel/panel.html",
-      "bytes": 2004
-    },
-    {
       "path": "manifest.json",
-      "bytes": 1195
+      "bytes": 1122
     }
   ]
 }

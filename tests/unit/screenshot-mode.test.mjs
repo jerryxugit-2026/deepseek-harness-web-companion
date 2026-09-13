@@ -104,9 +104,16 @@ console.log('1. mode=screenshot 且 captureVisibleTab 抛权限错：必须报�
 
   record('返回的是 ok:false（不再是假绿）', res.ok === false)
   record('错误码是 E_NO_PERMISSION', res.error?.code === 'E_NO_PERMISSION')
-  record('消息说清"图没成功"', /截图没成功/u.test(String(res.error?.message ?? '')))
-  record('消息说清"正文照常投递"', /正文已照常投递/u.test(String(res.error?.message ?? '')))
-  record('消息带上真实原因（可诊断，不是套话）', /activeTab/u.test(String(res.error?.message ?? '')))
+  /*
+   * 英文版改造后这些文案来自文案表（可本地化），所以断言改成"结构与措辞无关"的性质：
+   * 说清图没成功、说清正文照常投递、带上真实原因。用文案表里的词断言，
+   * 这样改措辞不会误报、但"漏了某一层信息"仍然会红。
+   */
+  const shotMsg = String(res.error?.message ?? '')
+  record('★消息来自文案表（默认语言无汉字 ⇒ 不是写死的中文）', /[\u4e00-\u9fff]/u.test(shotMsg) === false)
+  record('消息说清"图没成功"', /screenshot failed/iu.test(shotMsg))
+  record('消息说清"正文照常投递"', /page text was still delivered/iu.test(shotMsg))
+  record('消息带上真实原因（可诊断，不是套话）', /activeTab/u.test(shotMsg))
   record('**正文确实已经 POST /ag/attach 出去了**（没把好的一半一起丢掉）', attachCalls.length === 1 && attachCalls[0].body?.content?.markdown === '# 正文照常投递')
   record('投递的 body 里截图确实是空的（证明它不是"零像素图"）', attachCalls[0]?.body?.media?.screenshot?.base64 === '')
   const last = auditTail()

@@ -7,14 +7,15 @@
 > 2. 每个里程碑（M1–M4）收尾必须执行一次，并把 `--check` 纳入交付前检查；
 > 3. `--check` 发现 broken-doc-link / missing-code-ref 时以非零码退出，作为质量门。
 
-## 1. 文档清单（51 份 / 188 个代码与配置文件）
+## 1. 文档清单（54 份 / 219 个代码与配置文件）
 
 | 文档 | 标题 | 版本 | 行数 | 二级标题数 | 代码引用数 |
 |---|---|---|---|---|---|
 | `DESIGN.md` | DSH Web Companion — 设计摘要（DESIGN） | v3.1 | 106 | 9 | 0 |
 | `FINDINGS.md` | dsh-chrome 可行性验证结果（FINDINGS） | — | 81 | 7 | 0 |
 | `PRD_需求定义说明书.md` | DeepSeek Harness Web Companion (DSH 浏览器智能侧伴侣) | v3.0.0 | 138 | 8 | 0 |
-| `README.md` | DSH Web Companion（Antigravity Web Companion） | — | 111 | 9 | 0 |
+| `README.en.md` | DSH Web Companion | — | 155 | 9 | 0 |
+| `README.md` | DSH Web Companion（Antigravity Web Companion） | — | 140 | 9 | 0 |
 | `docs/01-protocol.md` | 01 · 协议契约（Protocol） | — | 246 | 8 | 8 |
 | `docs/02-extension.md` | 02 · Chrome 扩展设计（`extension/`） | — | 296 | 8 | 39 |
 | `docs/03-bridge-plugin.md` | 03 · DSH 桥接插件（host 半）设计：`dsh-plugin/` | — | 375 | 10 | 20 |
@@ -27,7 +28,9 @@
 | `docs/10-automation.md` | 自动化分层：哪些能无人值守，哪些必须有人（M4-3） | — | 70 | 7 | 0 |
 | `docs/11-台账.md` | 项目台账（对照《详细设计文档》） | v3.1 | 234 | 12 | 9 |
 | `docs/12-实机验收-测试方案.md` | 实机验收测试方案（v3.38 · 2026-09-12） | — | 188 | 7 | 6 |
-| `docs/CHANGELOG.md` | 变更记录（CHANGELOG） | v3.0 | 1717 | 45 | 0 |
+| `docs/13-installation.md` | Install & deploy (the bootstrapper) | — | 225 | 17 | 0 |
+| `docs/13-安装部署.md` | 安装与部署（引导程序） | — | 219 | 17 | 0 |
+| `docs/CHANGELOG.md` | 变更记录（CHANGELOG） | v3.0 | 2320 | 47 | 0 |
 | `docs/HANDOFF.md` | 交接提示词（新会话从这里开始） | v3.41，两者**不是同一个号**） | 343 | 10 | 23 |
 | `docs/PROGRESS.md` | 进度与续跑规则（durable memory） | — | 97 | 8 | 4 |
 | `docs/REVIEW-v3.0.md` | 详细设计 v3.0 评审报告（Review of v3.0 → 修正为 v3.1） | v3.0 | 68 | 5 | 0 |
@@ -229,7 +232,6 @@ flowchart LR
 | `tool-bridge.test.ts` | `docs/03-bridge-plugin.md` `docs/07-implementation-plan.md` |
 | `toolbar.js` | `docs/02-extension.md` |
 | `type.js` | `docs/02-extension.md` |
-| `uninstall.mjs` | `docs/06-test-plan.md` `docs/11-台账.md` `docs/HANDOFF.md` `docs/PROGRESS.md` |
 | `wait.js` | `docs/02-extension.md` |
 
 ### 4.3 外部引用（DSH 安装包 / 系统路径，非本仓库文件）

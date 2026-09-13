@@ -11,6 +11,8 @@
  */
 import { extractPage } from '../content/extract.fn.js'
 import { dshOrigin } from '../lib/urls.js'
+// 用户可见的失败文案走 chrome.i18n（Service Worker 里这个 API 是可用的）
+import { t } from '../lib/i18n.js'
 
 /** Classify an extension API failure so callers can act on it. */
 function classified(error, fallback) {
@@ -153,14 +155,14 @@ export async function buildCapture(request) {
 export function shotProblem(body) {
   const shot = body?.media?.screenshot
   if (shot === undefined || shot === null) {
-    return { code: 'E_TARGET', message: '截图没成功：扩展没有取到任何图像（正文已照常投递）。' }
+    return { code: 'E_TARGET', message: t('shotNoImage') }
   }
   if (shot.dropped === true) {
-    const why = String(shot.dropReason ?? shot.reason ?? '未说明原因').slice(0, 120)
-    return { code: String(shot.code ?? 'E_TARGET'), message: `截图没成功，正文已照常投递：${why}` }
+    const why = String(shot.dropReason ?? shot.reason ?? t('shotReasonUnstated')).slice(0, 120)
+    return { code: String(shot.code ?? 'E_TARGET'), message: t('shotFailedWithReason', [why]) }
   }
   if (typeof shot.base64 !== 'string' || shot.base64.length === 0) {
-    return { code: 'E_TARGET', message: '截图没成功：图像是空的（正文已照常投递）。' }
+    return { code: 'E_TARGET', message: t('shotEmptyImage') }
   }
   return null
 }

@@ -96,7 +96,9 @@ for (const name of ['browser_read', 'browser_tabs', 'browser_wait', 'browser_scr
 
 console.log('\n3. 失败是工具错误（{code,message}），不是异常')
 const offlineHub = makeHub({ browser_read: { throw: { code: 'E_EXT_OFFLINE', message: 'no extension connected' } } })
-const offlineTools = buildBrowserTools({ hub: offlineHub, config: {}, resolveWorkspace: () => '/tmp/ws' })
+// 提示文案现在随 `config.locale` 变（宿主自带文案表，见 dsh-plugin/src/host/model-text.js）：
+// 这条断言盯的是 zh_CN 那一侧，所以要显式钉语言，而不是依赖默认值（默认是 'en'）。
+const offlineTools = buildBrowserTools({ hub: offlineHub, config: { locale: 'zh_CN' }, resolveWorkspace: () => '/tmp/ws' })
 const offlineResult = await offlineTools.find((t) => t.name === 'browser_read').execute({}, {})
 record('扩展离线 → code=E_EXT_OFFLINE 且带可操作提示', offlineResult.code === 'E_EXT_OFFLINE' && String(offlineResult.message).includes('打开侧边栏'))
 const timeoutHub = makeHub({ browser_read: { throw: { code: 'E_TIMEOUT', message: 'no answer in 10000ms' } } })

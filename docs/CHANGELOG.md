@@ -5,7 +5,610 @@
 
 ---
 
-## v3.41 — 2026-09-12（当前）
+## v3.43 — 2026-09-12（英文版，进行中）
+
+**触发**：用户下令开工英文版（「你做英文版了吗? 可以做了啊」）。四个已定决定：**同一份代码双语**
+（`_locales` + `chrome.i18n`）；抓取目录**新装用英文名、老装保留 `网页捕获`**；**只翻 README 与
+上手/安装文档**；上传 GitHub 等另行下令。
+
+### 1. ★ 单源文案 + 生成，而不是手写两份语言包
+
+手写两份 `messages.json` **一定会漂移**（改了一边忘另一边），而漂移的表现是"切到中文时某几个
+标签还是英文"，只有用户会看到、测试很难发现。所以照搬协议那边的做法（单源 → codegen → 逐字节校验）：
+
+```
+extension/i18n/messages.source.json          ← 唯一真源：{ key: { en, zh_CN } }
+        │  node extension/i18n/codegen.mjs
+        ├─→ extension/_locales/en/messages.json      （Chrome 读的）
+        ├─→ extension/_locales/zh_CN/messages.json   （Chrome 读的）
+        └─→ extension/src/lib/messages.generated.js  （运行期兜底 + 单测可用）
+```
+
+`codegen.mjs --check` 已接进 `npm run check`（`i18n:check`，紧跟 `protocol:check`）。
+新增脚本：`i18n:codegen` / `i18n:check`。
+
+### 2. 运行期取值：`extension/src/lib/i18n.js`
+
+- `t(key, substitutions)`：优先 `chrome.i18n.getMessage`，**拿不到时退回生成的默认语言包** ——
+  这条兜底不是可选项：Node 里没有 `chrome.i18n`，没有兜底的话单测只能断言"要么中文要么 key"，
+  等于没断言。
+- `applyI18n(root)`：把 `data-i18n` / `data-i18n-title` 的文案填进 DOM，并把 `<html lang>` 设对。
+  **Chrome 没有声明式本地化**（`data-l10n` 是 Firefox 的），面板 HTML 是静态的，只能由 JS 填。
+- 未知 key **原样返回 key**（而不是空串）—— 一眼能看出漏配。
+
+### 3. 已转换的界面（本轮）
+
+| 位置 | 做法 |
+|---|---|
+| `extension/manifest.json` | `name`/`description`/`action.default_title` → `__MSG_*__`，加 `default_locale: "en"`。**`key` 未动 ⇒ 扩展 ID 不变**，native host 清单与配对文件无需同步 |
+| `extension/src/sidepanel/panel.html` | 英文默认文案 + `data-i18n` / `data-i18n-title` 标记；`panel.js` 启动时 `applyI18n()` 覆盖 |
+| `extension/src/sidepanel/errors.js` | 判定与取文案**拆成两个函数**：`explainErrorKey()`（与语言无关，返回 `{key, substitutions}`）+ `explainError()`（取文案）。错误码→key 做成数据表 `CODE_TO_KEY`，好让门禁能静态看见它 |
+| `extension/build.mjs` | 静态复制加入 `_locales` |
+
+**顺带修掉一个真 bug**：`build.mjs` 的静态复制 `cpSync` **没带 `recursive: true`**，
+复制目录 `_locales` 时直接 `ERR_FS_EISDIR` 崩掉（`npm run check` 正是在这一步变红的）。
+
+### 4. ★ 新门禁（`tests/unit/i18n-messages.test.mjs`，37 条断言，已进 `test:unit`）
+
+翻译最容易出的三类错，各有一条断言钉住：
+
+| 门禁 | 抓什么 |
+|---|---|
+| 两种语言都不为空 | **两侧漂移**（改了中文忘英文） |
+| ★ 两种语言必须不同 + zh_CN 必须含汉字 | **假翻译**（把英文抄进 zh_CN 冒充"翻过了"） |
+| 引用的 key 都在源表里 + **已抽取文件里 0 处汉字残留** | **漏抽取** |
+
+`panel-errors.test.mjs` 同时**改测"走对了哪个分支"**（`explainErrorKey`）而不是措辞 ——
+原来断言中文字符串，一翻译就得跟着改，那种测试锁的是措辞、还会掩盖"分支走错"。
+
+**咬合验证 4 处**（全部实测变红后还原）：
+① zh_CN 全抄成英文 ⇒ 红；② `panel.html` 塞回中文可见文案 ⇒ 红；
+③ 代码引用源表里不存在的 key ⇒ 红；④ 删掉一条 zh_CN 文案 ⇒ 红。
+
+> 过程小记（两条都值得记）：门禁第一版把**注释里的中文**误报成残留（扫描器按"整行注释"过滤，
+> 挡不住多行块注释与行尾注释）；第二版改成"抽字符串字面量"，又被 `errors.js` 里
+> **含引号的正则字面量**（`/Either the '<all_urls>' or 'activeTab'/`）带偏 ⇒ 会**假阴性**。
+> 最终采用"按我自己定的规则去注释、再扫剩下文本"，并把已知局限写进测试注释里。
+
+### 5. 本轮**未**做（下一轮继续）
+
+1. `extension/src/sidepanel/panel.js`（318 汉字）与 `extension/src/sw/ops/index.js`（179 汉字）
+   等 SW 侧用户可见文案 —— 下一轮抽取，抽完把文件加进 `EXTRACTED_FILES` 门禁清单。
+2. **面向模型的 `browser_*` 工具 description**（`dsh-plugin/src/host/tools.js`，789 汉字）：
+   宿主进程**没有 `chrome.i18n`**，必须另定机制（候选：profile 配置里加 `locale`）。
+3. 抓取目录英文名（安装器对新装写 `attachDir`）。
+4. `README.md` 与 `docs/13-安装部署.md` 的英文版（中文版保留）。
+5. **真 Chrome 双语验证**：需要用户重新加载扩展，分别在 en 与 zh_CN 界面语言下确认
+   manifest 名称、面板文案、错误文案。
+
+### 6. 第二轮抽取：`panel.js` + Service Worker 的用户可见文案
+
+| 位置 | 条数 | 说明 |
+|---|---|---|
+| `extension/src/sidepanel/panel.js` | 24 | 状态灯、授权门、抓取结果、两个开关的提示（含审批口径那几句）、「看左边」状态 |
+| `extension/src/sw/capture.js` | 4 | 截图失败的三种情形（"没取到图" / "图是空的" / 带原因） |
+| `extension/src/sw/dsh-session.js` | 5 | DSH 未运行（有/无 native host）、未就绪、未配对、取票据失败 |
+
+**Service Worker 里 `chrome.i18n` 是可用的**，所以 SW 的文案也走同一套 `t()`（不必另立机制）。
+顺带把 `dsh-session.js` 里**原本就是英文**的那句"未配对"提示也收进文案表 —— 否则中文用户会看到
+一句突兀的英文。
+
+源表 **25 → 58 条**；`EXTRACTED_FILES` **4 → 7 个文件**（`panel.js`、`sw/capture.js`、
+`sw/dsh-session.js` 已加入门禁清单）。这三个文件里现在**只剩注释是中文**，面向用户的字面量已清空
+（门禁实测 0 处残留）。
+
+**★ 又抓到两处"测试锁的是中文措辞"**（改造后立刻变红，说明它们确实在断言措辞而不是行为）：
+
+| 测试 | 原来断言 | 改成 |
+|---|---|---|
+| `tests/unit/embed-url.test.mjs` | `/票据/`、`/密钥/` 中文字样 | ★"文案来自文案表（**默认语言无汉字**）+ 带错误码 + 带服务端原因"、模板占位符 2 个、渲染后**无残留 `$1/$2`** |
+| `tests/unit/screenshot-mode.test.mjs` | `/截图没成功/`、`/正文已照常投递/` | ★"默认语言无汉字"、`/screenshot failed/i`、`/page text was still delivered/i`、仍带真实原因 `/activeTab/` |
+
+两处改动都**没有放松断言**：原来"漏了某一层信息就会红"，现在照样会红（而且额外多了一条
+"不许退回硬编码中文"）。`npm run check` → **exit 0**（58 条文案 × 2 语言、267 文件、34 个测试套件）。
+
+### 7. 下一轮要定的机制：**面向模型的文案**
+
+剩下两块中文都在**面向模型**的文本里，两者都**不能**走 `chrome.i18n` 的理由不同：
+
+| 位置 | 汉字数 | 为什么不能照搬 |
+|---|---|---|
+| `dsh-plugin/src/host/tools.js` | 789 | 宿主进程**没有 `chrome.i18n`**（不是扩展环境） |
+| `extension/src/sw/ops/index.js` | 179 | 它**在 SW 里、有 `chrome.i18n`**，但内容是 `browser_*` 的 `notes`，**模型读的**，不是用户读的 |
+
+如果一边按浏览器语言切、另一边按插件配置切，模型会同时看到英文描述 + 中文备注。
+所以这一条要**一个统一的机制**（候选：插件配置里的 `locale`，默认 `en`；SW 侧则固定英文，
+因为它服务的是模型而不是用户）—— 下一轮定下来再动，**本轮不动**。
+
+### 8. ★★ 英文版过程中的两处真事故（都是我自己造成的，都已修 + 加门禁）
+
+#### 8.1 安装器的"卸载 → 重装"往返把用户的 `approvalForWriteOps: false` 悄悄丢了
+
+**现象**：英文版做到一半去核对现场，发现 `/ag/control` 的 `approvalMode` 是 **`ask`**，
+而这台部署在 2026-09-12 被用户**明确设成** `approvalForWriteOps: false`（无审批形态）。
+本机会话审批策略是 `never` ⇒ 变回 `ask` 之后，写操作会被**当场拒绝**。
+
+**根因**：`install.mjs` 第 8 步只写它自己管理的键（当时只有 `attachDir`）。
+`uninstall --apply` 把整条挂载删掉（连着里面的 `approvalForWriteOps`），
+重装时只写 `attachDir` ⇒ 用户的键**没有任何地方记得**。
+
+**修法（不靠猜，靠显式传参）**：
+
+| 改动 | 说明 |
+|---|---|
+| `buildMountConfig()`（`bootstrap/lib/profile-patch.mjs`） | 把"写哪些 config"变成**可单测的纯函数** |
+| `--approval-for-write-ops <true\|false>` | 显式表达那个键；非法值直接拒绝（exit 2） |
+| `--set key=value`（可重复） | 任意额外 config 键，值自动转 boolean/number/string |
+| **新装 vs 老装** | 新装写 `attachDir: captures`（英文目录名）；**老装完全不写 `attachDir`** ⇒ 沿用插件默认的 `网页捕获`，**历史 `@网页捕获/…` 引用不失效** |
+| dry-run 里如实列出来 | 计划区直接显示"已有安装/新装"与 `config = {…}`；只写自己管的键时还会提示"别的键用 `--set` 显式带上，我不会猜" |
+
+**现场已修**：用 `node bootstrap/install.mjs --apply --yes --approval-for-write-ops false` 写回，
+`/ag/control` 现在报 **`approvalMode: "off"`**（profile 的 `patchReload: live` 让它**无需重启就生效**）；
+用户真实的抓取目录 `/Users/mac/ai_tools/dsh project/网页捕获`（16 个文件）**未受影响**。
+
+**新增断言 12 条**（`tests/unit/profile-patch.test.mjs` §11–§12），含"托管块是整体替换语义"这条
+（以前没写下来，容易误以为它会 merge 未知键）。
+
+#### 8.2 发行清单漏了 `extension/_locales` ⇒ 装完的副本构建直接报错
+
+**现象**：修完 8.1 重跑安装，第 6 步（构建扩展）失败：
+`Error: ENOENT: no such file or directory, lstat '<install-dir>/extension/_locales'`。
+安装器**当场停住并且没有写 DSH 挂载**（这正是第 3 条安全设计的价值），所以现场没被搞坏。
+
+**根因**：英文版新增了 `extension/_locales/`，而 `installPayload()` 是一份**手维护**的清单，
+忘了加它。当时的断言只**抽查了几个名字**，所以没咬到。
+
+**修法**：清单补上 `extension/_locales` 与 `extension/i18n`；
+并把断言换成**交叉核对** —— 从 `extension/build.mjs` 的源码里读出 `STATIC` 数组与 `ENTRIES` 的键，
+逐个要求被清单覆盖（两个文件必须一致，以后再加构建输入忘了同步清单就会红）。
+
+**咬合验证**：把 `extension/_locales` 从清单删掉 ⇒ **2 条断言变红**（`缺：_locales`）；还原后全绿。
+
+### 9. 英文文档
+
+- `README.en.md` —— README 的英文版（含 bootstrapper 快速开始、能力表、安全模型、已知限制）
+- `docs/13-installation.md` —— 安装部署指南的英文版（十步说明 / 依赖为什么是链接 / API key / 排错 / 回滚）
+- 中文版**保留**，并在两份中文文档顶部加了互链（`README.md` ↔ `README.en.md`、
+  `docs/13-安装部署.md` ↔ `docs/13-installation.md`）
+
+> 两份英文文档里的路径**故意写成 `<install-dir>` 这类占位** —— 它们给的是别人的机器看的。
+> 是否把 `README.md` 换成英文版（GitHub 首页默认英文）等你定，那是一行的事。
+
+### 10. ★ 面向模型的文案也做完了（`tools.js` + `ops/index.js`）
+
+到这一步，**产品代码里已经没有面向用户、也没有面向模型的中文文案**。
+
+| 位置 | 规模 | 机制 |
+|---|---|---|
+| `dsh-plugin/src/host/tools.js` | **76 处**文案（约 789 汉字） | 新增 `dsh-plugin/src/host/model-text.js`：**单文件即单源**（两语相邻，物理上无法漂移），75 个 key。语言由**插件配置 `locale`** 决定（`dsh-plugin/src/host/index.js` 加 `locale: config.locale ?? 'en'`），默认 **`en`**、可选 `zh_CN` |
+| `extension/src/sw/ops/index.js` | 6 处 | **固定英文**（不切换）。理由：它服务的是**模型**而不是用户；而且 SW 拿不到宿主插件的配置，要切换就得再加跨进程协商。这条不对称已在此写明 |
+
+**为什么 `tools.js` 不能照搬扩展那套**：宿主进程**没有 `chrome.i18n`**。所以自带一份表 + 一个
+`resolveModelLocale()`（容错归一化：`en-US`→`en`、`zh-CN`/`zh`→`zh_CN`、未知值→默认 `en`）。
+
+**结构性等价是被证明的，不是声明的**（改造只许换文案）：
+用同一个 hub 桩分别构建旧/新工具定义，**递归剥掉所有 `description` 后比较 `parameters` + `output`**：
+
+```
+allowWrite=false: tools=5→5, schema（除 description）=== IDENTICAL
+allowWrite=true : tools=8→8, schema（除 description）=== IDENTICAL
+```
+
+我另外做了一次**独立复核**（不依赖上面的探针）：对 HEAD 版与工作区版做结构指纹对比 ——
+`type:35 required:6 additionalProperties:13 oneOf:2 name:8` **完全一致**。
+中文逐字保留：从 HEAD 抽出的 **75 个非契约中文字面量 100% 作为子串出现在 zh_CN 表里**（missing=0）。
+
+**顺带必须改的两个旧测试**（它们原来锁的是中文措辞，改完必红；**都没有放宽**）：
+
+| 测试 | 改法 |
+|---|---|
+| `tests/unit/browser-tools.test.mjs` | 只把该处 `buildBrowserTools` 的 config 从 `{}` 钉成 `{ locale: 'zh_CN' }`；**断言一字未改**（该文件 33 条断言不变） |
+| `tests/unit/op-debugger-optin.test.mjs` | ops 文案已固定英文 ⇒ 3 条断言改成同义英文匹配（`/browser control/i` + `/debug/i` 等），强度不变（13 条断言不变） |
+
+**新门禁 `tests/unit/model-text.test.mjs`（36 条断言，已进 `test:unit`）**：两语都非空 / 两语必须不同 /
+zh_CN 必须含汉字 / 双向核对 key（引用的都在表里、表里没有死 key）/ `tools.js` 里 0 处残留中文字面量 /
+`resolveModelLocale` 各分支 / `t()` 占位与容错 / **接线断言：`config.locale` 真的决定工具文案**。
+它自带**扫描器自检**（先证明"能咬"再去扫 `tools.js`），并显式复现了我在扩展侧踩过的那个坑：
+**含引号的正则字面量**（`/Either the '<all_urls>' or 'activeTab'/`）会把"抽字符串字面量"的写法带偏成假阴性。
+
+**咬合验证 3 处**（逐字输出见该轮记录）：① 塞回中文 description ⇒ 红；② 某 key 的 zh_CN 抄成英文 ⇒ 红；
+③ 删掉仍被引用的 key ⇒ 红。每处还原后 `tools.js` / `model-text.js` 的 sha256 与改前**逐字相同**。
+
+**一处显式窄豁免（先给理由，不是放宽）**：`'网页捕获'` 是**截图落盘目录名的数据契约默认值**
+（`store.js` / attach / 抓取探针都依赖它），**不是文案**，故不建 key、不翻译；扫描残留前只把
+**精确表达式** `config.attachDir ?? '网页捕获'` 换成占位符，并**另加一条断言"该表达式必须仍然存在"**，
+免得窄豁免顺带盖住"契约被删"。同理 `'URL'` 两语同形、不含汉字，不进表。
+
+**我独立复核的结论**（没有只信子代理的报告）：`npm run check` **exit 0**（271 文件、**35 个测试套件**、
+构建 2 entry / 21 modules、`check:dist` OK）；结构指纹与 HEAD 一致；两个被改的旧测试断言条数不变
+（33 / 13）且全绿。
+
+### 11. ★ 真 Chrome 双语验证（新增 `probe:i18n`）
+
+新增 `tests/m2/i18n-probe.mjs`（`npm run probe:i18n`），**不需要 DSH**：把 `extension/dist` 拷到无空格
+路径、**把副本里的端口改到死端口**（这样面板连不上用户的真实 DSH，不往用户会话里插东西），
+用 CDP `Extensions.loadUnpacked` 载入，打开面板页读**真实 DOM**，并与**源表**逐条比对。
+**期望值取自 `extension/i18n/messages.source.json`，不写死在探针里** —— 否则改文案就得跟着改探针，
+那是在测"探针与文案一致"，不是在测产品。
+
+实测（2026-09-12，真 Chrome 150，界面语言 zh-CN）：
+
+| 断言 | 结果 |
+|---|---|
+| 面板标签 == 源表 `attachPageLabel.zh_CN`（`Attach 网页`） | ✅ |
+| 第二个按钮 / 重试按钮 同法 | ✅ |
+| `title` 属性也被本地化 | ✅ |
+| `<html lang>` == `zh-CN`（`applyI18n` 设的） | ✅ |
+| 文档标题 == 源表 `extName.zh_CN` | ✅ |
+| 错误文案（`errors.js` 用的 key）本地化 | ✅ |
+| `manifest.default_locale` == `en` | ✅ |
+| **`manifest.name` 由 Chrome 解析成本语言**（`DeepSeek 浏览器插件`） | ✅ |
+| `manifest.description` 同样解析 | ✅ |
+
+⇒ **`_locales` → `chrome.i18n` → `applyI18n` → DOM → manifest** 这整条真链路在真 Chrome 里是通的。
+
+**★ 诚实边界（必须写下来）**：**macOS 上 Chrome 的界面语言改不动**。三种办法实测都无效：
+① `--lang=en` 起来仍报 `zh-CN`；② 启动前预置 profile 的 `Local State`（`intl.app_locale`）——
+首启被系统语言覆盖；③ "先跑一次建好 profile → 关掉 → 改 `Local State` → 再起"——**仍然** `zh-CN`。
+所以本探针**只断言"Chrome 实际报的那种语言"那一侧的契约**，并把覆盖范围**打印出来**（本次 `zh_CN`）。
+它能咬住的真问题：`default_locale` 写错、语言包没进 dist、`data-i18n` key 拼错、`applyI18n()` 没跑、
+DOM 与文案表不一致 —— 这些在**任何一种**语言下都会红。**它不能自己覆盖另一种语言。**
+
+**英文那一侧的真实观测**：本会话早先那次探针跑（在我修正期望绑定之前）里，有一轮 Chrome 恰好以
+**英文界面**起来，实测到 `manifest.name = "DeepSeek Browser Companion"`、面板按钮 = `Attach page`、
+`<html lang> = en`。那是一次**真实观测**（不是推断），只是不能用 `--lang` 稳定复现 ——
+要稳定复现就把 Chrome 界面语言切到 English 再跑 `npm run probe:i18n`。
+
+**探针第一版自己也有个真 bug（已修，值得记）**：它原来"只要 `#attach-page` 文本非空就跳出轮询"——
+而 `panel.html` 里**本来就写着英文默认文案**（给 JS 没跑起来时兜底），于是第一次轮询就满足，
+读到的是**静态 HTML**：DOM 看着是英文、`<html lang>` 还是 `en`，而同一页里 `chrome.i18n.getMessage`
+明明是中文 —— 差一步就把"探针读太早"误报成"产品没本地化"。现在改用模块自己设的就绪标记
+`globalThis.__AG_PANEL__`（`panel.js` 第 47 行，在 `applyI18n()` 第 20 行**之后**执行）
+⇒ 见到它就意味着本地化已经填过了。
+
+### 13. ★★ 产品定位改定：**只发布 `en`，永远是英文版**（用户 2026-09-13）
+
+用户指示：「用户的 chrome 设置成中文或者英文, 我们的插件都是英文版, 就可以」。
+
+**这条把 §11 的验证难题一并解决了** —— 原来我在跟"macOS 上改不动 Chrome 界面语言"较劲，
+其实**根本不需要**：Chrome 挑语言包的规则是"按浏览器界面语言找最匹配的，找不到就退到
+`default_locale`"。所以**只要不发布 `zh_CN`**，无论用户的 Chrome 是中文还是英文，插件都必然是英文版。
+
+改动：
+
+| 位置 | 改动 |
+|---|---|
+| `extension/i18n/codegen.mjs` | 区分「**发布**的语言包」`SHIPPED_LOCALES = ['en']` 与「源表必须有哪几列」`REQUIRED_COLUMNS = ['en','zh_CN']`。**只生成 `_locales/en/`**；`zh_CN` 那一列留在源表里当**中文原稿/参考**，但永不生成、永不被 Chrome 选中 |
+| `extension/_locales/zh_CN/` | **删除**（它存在就会被中文浏览器选中） |
+| `extension/src/lib/i18n.js` | `<html lang>` 改为跟**实际渲染出来的语言**（`en`）走，而不是浏览器语言 —— 内容是什么语言就写什么语言，否则会误导读屏软件与浏览器翻译 |
+| `README.md` / `README.en.md` / `docs/13-安装部署.md` / `docs/13-installation.md` | 各加一句"本插件是英文版，与浏览器界面语言无关" |
+
+**门禁也跟着改了**（`tests/unit/i18n-messages.test.mjs`，37 条断言）：新增两条钉住这个机制 ——
+★ `_locales` 下**只有一个语言包且是 `en`**；★ **不存在 `_locales/zh_CN`**。
+把 zh_CN 加回去 ⇒ 立刻变红。
+
+**★ 验证方式因此变得干净且更强**（`npm run probe:i18n`，14 条断言）：
+本机 Chrome 的界面语言是 **`zh-CN`**（探针把观测值打印出来），
+而探针断言"面板标签 / 按钮 / `title` / 文档标题 / 错误文案 / `manifest.name`+`description` **全部是英文**"：
+
+```
+★ 与浏览器界面语言无关：中文浏览器下也必须是英文
+  ✅ 跑了 2 轮: true
+  ✅ ★ 观测到的浏览器语言里有非英文的（实际：zh-CN, zh-CN）—— 这样"无关"才被真正验到
+  ✅ ★ 所有轮次都显示英文（2 轮）: true
+  ✅ ★ 所有轮次的 manifest 名称都是英文: true
+
+  en（期望）: name="DeepSeek Browser Companion"  按钮="Attach page"
+  实测(浏览器 zh-CN): name="DeepSeek Browser Companion"  按钮="Attach page"
+```
+
+⇒ **"中文浏览器 + 英文插件"这条被真 Chrome 实测钉住了**，§11 里那个"en 侧只有一次历史观测、
+无法稳定复现"的口子就此关闭。
+
+### 12. 英文版收口状态
+
+| 项 | 状态 |
+|---|---|
+| 面向用户文案（manifest / panel.html / panel.js / errors.js / SW） | ✅ 全部抽取，`extension/src` 面向用户汉字 **0** |
+| 面向模型文案（`tools.js` 76 处 + `ops/index.js` 6 处） | ✅ `locale` 配置（默认 en）+ 固定英文 |
+| 单源文案 + codegen + 逐字节校验 | ✅ 扩展侧 58 条 × 2 语言；插件侧 75 条 × 2 语言 |
+| 门禁接入 `test:unit` | ✅ `i18n-messages`(37) + `model-text`(36) |
+| 咬合验证 | ✅ 扩展侧 4 处 + 插件侧 3 处 + 清单覆盖 1 处，全部实测变红后还原 |
+| 英文文档 | ✅ `README.en.md` + `docs/13-installation.md`（中文版保留并互链） |
+| 真 Chrome 验证 | ✅ zh_CN 侧完整通过（12 条断言）；**en 侧有真实观测但未能稳定复现**（见 §11 的边界） |
+| 新装用英文抓取目录名 | ✅ 安装器对**新装**写 `attachDir: captures`；**老装不写**（沿用 `网页捕获`，历史引用不失效） |
+| 上传 GitHub | ⏸ 等用户下令 |
+
+---
+
+## v3.42 — 2026-09-12（引导程序 / 去硬编码，已跑通真机）
+
+**触发**：用户指令 —— 「这是典型的硬编码问题。我们要在这个版本，彻底检查，变成通过引导程序传入参数。」
+外加两条约束：**发行包必须轻**（「依赖程序都是用引导程序下载, 并不在我们打包的安装程序里, 不然会很重」）；
+**只考虑 macOS**（「用户的系统我们暂时不考虑 windows 系统」）。
+
+### 1. 硬编码审计（全仓扫，结论分四类）
+
+| # | 位置 | 性质 | 处置 |
+|---|---|---|---|
+| ① | `/Users/mac/ai_tools/dsh project/网页插件/native-host/run-host.sh` | **被 git 跟踪的生成物**，内容里焊着作者本机的 node 路径与仓库绝对路径 | 已从索引移除（`git rm --cached`，文件保留在磁盘上供 `install.mjs` 用）+ 写进 `.gitignore` |
+| ② | `native-host/install.mjs:21` | Chrome 清单目录写死成 macOS 的 `~/Library/Application Support/...` | 由 `bootstrap/lib/layout.mjs` 的平台分支取代（darwin / linux 候选目录 / win32 注册表） |
+| ③ | `/Users/mac/.dsh/profiles/web/cordis.patch.yml:68` | 插件挂载行是**手工**写的、指向下载目录的绝对路径（**用户抱怨的那一处**） | 由 `bootstrap/lib/profile-patch.mjs` 按参数幂等写入（本轮先做好机制，接线在下一轮） |
+| ④ | `native-host/host.mjs:52`、`native-host/launcher.mjs:19`、`scripts/init-key.mjs:34` | 默认端口 3080 写死 | 都是"可被参数覆盖的默认值"，保留；但引导程序必须把用户真实端口显式传下去 |
+
+### 2. 新增（本轮只做机制与门禁，尚未接进任何现有流程）
+
+- `bootstrap/lib/layout.mjs`：**路径的唯一真源**。installDir / dshHome / homeDir / port / platform
+  全部由参数推导；按**目标平台**选分隔符（能在 mac 上单测 win32 分支）。
+- `bootstrap/lib/profile-patch.mjs`：profile 补丁层里我们那一条的幂等 upsert / remove。纯文本进出。
+- `bootstrap/lib/credentials.mjs`：`.credentials.yaml` 的**定点**改写（只碰 `refs.<KEY>` 一行）。
+- `bootstrap/lib/yaml-scalar.mjs`：YAML 标量渲染/解析（路径含空格必须加引号）。
+
+### 3. ★ 三条新门禁（都已接进 `npm run check` 的 `test:unit` 链）
+
+不接进链就等于没写 —— 这是本项目栽过的地方（"新单测文件必须加进 `test:unit`"）。
+
+| 门禁 | 断言数 | 咬合验证（把毛病放回去，看它红不红） |
+|---|---|---|
+| `tests/unit/bootstrap-layout.test.mjs` | 60 | ✅ 实测：把 `native-host/install.mjs:21` 那行 macOS 写死路径放回 `bootstrap/lib/layout.mjs` ⇒ **exit 1**（`发现 1 处`）；把 `pluginEntry` 写死成绝对路径 ⇒ 「pluginEntry 跟着 installDir 变」**变红** |
+| `tests/unit/profile-patch.test.mjs` | 61 | 夹具照用户**真实文件形状**（semble + codegraph + 本插件三段、含人类注释与空行）。断言：换参数写入后**行级 diff 只有 1 行**、别人的条目逐字节不动、连跑三次幂等、卸载后 round-trip 逐字节相等 |
+| `tests/unit/credentials-write.test.mjs` | 36 | 断言改 key 时 `records` 段**逐字节不动**（那里住着签发 cookie 用的 `client-connection/browser-session`）、别的 key 不动、行数不变 |
+
+`npm run check`：**exit 0**（20 条反模式规则 / 244 文件、协议 23 正 13 反、26 个单测文件、构建 136.9KB、`check:dist` OK、`check:repo-root` OK）。
+
+### 4. ★ 推翻一条旧结论：esbuild 不是"未声明的依赖"
+
+审计时先怀疑「`extension/build.mjs` 用了 esbuild 却没在依赖里声明」（根目录 `npm install` 后
+`import.meta.resolve('esbuild')` 确实 **ERR_MODULE_NOT_FOUND**）。**查下去发现这是误判**：
+本仓其实是**三个独立的 npm 包**，`extension/` 自带 `package.json`（devDeps: esbuild、typescript）
+与自己的 `extension/node_modules/`，Node 从 `extension/build.mjs` 向上解析正好命中它。
+⇒ 结论改为：**引导程序必须在 `dsh-plugin/` 与 `extension/` 两处各自 `npm install`**
+（根目录那份只有测试/脚本用，用户装机不需要）。这条差异已写进
+`npmInstallTargets()` 的注释与单测断言里。
+
+### 5. ★ 安装器的一个真实雷：npm registry 的版本陷阱（实测 2026-09-12）
+
+| 包 | npm `dist-tags` |
+|---|---|
+| `@deepseek-ai/dsh` | `latest: 0.1.5-rc.1`、`next: 0.1.5-rc.2`、`alpha: 0.1.5-alpha.2` |
+| `@deepseek-ai/dsh-tools` | **`latest: 0.0.1-rc.1`（stub）**、`next: 0.1.5-rc.2` |
+
+本机安装的是 `@deepseek-ai/dsh 0.1.2-rc.1`，而 `dsh-plugin/package.json` 钉的也是 `0.1.2-rc.1`。
+⇒ 引导程序**不得**用 `latest` 装 DSH 或它的子包（会拿到 stub 或未验证的 0.1.5），必须钉版本并把
+"用哪个版本"作为显式参数。
+
+### 6. ★★ 推翻第 5 条的处置方式：依赖应该**链接**，不是下载（读现场得出）
+
+上面的"钉版本然后 npm install"**实测行不通**：在插件目录里执行
+`npm install @deepseek-ai/dsh-tools@0.1.5-rc.2` **必然失败**：
+```
+npm error ERESOLVE could not resolve
+npm error Conflicting peer dependency: @deepseek-ai/dsh-llm@0.1.5-rc.2
+```
+因为 `dsh-tools` peer 依赖 `dsh-llm` / `cordis` / `dsh-agent` / `dsh-scope` / `dsh-session` /
+`dsh-user-approval` / `dsh-system-prompt` / `dsh-invariants` / `dsh-code-runtime` 共 9 个包，
+单独装一个子包满足不了它们。
+
+**改去读"工作正常的现场"**，发现真相：`dsh-plugin/node_modules/` 里**根本没有真实安装**任何包，
+而是三个符号链接指向**用户那份 DSH 自带**的子包（2026-09-11 12:37 建的）：
+```
+@deepseek-ai/dsh-tools       -> <DSH 根>/node_modules/@deepseek-ai/dsh-tools
+@deepseek-ai/dsh-credentials -> <DSH 根>/node_modules/@deepseek-ai/dsh-credentials
+ws                           -> <DSH 根>/node_modules/ws
+```
+一条路线解决四个问题：**版本永远一致**（DSH 升级插件自动跟随 —— 这也解释了为什么
+用户把 DSH 从 0.1.2-rc.1 升到 0.1.5-rc.2 后插件**什么都没做就正常**）、**不用下载**（符合轻量约束）、
+**绕开 peer 地狱**（DSH 的树里 peer 天然齐全）、**升级 DSH 不必重装插件**。
+
+⇒ `bootstrap/lib/dsh-root.mjs` 实现之：`findDshRoot()`（跟着 `dsh` 的两层符号链接向上找
+`@deepseek-ai/dsh` 的包根）+ `planPluginLinks()` + `applyPluginLinks()`（先清空再链接，幂等）。
+只有 `esbuild`（构建扩展用）**不在** DSH 里，那一个才需要下载；本机已有则直接链接。
+
+### 7. ★★★ 引导程序自己踩出来的真实事故：**扩展 ID 被悄悄换掉**
+
+**现象**：第一次真机 `--apply` 之后核对，发现 Chrome 清单的 `allowed_origins` 变成了
+`chrome-extension://coceclkaehnmkjkboghilkkkolmjcial`，而用户 Chrome 里装着的扩展是
+`idpgkobbblmpmnonlndopijgfmehfmig` —— **配对文件里的 `extensionOrigins` 也跟着变了**，
+意味着用户原本能用的插件当场失效。
+
+**根因**：`scripts/init-key.mjs` 原来只有两条路 ——「`scripts/.dev-extension-key.json` 存在就用它」
+与「生成一对新的」。而那是**私钥材料、被 gitignore**，引导程序复制源码时**正确地没有带上它**
+⇒ init-key 就在安装目录里**生成了一对新密钥** ⇒ 公钥变 ⇒ ID 变。与"发行包要轻、不带密钥材料"
+这条正确的约束**直接冲突**，冲突点却落在 ID 上。
+
+**修法**（`scripts/init-key.mjs`）：没有私钥文件时，**先沿用 `extension/manifest.json` 里已钉的公钥**
+（私钥只有打 `.crx` 才用得上，本项目不需要）。三种情形因此都对：
+迁移已有部署 → 沿用老 ID；全新 clone → 沿用被提交的那份公钥（项目故意钉的）；两者都没有 → 才生成新的。
+
+**防复发（两道）**：
+1. 引导程序新增守卫：读部署前配对文件里的 ID 作为基准，第 5 步之后**断言 ID 未变**，
+   变了就**当场停住、不写 DSH 挂载**，并打印配对文件备份的回滚命令；
+2. `tests/unit/init-key-preserves-id.test.mjs`（17 断言）在假仓库里真跑一遍 init-key。
+   **咬合验证**：把"沿用 manifest 公钥"那段删掉（退回无条件生成）⇒ **6 条断言变红**（exit 1）。
+
+**事故现场已修复**：用仓库里的 init-key 重跑一次把配对文件写回原 ID，清掉装坏的目录，
+用修好的引导程序重装。现四处 ID 完全一致（配对文件 / Chrome 清单 / 安装目录 manifest /
+用户实际在用的扩展）。
+
+### 8. 真机实跑结果（2026-09-12，macOS，DSH 0.1.5-rc.2）
+
+| 场景 | 结果 |
+|---|---|
+| `node bootstrap/install.mjs`（默认 dry-run） | exit 0；打印 10 步计划 + 体检表；**与前后快照逐字节比对：零改动** |
+| `node bootstrap/install.mjs --apply --yes` | exit 0。链接 3 个包（**零下载**）、复用本机 esbuild、init-key、构建 dist（port=3080）、`check:dist` OK、**插件可加载自证通过**、写 native host 清单、写 profile 挂载、API key 跳过（非交互） |
+| 再跑一次（幂等） | exit 0；挂载报「内容已是目标状态（无需改动）」；备份与现文件逐字节相同 |
+| `node bootstrap/uninstall.mjs`（dry-run） | exit 0；正确列出"将摘掉挂载/删清单/删目录"，**配对钥匙与 API key 默认保留**；**零改动** |
+| **卸载 → 重装 全往返**（第二轮补跑，卸/装的**写路径**都真跑过） | 卸载后实测：挂载条目 0 条、Chrome 清单已删、安装目录已删，而**配对钥匙仍在**、**`.credentials.yaml` md5 未变**、**semble/codegraph 两条别人的条目仍在**（2/2）；随即重装 exit 0，`扩展 ID 未变`。往返前后状态快照**逐字节一致** |
+
+**安全设计（都实到位）**：关键步骤失败即**当场停**且**不碰 DSH 挂载**（避免把"装到一半"
+变成"原来的也不能用"）；挂载前先 `import()` 自证安装目录里的插件能解析依赖；
+非交互环境**绝不阻塞、绝不自作主张**（`--yes` 才批量同意，否则一律按"否"）；
+`--dry-run` 是**默认**。
+
+### 9. 安全清理与新增门禁
+
+- `extension/package.json`：删掉 `typescript` devDependency。依据：**全仓没有任何 `.ts` 源文件**
+  （ADR-2 已记载"实际是纯 JS + esbuild"），它从未被使用，却会让每次安装多下 20MB+。
+- `scripts/check-dist-config.mjs`：基准配对文件改为尊重 `DSH_HOME`（原来写死 `~/.dsh`，
+  自定义 DSH_HOME 的安装会拿错基准）。
+- 新增单测 6 个（共 **239 条断言**），全部已接进 `test:unit` 链：
+  `bootstrap-layout`(60) / `profile-patch`(61) / `credentials-write`(36) / `dsh-root`(21) /
+  `preflight-checks`(44) / `init-key-preserves-id`(17)。
+- `npm run check`：**exit 0**（20 条反模式规则 / 255 文件、**29 个单测文件**、构建、`check:dist`、`check:repo-root`）。
+
+### 10. ★ 改正一处**假红**：把 `connectedClients` 当成"扩展已连上"
+
+第一版的健康复检里有一条写的是「扩展已连上桥接」，判据是 `/ag/ping` 的 `connectedClients > 0`。
+查 `dsh-plugin/src/host/index.js:327` 发现那是 **`hub.clientCount` —— DSH 页面半（client 半）的连接数，
+不是扩展**。于是用户**没开侧边栏**时这条会报红，而扩展其实好好的（假红）。
+
+本项目的验收口味是"不许假绿，也不许假红"，所以本轮把判定抽成 `bootstrap/lib/health.mjs` 并改口径：
+
+| 判据 | 类型 | 依据 |
+|---|---|---|
+| DSH 在端口应答 | 硬 | `ping.reachable` |
+| 插件已加载并配对 | 硬 | `ping.paired` |
+| 扩展产物端口 == 配对端口 | 硬 | `check-dist-config` 退出码 |
+| 扩展连通 | **软（代理判据）** | `connectedClients > 0` ⇒ "侧边栏开着" |
+
+软判据**不参与总判定**，如实写明它是代理判据、并给出"打开侧边栏再查一次"的下一步
+（引导程序里最多重查 3 次）。**要变成真判据需要给 `/ag/ping` 加字段**
+（例如 `agentClients: () => hub.agentCount`）—— 那会动协议 schema（`ping` 有正向量、帧是闭集），
+**本轮故意不做**，在此记明。
+
+### 11. 新增 `doctor`：随时自查（与第 11 步共用同一段逻辑）
+
+`node bootstrap/doctor.mjs`（或 `npm run doctor`），支持 `--json` 便于贴 issue。
+单独做成命令的三个理由：用户**任何时候**都可能要它；它与引导程序第 11 步共用
+`health.mjs#probeHealth`，**不会出现"装的时候这么判、自查的时候那么判"**；它不阻塞、不需要 TTY，
+所以可自动化。实跑（2026-09-12，本机）：
+
+```
+✅ DSH 在本机 3080 端口应答 —— 是
+✅ 插件已加载并配对（/ag/ping → paired） —— 是
+✅ 扩展产物端口 == 真实配对端口 —— 一致
+⚠️  扩展连通（代理判据：侧边栏里的 DSH 页面半） —— 现在没有页面半连着 —— 打开侧边栏后应当 >0
+      ↳ 点浏览器工具栏里的本扩展图标打开侧边栏，然后回这里再查一次。（注意：本程序看不到"扩展装没装"，只能看它有没有连上来。）
+✅ 硬判据全过。      （退出码 0）
+```
+
+### 12. 面向用户的安装文档
+
+- 新增 `docs/13-安装部署.md`：一分钟版 / 装完得到什么 / 前置条件 / 十步各动哪些文件 /
+  **依赖为什么是链接不是下载** / API key 怎么弄 / Chrome 扩展怎么装 / `doctor` 怎么用 /
+  卸载 / 排错表 / 安全与回滚。
+  ⚠️ 该文档里的路径**故意写成 `<安装目录>` 这类占位**（它是给别人的机器看的）——
+  硬编码绝对路径正是本次要消灭的东西；与仓库内交接文档写 `/Users/mac/…` 的口径不同，已在该文档开头写明。
+- `README.md` 的「快速开始」改为**引导程序三条命令**，原来的手工七步收进 `<details>` 作为开发期路径；
+  新增 `docs/13` 到「相关文档」。
+- `package.json` 新增脚本：`bootstrap` / `bootstrap:apply` / `doctor` / `uninstall`。
+- 新增单测 `tests/unit/install-health.test.mjs`（**45 条断言**：判定、渲染、软判据不参与总判定、
+  以及 `probeHealth` 的 I/O 编排），已接进 `test:unit`。
+
+`npm run check`：**exit 0**（20 条反模式规则 / **259 文件**、**30 个单测文件**、构建、`check:dist`、
+`check:repo-root`）；`npm run graph:check` OK（52 文档 / 209 代码文件，无断链）。
+
+### 12.1 本轮**仍未做/未验**的（诚实清单）
+
+1. **交互式重查循环没在真 TTY 里被人跑过**（★ 本条的**归因已被本轮推翻**，见 §13）：
+   上一轮我把"用 `script` 造 pty 时卡在 API key 提示"归因于"pty 把输入丢了"。
+   本轮先做假设验证再动手，**真因是我自己代码的 bug**（`secret()` 结尾 `pause()` 没人 resume）。
+   该 bug 已修，交互层现有 **32 条**假 TTY 断言覆盖（含 `secret → pause → confirm` 的真实顺序）。
+   仍建议由**一个人在真终端里**走一遍 —— 理由从"可能挂"变成"覆盖真终端的 raw mode / Ctrl-C / 粘贴行为"。
+2. **`dsh web` 尚未重启**：现在这个进程仍按**旧**挂载（指向仓库）在跑；重启后才会从
+   `<安装目录>` 加载，那才是"去硬编码"真正生效的时刻。
+3. 只支持 macOS（用户明确"暂时不考虑 windows"）；Linux 分支已写但**未实测**。
+
+### 13. ★★★ 又抓到一个"会让用户挂死"的真缺陷：粘贴 API key 之后，下一步永久挂起
+
+**这是本轮最有价值的产出，而且它推翻了上一轮的一个归因。**
+
+**上一轮的归因（错的）**：用 `script` 造 pty 跑引导程序时卡在 API key 提示，我判断是"pty 把输入丢了"。
+
+**本轮先做假设验证，再动手**：写了个最小复现（`PassThrough` + `isTTY=true` 当假 stdin）：
+
+```
+1) secret → sk-SECRETVALUE         ← 能读到，且不回显（假设"readline 会吃掉输入"被证伪）
+   （secret 之后 stdin.isPaused() = true ）
+2) pause  → TIMEOUT：pause 挂住了   ← 真因在这里
+```
+
+**根因**：`bootstrap/lib/wizard.mjs` 的 `secret()` 结尾调了 `stdin.pause()`，而**没有任何地方会再 resume**。
+readline 的 `Interface` 是在构造时就挂在同一个 stdin 上的，后续 `confirm()` / `pause()` 全靠它收数据
+⇒ **用户一旦粘贴过 API key，紧接着第 10 步那句"装好了按回车继续"就永久挂住**
+（不报错、不退出、没有超时 —— 对用户来说就是"卡死了"）。
+
+**修法**：`secret()` 收尾改为 `stdin.resume()`（保留 `setRawMode(false)`），并写清为什么不能 pause。
+
+**回归**：新增 `tests/unit/wizard-interaction.test.mjs`（**32 条断言**，用假 TTY 驱动，不需要真终端）：
+confirm 默认 No / `--yes` 语义 / 非交互**绝不阻塞** / secret 不回显且退格可用 /
+★ `secret → pause → confirm` 的真实顺序 / close 幂等。
+**咬合验证**：把 `resume` 改回 `pause` ⇒ **3 条断言变红**。
+
+**这个测试还端出了两条设计约束**（都是踩出来的）：
+1. **任何等待超时都必须变成一条变红的断言，而不是让测试进程崩掉/挂住** ——
+   第一版超时就 `reject` 出去，直接把整个测试进程打崩；现在超时返回哨兵，断言自然为假。
+   本项目吃过"假绿"的亏（2026-09-12 §1 的截图假绿），也不该吃"假挂"的亏。
+2. **`--yes` 不等于"什么都别问"**：是非题（要不要装）不问；但"粘贴 key"是**要内容**的提问，
+   仍会正常提问、回车表示跳过。第一版断言"`--yes` 下 secret 立刻返回"是错的。
+
+**顺带确认没伤到用户数据**：整轮验证期间
+`~/.dsh/.credentials.yaml` 的 md5 始终是 `2d811f8f0c6e6aea5136ca89a3ae3d50`，
+且没有产生 `.bak-before-apikey`（说明 API key 那一步**从未被真的写过**）。
+
+**★ 修完之后在真 TTY 里跑通了整条交互路径**（这次输入**在提示出现之后**才喂进去，
+不再有"输入早到被丢弃"的干扰）：
+
+```
+▶ 第 9 步 · 写入 DeepSeek API key        ? 粘贴 API key（留空跳过）: → 已跳过
+▶ 第 10 步 · 在 Chrome 里加载扩展        … 装完了吗？（装好了按回车继续）→ 继续   ← 修之前这里永久挂住
+▶ 第 11 步 · 复检                        ✅ DSH 应答 / ✅ 已配对 / ✅ 产物端口一致 / ⚠️ 扩展连通（软判据）
+                                         ? 打开侧边栏后再查一次？→ 重查（共 3 次）
+════════════════════════════════════════
+ ✅ 装好了，硬判据全过（DSH 应答 / 已配对 / 产物端口一致）
+ 💡 那条 ⚠️ 是软判据：打开侧边栏后它会变 ✅
+```
+
+退出码 0；跑完复核：挂载仍指向安装目录、扩展 ID 未变、`doctor` exit 0、
+`.credentials.yaml` md5 未变。**§12.1 第 1 条那道"只有真人能验"的口子，至此由真 TTY 补上了。**
+
+### 14. ★★ 端到端证明：**真实的 DSH 进程能从安装目录加载插件**（去硬编码的最终验收）
+
+第 6.5 步只证明了"安装目录里的插件能被 `import()`、依赖解析得开"。但用户重启 `dsh web` 时
+真正发生的是另一件事：**DSH 按 profile 里的挂载行去加载它、跑 `apply()`、注册 `/ag/*` 路由**。
+两者之间还隔着 DSH 的插件加载契约 / `inject` 声明 / 路由注册，所以单独证一次：
+
+造一个**临时 DSH_HOME**（`/tmp/wc-loadtest-home`，用随机假 key，不碰用户真 key），
+只放 profile 骨架 + **一行指向安装目录的挂载**：
+
+```yaml
+- insert:
+    - id: dsh-web-companion-bridge
+      name: '/Users/mac/.dsh/plugins/dsh-web-companion/dsh-plugin/src/host/index.js'
+```
+
+然后 `DSH_HOME=/tmp/wc-loadtest-home dsh web --no-open --port 3097`：
+
+```
+✅ 真 DSH 进程从**安装目录**加载了插件，并在 3097 上应答：
+     plugin: dsh-web-companion-bridge
+     paired: true
+     protocolVersion: 1
+     capabilities: 5 个
+收尾：端口 3097 上还剩 0 个监听；临时 home 已删
+```
+
+全程不碰用户的 3080 与真实 `~/.dsh`。**这就是用户重启之后 3080 上会发生的事** ——
+挂载行不再指向"下载下来的那份目录"，而是稳定的安装目录。
+
+> 过程小记（值得记一笔的坑）：临时脚本里有一行 `echo "... port=$PORT）..."`
+> —— 中文全角右括号紧跟变量名，bash 会把多字节字符也算进变量名 ⇒ `set -u` 报
+> `PORT）: unbound variable`。**变量后面紧跟中文时一律写 `${VAR}`**。
+> 这是本仓中文注释/中文输出很多的情况下很容易再踩的一次。
+
+---
+
+## v3.41 — 2026-09-12
 
 **触发**：v3.40 收尾时列出的「P1 剩余项」按顺序做完（截图假绿 → 积压补投 → `perf` 判定 → `CHIP_LABEL_MAX` 注释），再进 P2。用户指令：**不停下来汇报，按 P0 剩余 → 重跑探针 → P1 → P2 持续做完**，且**不许过度设计**。
 
