@@ -181,6 +181,30 @@ export function extractPage(options = {}) {
   /** Convert one subtree to Markdown (single pass, explicit node walk). */
   const toMarkdown = (el) => {
     const out = []
+    /**
+     * 走一层子节点，并**在相邻的两个元素之间补一个空格**。
+     *
+     * ★ 为什么需要它（2026-09-13，第二次修才补上）：只给块级元素加分隔是**不够的** ——
+     * 真实症状出在**同一容器内相邻的 inline 元素**之间。github.com/new 的原样 markup 是
+     * `<span>Repository owner and name</span><span>Owner</span><span>(required)*</span>`，
+     * 三者是 inline 兄弟、源码里也没有空白 ⇒ 旧渲染器把它们拼成
+     * `Repository owner and nameOwner(required)*`。夹具照这个形态写之后，
+     * "标签不粘连"那条断言立刻咬出来了（只加块级分隔时它仍然红）。
+     *
+     * 代价（明知）：**一个词被拆在多个 span 里**（纯为样式）时会多出一个空格。
+     * 取舍依据：真实页面里"相邻 inline 元素且源码无空白"绝大多数是**不同的界面原子**
+     * （标签 / 值 / 徽章），而不是同一个词的碎片。
+     */
+    const walkChildren = (parent, listDepth) => {
+      let previousWasElement = false
+      for (const child of parent.childNodes) {
+        const isElement = child.nodeType === 1
+        if (isElement && previousWasElement) out.push(' ')
+        walk(child, listDepth)
+        if (isElement) previousWasElement = true
+        else if (String(child.textContent ?? '').trim() !== '') previousWasElement = false
+      }
+    }
     const walk = (node, listDepth) => {
       if (node.nodeType === 3) {
         const text = String(node.textContent).replace(/\s+/g, ' ')
@@ -190,7 +214,7 @@ export function extractPage(options = {}) {
       if (node.nodeType !== 1) return
       const tag = node.tagName.toLowerCase()
       if (tag === 'br') { out.push('\n'); return }
-      const inner = () => { for (const child of node.childNodes) walk(child, listDepth) }
+      const inner = () => { walkChildren(node, listDepth) }
       switch (tag) {
         case 'h1': case 'h2': case 'h3': case 'h4': case 'h5': case 'h6':
           out.push(`\n\n${'#'.repeat(Number(tag[1]))} `); inner(); out.push('\n\n'); break
@@ -244,10 +268,27 @@ export function extractPage(options = {}) {
           })
           out.push('\n'); break
         }
+        /*
+         * ★ 块级容器要**自带分隔**（2026-09-13 修）。
+         *
+         * 原来这些标签全部落到 `default: inner()` —— 于是相邻的块级元素**首尾直接相接**。
+         * 实测症状（github.com/new 真抓取）：`Repository owner and name` + `Owner` + `(required)*`
+         * 粘成 `nameOwner(required)*`；一段的结尾与下一段的开头粘成 `).Required`。
+         * 内容没丢，但读起来是坏的 Markdown（一个词被拼出来）。
+         *
+         * 表单页里 `<label>`/`<fieldset>`/`<legend>` 承担"一行一个字段"的角色，
+         * 所以它们也必须按块处理 —— 这是"表单拉平成文本"最主要的分隔来源。
+         */
+        case 'div': case 'section': case 'article': case 'main': case 'aside':
+        case 'header': case 'footer': case 'nav':
+        case 'form': case 'fieldset': case 'legend': case 'label':
+        case 'figure': case 'figcaption': case 'details': case 'summary':
+        case 'dt': case 'dd': case 'address': case 'hgroup': case 'dialog':
+          out.push('\n\n'); inner(); out.push('\n\n'); break
         default: inner()
       }
     }
-    for (const child of el.childNodes) walk(child, 0)
+    walkChildren(el, 0)
     return out.join('').replace(/\n{3,}/g, '\n\n').replace(/[ \t]+\n/gu, '\n').trim()
   }
 

@@ -114,6 +114,19 @@ const CASES = [
     extra: [{
       name: '大表单正文没被当噪音删掉（正文非空）',
       test: (body) => String(body).trim().length > 400,
+    }, {
+      /*
+       * 2026-09-13 追加：**表单标签不许粘连**。
+       * 实测症状（github.com/new 真抓取）：`Repository owner and name` + `Owner` + `(required)*`
+       * 被拼成 `nameOwner(required)*`；一段结尾与下一段开头粘成 `).Required`。
+       * 根因在渲染器：块级容器落到 `default: inner()`，相邻块之间不加分隔。
+       */
+      name: '标签不粘连（不含 nameOwner 这种拼接，也不含 ).大写字母）',
+      test: (body) => /nameOwner/u.test(String(body)) === false && /\)\.[A-Z]/u.test(String(body)) === false,
+    }, {
+      name: '每个字段标签独立成行（Repository name / Description / 仓库名称 都在行首）',
+      // 注意：中文后面不能加 \b —— JS 的 \b 是 ASCII 词边界，`仓库名称\b` 恒不匹配（第一版就错在这）
+      test: (body) => /^Repository name/mu.test(String(body)) && /^Description/mu.test(String(body)) && /^仓库名称/mu.test(String(body)),
     }],
     drop: [/^\s*[-*]?\s*Search\s*$/mu],
     dropWhy: '小搜索框仍必须清掉（只按大小判，不按 form 标签整类删）',

@@ -52,7 +52,43 @@ for (const form of [...clone.querySelectorAll('form')]) {
 **咬合验证**：把 `form` 塞回 `NOISE` ⇒ **2 条变红**，且缺的正是那 5 个中英标签
 （`Repository name | Add a README file | 仓库名称 | 可见性 | 私有`）—— 证明这条夹具**中英两面都能咬**。
 
-### 4. 顺带
+### 4. 渲染器也修了：表单拉平成文本时**标签会粘连**（用户指出，2026-09-13）
+
+用户看到真机抓取结果后指出：内容是抓到了，但**压成 Markdown 时标签粘在一起** ——
+`Repository owner and nameOwner(required)*`、`).Required`、`Description0 / 350 characters2`。
+
+**根因在渲染器**（`toMarkdown` 的兜底分支），不在抓取层：
+
+| 症状 | 根因 |
+|---|---|
+| `nameOwner(required)*` | **块级容器**（`div`/`section`/`label`/`fieldset`…）全部落到 `default: inner()`，相邻块之间**不加分隔** |
+| 修了块级之后**仍然粘** | 真实 markup 是**同一容器内相邻的 inline `<span>`**（标题 + 值 + 必填徽章），块级分隔管不到它们 |
+| `).Required` | 一段结尾与下一段开头直接相接 |
+
+**两处修法**：
+
+1. **块级容器自带分隔**：`div, section, article, main, aside, header, footer, nav, form,
+   fieldset, legend, label, figure, figcaption, details, summary, dt, dd, address, hgroup, dialog`
+   → `\n\n` 包裹。表单里 `<label>`/`<fieldset>`/`<legend>` 承担"一行一个字段"，是关键的分隔来源。
+2. **相邻 inline 元素之间补一个空格**：新增 `walkChildren()`，走子节点时若"上一个也是元素"就补空格。
+   **代价明知**：一个词被拆在多个 span 里（纯为样式）会多一个空格；取舍依据是真实页面里
+   "相邻 inline 且源码无空白"绝大多数是**不同的界面原子**（标签/值/徽章）。
+
+**回归**（`probe:sites` 表单页夹具，20 → **22 条断言**）：
+- `标签不粘连（不含 nameOwner 这种拼接，也不含 ).大写字母）`
+- `每个字段标签独立成行（Repository name / Description / 仓库名称 都在行首）`
+
+**★ 咬合验证过程本身暴露了两个我自己的问题，都如实记下**：
+1. 夹具**第一版没有复现真机形态**（相邻 span），所以"标签不粘连"那条**退回旧行为时仍然绿**
+   —— 装饰性断言。照真机 markup 补上 `<div class="field-head"><span>…</span><span>…</span></div>` 之后它才会咬。
+2. **只加块级分隔时，它依然是红的** —— 这才发现真正的症状在 inline 兄弟之间，于是有了第 2 处修法。
+   两条断言现在**都**能咬（分别退回 ⇒ 各自变红，均实测）。
+
+**未修（故意）**：GitHub 步骤徽章那种**孤立的 1–2 位数字**（`(*).1`、`…characters2`）。
+判据上无法与"合法的短数字"（表格里的 `1`、`5 items`）区分，硬删会误伤真实内容 —— 宁留噪音不误删。
+
+### 4.1 顺带
+
 
 - `scripts/probe-all.mjs` 里 `probe:sites` 的说明由"5 类页面"改为"**6 类**页面"。
 - `npm run check` → **exit 0**（35 个测试套件）；`probe:sites` **20/20**。

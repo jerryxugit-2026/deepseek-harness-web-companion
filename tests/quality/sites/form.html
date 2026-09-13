@@ -28,6 +28,18 @@
 
     <form id="new-repo">
       <h2>General</h2>
+
+      <!--
+        照**真机 GitHub markup** 写：标题 + 值 + 必填徽章是**相邻的 span**。
+        旧渲染器不给块级元素加分隔 ⇒ 三者首尾相接，拼出
+        "Repository owner and nameOwner(required)*"（github.com/new 真抓取的原样症状）。
+        夹具不放这个形态，"标签不粘连"那条断言就不会咬 —— 这是咬合验证实测发现的
+        （第一版夹具漏了它，退回旧行为时那条断言仍然绿 ⇒ 装饰性断言）。
+      -->
+      <div class="field-head">
+        <span>Repository owner and name</span><span>Owner</span><span>(required)*</span>
+      </div>
+
       <label for="owner">Owner</label>
       <select id="owner"><option>jerryxugit-2026</option></select>
 

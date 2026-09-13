@@ -1,7 +1,7 @@
 {
   "probe": "m4/sites",
   "fixturePort": 3994,
-  "at": "2026-09-13T04:45:45.345Z",
+  "at": "2026-09-13T05:08:32.341Z",
   "cases": [
     "文档站",
     "新闻",
@@ -28,9 +28,11 @@
     "论坛：正文完整（4/4）": true,
     "论坛：操作标签（Share / Report / Copy link）必须清掉": true,
     "表单页：抓取成功": true,
-    "表单页：正文完整（2/7） 缺: Repository name | Add a README file | 仓库名称 | 可见性 | 私有": false,
+    "表单页：正文完整（7/7）": true,
     "表单页：小搜索框仍必须清掉（只按大小判，不按 form 标签整类删）": true,
-    "表单页：大表单正文没被当噪音删掉（正文非空）": false
+    "表单页：大表单正文没被当噪音删掉（正文非空）": true,
+    "表单页：标签不粘连（不含 nameOwner 这种拼接，也不含 ).大写字母）": false,
+    "表单页：每个字段标签独立成行（Repository name / Description / 仓库名称 都在行首）": true
   },
   "observations": {}
 }
