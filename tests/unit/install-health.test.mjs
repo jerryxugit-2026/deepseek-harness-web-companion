@@ -179,6 +179,8 @@ console.log('\n4. finishBanner：没复检 ≠ 复检没过')
   // ★ 2026-09-13 改：复检早已无条件跑，"跳过了第 11 步"是假话，文案改成"没拿到任何健康判据"
   record('没判据时要说清是"没拿到任何健康判据"（退回旧文案 ⇒ 这里红）', none.text.includes('没拿到任何健康判据'))
   record('没复检时不提示软判据', none.softFailed.length === 0)
+  // ★ 空判据不许算成功（片 A 第 5 / 6a 第 2 / 6b 第 4 条三片都点了；退回旧写法 ⇒ 这里红）
+  record('★ 空判据时 ok === false（没验过就不许算成功）', none.ok === false)
 
   const allHardOk = finishBanner([
     { id: 'dsh-up', ok: true, soft: false, label: 'A' },

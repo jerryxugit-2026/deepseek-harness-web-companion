@@ -158,7 +158,10 @@ export function finishBanner(items, { mountSkipped = false, autoDeclined = 0 } =
      * 这个分支现在只有"`probeHealth` 一条判据都没返回"这种异常情况才会走到（由单测喂）。
      */
     return {
-      ok: !mountSkipped && autoDeclined === 0,
+      // ★ 空判据**不算成功**（2026-09-13 修；PiMoa 片 A 第 5 条 / 片 6a 第 2 条 / 片 6b 第 4 条，
+       //   三片都点名）：原来 `items.length === 0` 时 ok 只看 mountSkipped/autoDeclined ⇒
+       //   "一条健康判据都没拿到"照样 ok:true ⇒ 收尾 exitCode 0。护栏本身没护栏。
+      ok: items.length > 0 && !mountSkipped && autoDeclined === 0,
       text: `${prefix}${declined} 安装步骤已跑完；但**没拿到任何健康判据**（probeHealth 返回空）—— 请用下面的 doctor 自查`,
       softFailed,
     }

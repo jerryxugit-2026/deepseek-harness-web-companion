@@ -65,7 +65,18 @@ export function findEntrySpan(text, id) {
    */
   let start = idAt
   const prev = all[idAt - 1] ?? ''
-  if (/^\s*-\s/u.test(prev) && (/^\s*/u.exec(prev)?.[0] ?? '').length === Math.max(0, entryIndent.length - 2)) {
+  /*
+   * ★ 起点上移的判据（2026-09-13 修；PiMoa 片 6a 第 5 条 + 我自己的回归）：
+   *   · 不能写死"缩进差 2 空格"（profile 用 4 空格缩进时判据不命中，"卸载后残留半条"原样存在）；
+   *   · 也不能只要求"比 `id:` 浅" —— 那样**段头 `- insert:` 自己**会被误当成条目首行
+   *     （0 < 4 命中），span 从段头开始、段头又被当成邻居 ⇒ 配套注释摘不掉（§6 两条当场咬出来）。
+   * 正确判据：那行必须是带破折号、**比段头深、又比 `id:` 浅**的"条目自己的首行"。
+   */
+  const starts = topItemStarts(all)
+  const headerAt = [...starts].reverse().find((s) => s <= idAt)
+  const headerIndent = headerAt === undefined ? -1 : (/^\s*/u.exec(all[headerAt])?.[0] ?? '').length
+  const prevIndent = (/^\s*/u.exec(prev)?.[0] ?? '').length
+  if (/^\s*-\s/u.test(prev) && prevIndent > headerIndent && prevIndent < entryIndent.length) {
     start = idAt - 1
   }
   let end = all.length

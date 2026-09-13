@@ -462,6 +462,15 @@
       "docRefs": 0
     },
     {
+      "path": "docs/reviews/pimoa-wizard-6a-judgement.md",
+      "title": "PiMoa 对抗性审核结果",
+      "version": null,
+      "lines": 64,
+      "sections": 5,
+      "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
       "path": "docs/reviews/pimoa-wizard-6b-orchestration.md",
       "title": "PiMoa 对抗性审核结果",
       "version": null,

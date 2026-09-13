@@ -203,8 +203,10 @@ let currentStepTitle = '（还没开始）'
  */
 let dying = false
 process.on('uncaughtException', (error) => {
-  // 哨兵：处理器自己抛（例如流已关时 w.warn 失败）会**再次进入**同一处理器 ⇒ 死循环
-  if (dying) return
+  // 哨兵：处理器自己抛（例如流已关时 w.warn 失败）会**再次进入**同一处理器。
+  // ★ 二次进入**必须退出**，不能 `return`（2026-09-13 修；PiMoa 片 6b 第 6 条）：
+  //   原来 `return` 会把二次抛吞掉，进程带着坏状态继续跑 —— 比它要修的死循环更难察觉。
+  if (dying) process.exit(3)
   dying = true
   w.warn(`在「${currentStepTitle}」崩了：${String(error?.message ?? error)}`)
   w.warn('已完成的步骤是幂等的；修掉原因后重跑本程序即可。')
@@ -212,7 +214,7 @@ process.on('uncaughtException', (error) => {
   die(3)
 })
 process.on('unhandledRejection', (reason) => {
-  if (dying) return
+  if (dying) process.exit(3)
   dying = true
   w.warn(`在「${currentStepTitle}」崩了（未处理的 Promise 拒绝）：${String(reason?.message ?? reason)}`)
   w.warn('已完成的步骤是幂等的；修掉原因后重跑本程序即可。')
@@ -260,7 +262,8 @@ async function linkDownloadablePluginDeps(names) {
       w.warn(`你拒绝了下载 ${needing.join('、')} —— 没有它插件加载不起来，就此停下。`)
       w.warn('想继续就重跑本程序并在这一步选 y（或先把包装进你的 DSH）。')
       w.close()
-      die(2)
+      // ★ 用户**主动拒绝**关键步骤 ⇒ 按 --help 的约定是 4（片 6a 第 9 条），不是 2
+      die(4)
     }
     must(
       run('npm', ['install', '--no-audit', '--no-fund', '--no-save', '--prefix', stage, ...needing]),

@@ -16,13 +16,13 @@ export function yamlScalar(value) {
    * 单引号风格里塞一个真换行，在 `refs:` 那种两空格缩进下续行会落到列 0 ⇒ 整个
    * `.credentials.yaml` 可能直接解析不了。双引号风格是 YAML 里能安全表达控制字符的写法。
    */
-  if (/[\u0000-\u001f\u007f]/u.test(s)) {
+  if (/[\u0000-\u001f\u007f\u0085\u2028\u2029]/u.test(s)) {
     /*
      * ★ 兜底转义**所有** C0/DEL 控制字符（2026-09-13 修；PiMoa 片 A 第 10 条 / 片 C 第 10 条）：
      * 原来只转 `\n \r \t " \\`，判据却匹配整段 `[\u0000-\u001f\u007f]` ⇒ `\u0007`、`\u007f`
      * 这类会被**原样**写进双引号标量，仍是非法 YAML。
      */
-    const escaped = s.replace(/[\u0000-\u001f\u007f"\\]/gu, (ch) => {
+    const escaped = s.replace(/[\u0000-\u001f\u007f\u0085\u2028\u2029"\\]/gu, (ch) => {
       if (ch === '\n') return '\\n'
       if (ch === '\r') return '\\r'
       if (ch === '\t') return '\\t'
@@ -56,8 +56,14 @@ export function parseScalar(raw) {
   const t = String(raw ?? '').trim()
   if (t.length >= 2 && t.startsWith("'") && t.endsWith("'")) return t.slice(1, -1).replaceAll("''", "'")
   if (t.length >= 2 && t.startsWith('"') && t.endsWith('"')) {
-    // 单趟反转义：`\n` `\r` `\t` `\"` `\\`（分步 replaceAll 会把 `\\n` 误当成换行）
-    return t.slice(1, -1).replace(/\\(.)/gu, (_, ch) => (ch === 'n' ? '\n' : ch === 'r' ? '\r' : ch === 't' ? '\t' : ch))
+    // 单趟反转义：`\n` `\r` `\t` `\"` `\\`，以及兜底写出的 `\xNN`
+    // （★ 2026-09-13 修；PiMoa 片 6b 第 5 条：写出端有 `\xNN`、读回端不认 ⇒ 值两轮之间自漂）
+    return t.slice(1, -1).replace(/\\x([0-9a-fA-F]{2})|\\u([0-9a-fA-F]{4})|\\(.)/gu,
+      (_, hex2, hex4, ch) => (hex2 !== undefined
+        ? String.fromCodePoint(Number.parseInt(hex2, 16))
+        : hex4 !== undefined
+          ? String.fromCodePoint(Number.parseInt(hex4, 16))
+          : (ch === 'n' ? '\n' : ch === 'r' ? '\r' : ch === 't' ? '\t' : ch)))
   }
   return t
 }
