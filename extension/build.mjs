@@ -92,7 +92,6 @@ console.log(`  ${(gzip / 1024).toFixed(1).padStart(8)} KB  总计（gzip 估算�
 console.log(`\nG6 判据：总计 ≤ 1024 KB → ${total <= 1024 * 1024 ? '✅ 通过' : '❌ 超出'}\n`)
 
 const report = {
-  generatedAt: new Date().toISOString(),
   criterion: { limitBytes: 1024 * 1024, metric: 'dist/ total, uncompressed' },
   totalBytes: total,
   gzipBytes: gzip,

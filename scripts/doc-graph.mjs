@@ -53,7 +53,18 @@ function walk(dir, out = []) {
 }
 
 const allFiles = walk(ROOT).map((f) => relative(ROOT, f).split('\\').join('/'))
-const mdFiles = allFiles.filter((f) => f.endsWith('.md')).sort()
+/*
+ * 生成物自己**不参与扫描**。
+ *
+ * 为什么：本文件的输出 `docs/DOC-GRAPH.md` 也是一份 `.md`，而每份文档的 `lines`/`sections`
+ * 会被写进图谱 ⇒ 输出反过来影响输入 ⇒ **任何一次生成之后，磁盘上的文件都与"再次生成的结果"不一致**
+ * （改一行 → 行数变 → 下一次生成的表格也跟着变）。后果就是"每次 `npm run check` 都弄脏工作区"，
+ * 而 `--check` 只能靠"比较前把时间戳归一化"来掩盖（见 CHANGELOG 里那条修复）。
+ * 把生成物排除后，图谱是**其它文档的纯函数**：生成一次即收敛，`--check` 也就是逐字节真比对。
+ * （`docs/doc-graph.json` 同理，但它只影响"代码文件计数"、不自我引用，故无需排除。）
+ */
+const GENERATED_DOC = /^docs\/DOC-GRAPH\.md$/u
+const mdFiles = allFiles.filter((f) => f.endsWith('.md') && !GENERATED_DOC.test(f)).sort()
 const codeFiles = allFiles.filter((f) => /\.(mjs|cjs|js|ts|tsx|json|sh)$/u.test(f) && !f.endsWith('package-lock.json')).sort()
 
 /** Paths that look like code inside backticks, e.g. `extension/src/sw/index.js`. */
@@ -181,7 +192,6 @@ function renderMarkdown() {
   return `# 文档与代码图谱（DOC-GRAPH）
 
 > **自动生成，请勿手改**：\`node scripts/doc-graph.mjs\`（校验：\`node scripts/doc-graph.mjs --check\`）
-> 生成时间：${new Date().toISOString()}
 >
 > **更新时机（随项目进展）**：
 > 1. 任一 \`*.md\` 或代码文件增删改后 → \`npm run graph:sync\`（代码图谱增量重建）+ \`npm run graph:docs\`（本文件重生成）；
@@ -253,11 +263,16 @@ ${issueRows}
 const rendered = renderMarkdown()
 const jsonText = `${stable(graph)}\n`
 
-/** 生成时间每次都会变，比较时剔除该行（否则 --check 永远为假）。 */
-const stripTimestamp = (text) => text.replace(/^> 生成时间：.*$/mu, '> 生成时间：<normalized>')
+/*
+ * 生成物里**故意不放时间戳**：以前这里写 `> 生成时间：<ISO>`，于是每次 `npm run check`
+ * （它会跑 `graph:docs`）都会把 `docs/DOC-GRAPH.md` 弄脏 —— 提交时多一个无意义 diff，
+ * 而且 `--check` 得靠"比较前把时间戳归一化"来兜底（见 v3.x CHANGELOG 那条修复）。
+ * 去掉时间戳后，生成物是**内容确定**的：同样的输入 → 同样的字节，`--check` 也就是真正的比对。
+ * 需要知道新鲜度时看 `git log -1 -- docs/DOC-GRAPH.md` 即可。
+ */
 
 if (CHECK) {
-  const okMd = existsSync(OUT_MD) && stripTimestamp(readFileSync(OUT_MD, 'utf8')) === stripTimestamp(rendered)
+  const okMd = existsSync(OUT_MD) && readFileSync(OUT_MD, 'utf8') === rendered
   const okJson = existsSync(OUT_JSON) && readFileSync(OUT_JSON, 'utf8') === jsonText
   if (!okMd || !okJson) {
     console.error('doc-graph: 图谱已过期，请运行 `node scripts/doc-graph.mjs`')

@@ -1,14 +1,13 @@
 # 文档与代码图谱（DOC-GRAPH）
 
 > **自动生成，请勿手改**：`node scripts/doc-graph.mjs`（校验：`node scripts/doc-graph.mjs --check`）
-> 生成时间：2026-09-13T02:38:02.458Z
 >
 > **更新时机（随项目进展）**：
 > 1. 任一 `*.md` 或代码文件增删改后 → `npm run graph:sync`（代码图谱增量重建）+ `npm run graph:docs`（本文件重生成）；
 > 2. 每个里程碑（M1–M4）收尾必须执行一次，并把 `--check` 纳入交付前检查；
 > 3. `--check` 发现 broken-doc-link / missing-code-ref 时以非零码退出，作为质量门。
 
-## 1. 文档清单（52 份 / 187 个代码与配置文件）
+## 1. 文档清单（51 份 / 187 个代码与配置文件）
 
 | 文档 | 标题 | 版本 | 行数 | 二级标题数 | 代码引用数 |
 |---|---|---|---|---|---|
@@ -28,8 +27,7 @@
 | `docs/10-automation.md` | 自动化分层：哪些能无人值守，哪些必须有人（M4-3） | — | 70 | 7 | 0 |
 | `docs/11-台账.md` | 项目台账（对照《详细设计文档》） | v3.1 | 234 | 12 | 10 |
 | `docs/12-实机验收-测试方案.md` | 实机验收测试方案（v3.38 · 2026-09-12） | — | 188 | 7 | 6 |
-| `docs/CHANGELOG.md` | 变更记录（CHANGELOG） | v3.0 | 1675 | 45 | 0 |
-| `docs/DOC-GRAPH.md` | 文档与代码图谱（DOC-GRAPH） | — | 321 | 6 | 197 |
+| `docs/CHANGELOG.md` | 变更记录（CHANGELOG） | v3.0 | 1690 | 45 | 0 |
 | `docs/HANDOFF.md` | 交接提示词（新会话从这里开始） | v3.41，两者**不是同一个号**） | 337 | 10 | 20 |
 | `docs/PROGRESS.md` | 进度与续跑规则（durable memory） | — | 97 | 8 | 4 |
 | `docs/REVIEW-v3.0.md` | 详细设计 v3.0 评审报告（Review of v3.0 → 修正为 v3.1） | v3.0 | 68 | 5 | 0 |
@@ -69,13 +67,13 @@
 
 | 代码区 | 职责 | 描述它的文档 |
 |---|---|---|
-| `extension/` | Chrome MV3 扩展（side panel / service worker / content script） | `docs/01-protocol.md` `docs/06-test-plan.md` `docs/DOC-GRAPH.md` `docs/HANDOFF.md` `详细设计文档.md` |
-| `dsh-plugin/` | DSH 进程内插件（host 桥接 + client composer 注入） | `docs/01-protocol.md` `docs/DOC-GRAPH.md` `docs/HANDOFF.md` `scripts/review-prompts/code-adversarial.md` `详细设计文档.md` |
+| `extension/` | Chrome MV3 扩展（side panel / service worker / content script） | `docs/01-protocol.md` `docs/06-test-plan.md` `docs/HANDOFF.md` `详细设计文档.md` |
+| `dsh-plugin/` | DSH 进程内插件（host 桥接 + client composer 注入） | `docs/01-protocol.md` `docs/HANDOFF.md` `scripts/review-prompts/code-adversarial.md` `详细设计文档.md` |
 | `native-host/` | native messaging 宿主（拉起 dsh web，M2） | `docs/01-protocol.md` `docs/HANDOFF.md` |
-| `protocol/` | 单源消息 schema + codegen | `docs/01-protocol.md` `docs/06-test-plan.md` `docs/DOC-GRAPH.md` `详细设计文档.md` |
-| `scripts/` | 安装 / 配对 / 工具脚本 | `docs/05-native-host.md` `docs/06-test-plan.md` `docs/07-implementation-plan.md` `docs/11-台账.md` `docs/DOC-GRAPH.md` `docs/HANDOFF.md` `scripts/review-prompts/code-adversarial.md` `scripts/review-prompts/code-review.md` `scripts/review-prompts/design-adversarial.md` `详细设计文档.md` |
-| `tests/e2e/` | E2E harness 与用例 | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
-| `spike/` | 可行性实验（回归基线） | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` `详细设计文档.md` |
+| `protocol/` | 单源消息 schema + codegen | `docs/01-protocol.md` `docs/06-test-plan.md` `详细设计文档.md` |
+| `scripts/` | 安装 / 配对 / 工具脚本 | `docs/05-native-host.md` `docs/06-test-plan.md` `docs/07-implementation-plan.md` `docs/11-台账.md` `docs/HANDOFF.md` `scripts/review-prompts/code-adversarial.md` `scripts/review-prompts/code-review.md` `scripts/review-prompts/design-adversarial.md` `详细设计文档.md` |
+| `tests/e2e/` | E2E harness 与用例 | `docs/06-test-plan.md` |
+| `spike/` | 可行性实验（回归基线） | `docs/06-test-plan.md` `详细设计文档.md` |
 
 ## 3. 代码区依赖图（文档层视角）
 
@@ -105,213 +103,143 @@ flowchart LR
 
 | 引用路径 | 出现在文档 |
 |---|---|
-| `dsh-plugin/src/shared/protocol.generated.ts` | `docs/01-protocol.md` `docs/DOC-GRAPH.md` |
-| `extension/src/content/markdown.js` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
-| `extension/src/lib/cookie.js` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
-| `extension/src/sw/agent-bridge.js` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
-| `extension/tests/unit/markdown.test.js` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
-| `protocol/tests/sync.test.mjs` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
-| `scripts/install-plugin.mjs` | `docs/DOC-GRAPH.md` |
-| `scripts/setup.mjs` | `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` |
-| `spike/out/embed-report.json` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
-| `tests/e2e/out/report.json` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
+| `dsh-plugin/src/shared/protocol.generated.ts` | `docs/01-protocol.md` |
+| `extension/src/content/markdown.js` | `docs/06-test-plan.md` |
+| `extension/src/lib/cookie.js` | `docs/06-test-plan.md` |
+| `extension/src/sw/agent-bridge.js` | `docs/06-test-plan.md` |
+| `extension/tests/unit/markdown.test.js` | `docs/06-test-plan.md` |
+| `protocol/tests/sync.test.mjs` | `docs/06-test-plan.md` |
+| `scripts/setup.mjs` | `docs/07-implementation-plan.md` |
+| `spike/out/embed-report.json` | `docs/06-test-plan.md` |
+| `tests/e2e/out/report.json` | `docs/06-test-plan.md` |
 
 ### 4.2 松散引用（设计草图里的文件名，尚未落位）
 
 | 引用路径 | 出现在文档 |
 |---|---|
-| `.../agent-bridge.test.js` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
-| `.../apps/web/package.json` | `docs/DOC-GRAPH.md` |
-| `.../apps/web/tests/scaffold.ts` | `docs/DOC-GRAPH.md` |
-| `.../apps/web/tests/support.ts` | `docs/DOC-GRAPH.md` |
-| `.../apps/web/vite.config.ts` | `docs/DOC-GRAPH.md` |
-| `.../attach-sender.test.js` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
-| `.../capture.test.js` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
-| `.../cookie.test.js` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
-| `.../dsh-session.test.js` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
-| `.../extract.test.js` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
-| `.../hub.test.ts` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
-| `.../look-left-e2e-probe.json` | `docs/DOC-GRAPH.md` |
-| `.../m3-agent-turn-probe.json` | `docs/11-台账.md` `docs/DOC-GRAPH.md` |
-| `.../m3-control-probe.json` | `docs/11-台账.md` `docs/DOC-GRAPH.md` |
-| `.../m3-debugger-probe.json` | `docs/11-台账.md` `docs/DOC-GRAPH.md` |
-| `.../native-host.test.js` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
-| `.../package.json` | `docs/DOC-GRAPH.md` |
-| `.../packages/client/tsdown.client.ts` | `docs/DOC-GRAPH.md` |
-| `.../packages/client/web/src/platform.ts` | `docs/DOC-GRAPH.md` |
-| `.../packages/client/web/src/seed.ts` | `docs/DOC-GRAPH.md` |
-| `.../protocol/codegen.mjs` | `docs/DOC-GRAPH.md` |
-| `.../state.test.js` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
-| `.../store.test.ts` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
-| `.../tool-bridge.test.ts` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
-| `.../tsdown.config.ts` | `docs/DOC-GRAPH.md` |
-| `.../vitest.config.ts` | `docs/DOC-GRAPH.md` |
-| `../../scripts/client-build-environment.ts` | `docs/DOC-GRAPH.md` |
-| `./package.json` | `docs/DOC-GRAPH.md` |
-| `.d.ts` | `docs/DOC-GRAPH.md` |
-| `.e2e.ts` | `docs/DOC-GRAPH.md` |
-| `.expected.e2e.ts` | `docs/DOC-GRAPH.md` |
-| `.perf.ts` | `docs/DOC-GRAPH.md` |
-| `.snapshot.ts` | `docs/DOC-GRAPH.md` |
-| `.spec.ts` | `docs/DOC-GRAPH.md` |
-| `E2E/cases/e2e1-embed.mjs` | `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` |
-| `E2E/cases/e2e10-regression-baseline.mjs` | `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` |
-| `EXT/manifest.json` | `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` |
-| `EXT/src/content/content.js` | `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` |
-| `EXT/src/content/extract.fn.js` | `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` |
-| `EXT/src/sidepanel/iframe-host.js` | `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` |
-| `EXT/src/sidepanel/toolbar.js` | `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` |
-| `EXT/src/sw/agent-bridge.js` | `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` |
-| `EXT/src/sw/attach-sender.js` | `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` |
-| `EXT/src/sw/capture.js` | `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` |
-| `EXT/src/sw/commands.js` | `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` |
-| `EXT/src/sw/dsh-session.js` | `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` |
-| `EXT/src/sw/index.js` | `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` |
-| `EXT/src/sw/panel-control.js` | `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` |
-| `NH/install.mjs` | `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` |
-| `PLUG/build.mjs` | `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` |
-| `PLUG/package.json` | `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` |
-| `PLUG/src/host/cookie.ts` | `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` |
-| `PLUG/src/host/hub.ts` | `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` |
-| `PLUG/src/host/routes/attach.ts` | `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` |
-| `PLUG/src/host/tool-bridge.ts` | `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` |
-| `PLUG/tests/host/cookie.vector.test.ts` | `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` |
-| `PROTO/codegen.mjs` | `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` |
-| `PROTO/messages.schema.json` | `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` |
-| `ack.ts` | `docs/03-bridge-plugin.md` `docs/DOC-GRAPH.md` |
-| `agent-bridge.test.js` | `docs/02-extension.md` `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` |
-| `antigravity-companion.json` | `docs/DOC-GRAPH.md` |
-| `apps/web/tests/scaffold.ts` | `docs/DOC-GRAPH.md` |
-| `apps/web/vite.config.ts` | `docs/DOC-GRAPH.md` |
-| `attach-sender.test.js` | `docs/02-extension.md` `docs/DOC-GRAPH.md` |
-| `attach-store.test.ts` | `docs/04-client-plugin.md` `docs/DOC-GRAPH.md` |
-| `attach.ts` | `docs/03-bridge-plugin.md` `docs/DOC-GRAPH.md` |
-| `background/service-worker.ts` | `docs/DOC-GRAPH.md` `详细设计文档.md` |
-| `bridge-client.test.ts` | `docs/04-client-plugin.md` `docs/DOC-GRAPH.md` |
-| `capture.test.js` | `docs/02-extension.md` `docs/DOC-GRAPH.md` |
-| `chip.test.tsx` | `docs/04-client-plugin.md` `docs/DOC-GRAPH.md` |
-| `chip.tsx` | `docs/04-client-plugin.md` `docs/DOC-GRAPH.md` |
-| `click.js` | `docs/02-extension.md` `docs/DOC-GRAPH.md` |
-| `composer-insert.test.ts` | `docs/04-client-plugin.md` `docs/DOC-GRAPH.md` |
-| `composer-insert.ts` | `docs/04-client-plugin.md` `docs/DOC-GRAPH.md` |
-| `config.test.ts` | `docs/03-bridge-plugin.md` `docs/DOC-GRAPH.md` |
-| `content.js` | `docs/02-extension.md` `docs/DOC-GRAPH.md` |
-| `content/intent-sniff.ts` | `docs/DOC-GRAPH.md` |
-| `content/markdown.js` | `docs/02-extension.md` `docs/DOC-GRAPH.md` |
-| `contract/slots.d.ts` | `docs/04-client-plugin.md` `docs/DOC-GRAPH.md` `详细设计文档.md` |
-| `cookie.test.js` | `docs/02-extension.md` `docs/DOC-GRAPH.md` |
-| `cookie.ts` | `docs/03-bridge-plugin.md` `docs/DOC-GRAPH.md` |
-| `cookie.vector.test.ts` | `docs/03-bridge-plugin.md` `docs/DOC-GRAPH.md` |
-| `deepseek-harness/packages/client/ui-conversation/src/client/input/contract.ts` | `docs/DOC-GRAPH.md` |
-| `docs/reviews/probe-seed.json` | `docs/DOC-GRAPH.md` `详细设计文档.md` |
-| `enter.ts` | `docs/03-bridge-plugin.md` `docs/11-台账.md` `docs/DOC-GRAPH.md` |
-| `extract.test.js` | `docs/02-extension.md` `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` |
-| `extractor.ts` | `docs/DOC-GRAPH.md` `详细设计文档.md` |
-| `facade.d.ts` | `docs/DOC-GRAPH.md` |
-| `facade.ts` | `docs/DOC-GRAPH.md` |
-| `framing.test.mjs` | `docs/05-native-host.md` `docs/DOC-GRAPH.md` |
-| `guard.test.ts` | `docs/03-bridge-plugin.md` `docs/DOC-GRAPH.md` |
-| `hub.d.ts` | `docs/DOC-GRAPH.md` |
-| `hub.test.ts` | `docs/03-bridge-plugin.md` `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` |
-| `hub.ts` | `docs/03-bridge-plugin.md` `docs/11-台账.md` `docs/DOC-GRAPH.md` |
-| `iframe-host.js` | `docs/02-extension.md` `docs/DOC-GRAPH.md` |
-| `index.d.ts` | `docs/DOC-GRAPH.md` |
-| `install.test.mjs` | `docs/05-native-host.md` `docs/DOC-GRAPH.md` |
-| `intent-sniff.ts` | `docs/DOC-GRAPH.md` `详细设计文档.md` |
-| `launcher.test.mjs` | `docs/05-native-host.md` `docs/DOC-GRAPH.md` |
-| `lib/cookie.js` | `docs/02-extension.md` `docs/DOC-GRAPH.md` |
-| `lib/index.js` | `docs/DOC-GRAPH.md` |
-| `lib/types/client/index.js` | `docs/DOC-GRAPH.md` |
-| `lib/types/invariant.js` | `docs/DOC-GRAPH.md` |
-| `log.ts` | `docs/08-security.md` `docs/DOC-GRAPH.md` |
-| `markdown.js` | `docs/02-extension.md` `docs/06-test-plan.md` `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` |
-| `markdown.test.js` | `docs/02-extension.md` `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` |
-| `media.ts` | `docs/DOC-GRAPH.md` `详细设计文档.md` |
-| `native-host.test.js` | `docs/02-extension.md` `docs/DOC-GRAPH.md` |
-| `navigate.js` | `docs/02-extension.md` `docs/DOC-GRAPH.md` |
-| `ops-click.test.js` | `docs/02-extension.md` `docs/DOC-GRAPH.md` |
-| `ops/screenshot.js` | `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` |
-| `out/e2e1.json` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
-| `out/e2e3.json` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
-| `out/e2e4.json` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
-| `out/e2e6.json` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
-| `out/e2e8.json` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
-| `out/e2e9.json` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
-| `packages/client/tsdown.client.ts` | `docs/DOC-GRAPH.md` |
-| `packages/client/ui-goal/tsdown.config.ts` | `docs/DOC-GRAPH.md` |
-| `packages/client/ui-slots/package.json` | `docs/DOC-GRAPH.md` |
-| `packages/client/web/src/seed.ts` | `docs/DOC-GRAPH.md` |
-| `panel.ts` | `docs/DOC-GRAPH.md` `详细设计文档.md` |
-| `pending.ts` | `docs/03-bridge-plugin.md` `docs/DOC-GRAPH.md` |
-| `platform.ts` | `docs/DOC-GRAPH.md` |
-| `protocol-sync.test.js` | `docs/02-extension.md` `docs/DOC-GRAPH.md` |
-| `protocol-sync.test.ts` | `docs/03-bridge-plugin.md` `docs/04-client-plugin.md` `docs/DOC-GRAPH.md` |
-| `protocol.ts` | `docs/DOC-GRAPH.md` |
-| `read.js` | `docs/02-extension.md` `docs/DOC-GRAPH.md` |
-| `routes.attach.test.ts` | `docs/03-bridge-plugin.md` `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` |
-| `routes.enter.test.ts` | `docs/03-bridge-plugin.md` `docs/DOC-GRAPH.md` |
-| `routes/enter.ts` | `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` |
-| `routes/ping.ts` | `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` |
-| `run.sh` | `docs/05-native-host.md` `docs/DOC-GRAPH.md` |
-| `runtime-config.json` | `docs/05-native-host.md` `docs/DOC-GRAPH.md` |
-| `scaffold.ts` | `docs/DOC-GRAPH.md` |
-| `screenshot.js` | `docs/02-extension.md` `docs/DOC-GRAPH.md` |
-| `selection.ts` | `docs/DOC-GRAPH.md` `详细设计文档.md` |
-| `service.d.ts` | `docs/DOC-GRAPH.md` |
-| `settings.js` | `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` |
-| `slots.d.ts` | `docs/04-client-plugin.md` `docs/DOC-GRAPH.md` |
-| `src/client/index.js` | `docs/DOC-GRAPH.md` |
-| `src/client/index.ts` | `docs/DOC-GRAPH.md` |
-| `src/css-modules.d.ts` | `docs/DOC-GRAPH.md` |
-| `src/index.ts` | `docs/DOC-GRAPH.md` |
-| `src/invariant.ts` | `docs/DOC-GRAPH.md` |
-| `src/sw/agent-bridge.js` | `docs/02-extension.md` `docs/DOC-GRAPH.md` |
-| `src/sw/panel-control.js` | `docs/02-extension.md` `docs/DOC-GRAPH.md` |
-| `state.test.js` | `docs/02-extension.md` `docs/DOC-GRAPH.md` |
-| `store.test.ts` | `docs/03-bridge-plugin.md` `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` |
-| `store.ts` | `docs/03-bridge-plugin.md` `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` |
-| `tabs.js` | `docs/02-extension.md` `docs/DOC-GRAPH.md` |
-| `tests/fakes/chrome.js` | `docs/02-extension.md` `docs/DOC-GRAPH.md` |
-| `tests/host/cookie.vector.test.ts` | `docs/03-bridge-plugin.md` `docs/DOC-GRAPH.md` |
-| `tests/host/integration.test.ts` | `docs/03-bridge-plugin.md` `docs/DOC-GRAPH.md` |
-| `tool-bridge.test.ts` | `docs/03-bridge-plugin.md` `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` |
-| `tool-bridge.ts` | `docs/DOC-GRAPH.md` |
-| `toolbar.js` | `docs/02-extension.md` `docs/DOC-GRAPH.md` |
-| `tsconfig.base.client.json` | `docs/DOC-GRAPH.md` |
-| `tsdown.config.ts` | `docs/DOC-GRAPH.md` |
-| `type.js` | `docs/02-extension.md` `docs/DOC-GRAPH.md` |
-| `ui-slots/src/index.ts` | `docs/DOC-GRAPH.md` |
-| `uninstall.mjs` | `docs/06-test-plan.md` `docs/11-台账.md` `docs/DOC-GRAPH.md` `docs/HANDOFF.md` `docs/PROGRESS.md` |
-| `vitest.config.ts` | `docs/DOC-GRAPH.md` |
-| `vitest.e2e.config.ts` | `docs/DOC-GRAPH.md` |
-| `vitest.shared.ts` | `docs/DOC-GRAPH.md` |
-| `vitest.web.config.ts` | `docs/DOC-GRAPH.md` |
-| `wait.js` | `docs/02-extension.md` `docs/DOC-GRAPH.md` |
+| `.../agent-bridge.test.js` | `docs/06-test-plan.md` |
+| `.../attach-sender.test.js` | `docs/06-test-plan.md` |
+| `.../capture.test.js` | `docs/06-test-plan.md` |
+| `.../cookie.test.js` | `docs/06-test-plan.md` |
+| `.../dsh-session.test.js` | `docs/06-test-plan.md` |
+| `.../extract.test.js` | `docs/06-test-plan.md` |
+| `.../hub.test.ts` | `docs/06-test-plan.md` |
+| `.../m3-agent-turn-probe.json` | `docs/11-台账.md` |
+| `.../m3-control-probe.json` | `docs/11-台账.md` |
+| `.../m3-debugger-probe.json` | `docs/11-台账.md` |
+| `.../native-host.test.js` | `docs/06-test-plan.md` |
+| `.../state.test.js` | `docs/06-test-plan.md` |
+| `.../store.test.ts` | `docs/06-test-plan.md` |
+| `.../tool-bridge.test.ts` | `docs/06-test-plan.md` |
+| `E2E/cases/e2e1-embed.mjs` | `docs/07-implementation-plan.md` |
+| `E2E/cases/e2e10-regression-baseline.mjs` | `docs/07-implementation-plan.md` |
+| `EXT/manifest.json` | `docs/07-implementation-plan.md` |
+| `EXT/src/content/content.js` | `docs/07-implementation-plan.md` |
+| `EXT/src/content/extract.fn.js` | `docs/07-implementation-plan.md` |
+| `EXT/src/sidepanel/iframe-host.js` | `docs/07-implementation-plan.md` |
+| `EXT/src/sidepanel/toolbar.js` | `docs/07-implementation-plan.md` |
+| `EXT/src/sw/agent-bridge.js` | `docs/07-implementation-plan.md` |
+| `EXT/src/sw/attach-sender.js` | `docs/07-implementation-plan.md` |
+| `EXT/src/sw/capture.js` | `docs/07-implementation-plan.md` |
+| `EXT/src/sw/commands.js` | `docs/07-implementation-plan.md` |
+| `EXT/src/sw/dsh-session.js` | `docs/07-implementation-plan.md` |
+| `EXT/src/sw/index.js` | `docs/07-implementation-plan.md` |
+| `EXT/src/sw/panel-control.js` | `docs/07-implementation-plan.md` |
+| `NH/install.mjs` | `docs/07-implementation-plan.md` |
+| `PLUG/build.mjs` | `docs/07-implementation-plan.md` |
+| `PLUG/package.json` | `docs/07-implementation-plan.md` |
+| `PLUG/src/host/cookie.ts` | `docs/07-implementation-plan.md` |
+| `PLUG/src/host/hub.ts` | `docs/07-implementation-plan.md` |
+| `PLUG/src/host/routes/attach.ts` | `docs/07-implementation-plan.md` |
+| `PLUG/src/host/tool-bridge.ts` | `docs/07-implementation-plan.md` |
+| `PLUG/tests/host/cookie.vector.test.ts` | `docs/07-implementation-plan.md` |
+| `PROTO/codegen.mjs` | `docs/07-implementation-plan.md` |
+| `PROTO/messages.schema.json` | `docs/07-implementation-plan.md` |
+| `ack.ts` | `docs/03-bridge-plugin.md` |
+| `agent-bridge.test.js` | `docs/02-extension.md` `docs/07-implementation-plan.md` |
+| `attach-sender.test.js` | `docs/02-extension.md` |
+| `attach-store.test.ts` | `docs/04-client-plugin.md` |
+| `attach.ts` | `docs/03-bridge-plugin.md` |
+| `background/service-worker.ts` | `详细设计文档.md` |
+| `bridge-client.test.ts` | `docs/04-client-plugin.md` |
+| `capture.test.js` | `docs/02-extension.md` |
+| `chip.test.tsx` | `docs/04-client-plugin.md` |
+| `chip.tsx` | `docs/04-client-plugin.md` |
+| `click.js` | `docs/02-extension.md` |
+| `composer-insert.test.ts` | `docs/04-client-plugin.md` |
+| `composer-insert.ts` | `docs/04-client-plugin.md` |
+| `config.test.ts` | `docs/03-bridge-plugin.md` |
+| `content.js` | `docs/02-extension.md` |
+| `content/markdown.js` | `docs/02-extension.md` |
+| `contract/slots.d.ts` | `docs/04-client-plugin.md` `详细设计文档.md` |
+| `cookie.test.js` | `docs/02-extension.md` |
+| `cookie.ts` | `docs/03-bridge-plugin.md` |
+| `cookie.vector.test.ts` | `docs/03-bridge-plugin.md` |
+| `docs/reviews/probe-seed.json` | `详细设计文档.md` |
+| `enter.ts` | `docs/03-bridge-plugin.md` `docs/11-台账.md` |
+| `extract.test.js` | `docs/02-extension.md` `docs/07-implementation-plan.md` |
+| `extractor.ts` | `详细设计文档.md` |
+| `framing.test.mjs` | `docs/05-native-host.md` |
+| `guard.test.ts` | `docs/03-bridge-plugin.md` |
+| `hub.test.ts` | `docs/03-bridge-plugin.md` `docs/07-implementation-plan.md` |
+| `hub.ts` | `docs/03-bridge-plugin.md` `docs/11-台账.md` |
+| `iframe-host.js` | `docs/02-extension.md` |
+| `install.test.mjs` | `docs/05-native-host.md` |
+| `intent-sniff.ts` | `详细设计文档.md` |
+| `launcher.test.mjs` | `docs/05-native-host.md` |
+| `lib/cookie.js` | `docs/02-extension.md` |
+| `log.ts` | `docs/08-security.md` |
+| `markdown.js` | `docs/02-extension.md` `docs/06-test-plan.md` `docs/07-implementation-plan.md` |
+| `markdown.test.js` | `docs/02-extension.md` `docs/07-implementation-plan.md` |
+| `media.ts` | `详细设计文档.md` |
+| `native-host.test.js` | `docs/02-extension.md` |
+| `navigate.js` | `docs/02-extension.md` |
+| `ops-click.test.js` | `docs/02-extension.md` |
+| `ops/screenshot.js` | `docs/07-implementation-plan.md` |
+| `out/e2e1.json` | `docs/06-test-plan.md` |
+| `out/e2e3.json` | `docs/06-test-plan.md` |
+| `out/e2e4.json` | `docs/06-test-plan.md` |
+| `out/e2e6.json` | `docs/06-test-plan.md` |
+| `out/e2e8.json` | `docs/06-test-plan.md` |
+| `out/e2e9.json` | `docs/06-test-plan.md` |
+| `panel.ts` | `详细设计文档.md` |
+| `pending.ts` | `docs/03-bridge-plugin.md` |
+| `protocol-sync.test.js` | `docs/02-extension.md` |
+| `protocol-sync.test.ts` | `docs/03-bridge-plugin.md` `docs/04-client-plugin.md` |
+| `read.js` | `docs/02-extension.md` |
+| `routes.attach.test.ts` | `docs/03-bridge-plugin.md` `docs/07-implementation-plan.md` |
+| `routes.enter.test.ts` | `docs/03-bridge-plugin.md` |
+| `routes/enter.ts` | `docs/07-implementation-plan.md` |
+| `routes/ping.ts` | `docs/07-implementation-plan.md` |
+| `run.sh` | `docs/05-native-host.md` |
+| `runtime-config.json` | `docs/05-native-host.md` |
+| `screenshot.js` | `docs/02-extension.md` |
+| `selection.ts` | `详细设计文档.md` |
+| `settings.js` | `docs/07-implementation-plan.md` |
+| `slots.d.ts` | `docs/04-client-plugin.md` |
+| `src/sw/agent-bridge.js` | `docs/02-extension.md` |
+| `src/sw/panel-control.js` | `docs/02-extension.md` |
+| `state.test.js` | `docs/02-extension.md` |
+| `store.test.ts` | `docs/03-bridge-plugin.md` `docs/07-implementation-plan.md` |
+| `store.ts` | `docs/03-bridge-plugin.md` `docs/07-implementation-plan.md` |
+| `tabs.js` | `docs/02-extension.md` |
+| `tests/fakes/chrome.js` | `docs/02-extension.md` |
+| `tests/host/cookie.vector.test.ts` | `docs/03-bridge-plugin.md` |
+| `tests/host/integration.test.ts` | `docs/03-bridge-plugin.md` |
+| `tool-bridge.test.ts` | `docs/03-bridge-plugin.md` `docs/07-implementation-plan.md` |
+| `toolbar.js` | `docs/02-extension.md` |
+| `type.js` | `docs/02-extension.md` |
+| `uninstall.mjs` | `docs/06-test-plan.md` `docs/11-台账.md` `docs/HANDOFF.md` `docs/PROGRESS.md` |
+| `wait.js` | `docs/02-extension.md` |
 
 ### 4.3 外部引用（DSH 安装包 / 系统路径，非本仓库文件）
 
 | 引用路径 | 出现在文档 |
 |---|---|
-| `./lib/client.js` | `docs/DOC-GRAPH.md` |
-| `/Users/mac/.dsh/dsh-web-companion.json` | `docs/11-台账.md` `docs/DOC-GRAPH.md` `docs/HANDOFF.md` |
-| `/Users/mac/.dsh/profiles/web/package.json` | `docs/DOC-GRAPH.md` |
-| `@deepseek-ai/dsh-client-ui-conversation/lib/types/client/contract/input.d.ts` | `docs/04-client-plugin.md` `docs/DOC-GRAPH.md` |
-| `dsh-api-gateway/lib/types/client/index.d.ts` | `docs/DOC-GRAPH.md` |
-| `dsh-api-session-controller/lib/types/client/contract/session.d.ts` | `docs/DOC-GRAPH.md` |
-| `dsh-api-session-controller/lib/types/client/contract/sessions.d.ts` | `docs/DOC-GRAPH.md` |
-| `dsh-client-connection/lib/index.js` | `docs/DOC-GRAPH.md` |
-| `dsh-client-connection/lib/types/api-path.d.ts` | `docs/DOC-GRAPH.md` |
-| `dsh-client-ui-agent-preset/package.json` | `docs/DOC-GRAPH.md` |
-| `dsh-client-ui-conversation/lib/client.js` | `docs/DOC-GRAPH.md` |
-| `dsh-client-ui-conversation/lib/types/client/contract/input.d.ts` | `docs/DOC-GRAPH.md` |
-| `dsh-client-ui-input-trigger/lib/client.js` | `docs/DOC-GRAPH.md` |
-| `dsh-client-ui-renderer/lib/client.js` | `docs/DOC-GRAPH.md` `详细设计文档.md` |
-| `dsh-client-ui-renderer/lib/types/client/registry.d.ts` | `docs/DOC-GRAPH.md` |
-| `dsh-file-reference/lib/types/grammar.js` | `docs/DOC-GRAPH.md` |
-| `dsh-host-webserver/lib/index.js` | `docs/DOC-GRAPH.md` |
-| `dsh-session.test.js` | `docs/02-extension.md` `docs/DOC-GRAPH.md` |
-| `dsh-web-companion.json` | `docs/DOC-GRAPH.md` |
-| `ui-input-trigger/lib/client.js` | `docs/DOC-GRAPH.md` |
+| `/Users/mac/.dsh/dsh-web-companion.json` | `docs/11-台账.md` `docs/HANDOFF.md` |
+| `@deepseek-ai/dsh-client-ui-conversation/lib/types/client/contract/input.d.ts` | `docs/04-client-plugin.md` |
+| `dsh-client-ui-renderer/lib/client.js` | `详细设计文档.md` |
+| `dsh-session.test.js` | `docs/02-extension.md` |
 
 ## 5. 图谱问题（必须为零）
 
