@@ -26,11 +26,11 @@
 | `docs/08-security.md` | 08 · 安全与威胁模型 | — | 73 | 6 | 1 |
 | `docs/09-manual-checklist.md` | 人工验收清单（有头 Chrome） | — | 58 | 7 | 0 |
 | `docs/10-automation.md` | 自动化分层：哪些能无人值守，哪些必须有人（M4-3） | — | 70 | 7 | 0 |
-| `docs/11-台账.md` | 项目台账（对照《详细设计文档》） | v3.1 | 243 | 12 | 9 |
+| `docs/11-台账.md` | 项目台账（对照《详细设计文档》） | v3.1 | 245 | 12 | 11 |
 | `docs/12-实机验收-测试方案.md` | 实机验收测试方案（v3.38 · 2026-09-12） | — | 188 | 7 | 6 |
 | `docs/13-installation.md` | Install & deploy (the bootstrapper) | — | 227 | 17 | 0 |
 | `docs/13-安装部署.md` | 安装与部署（引导程序） | — | 221 | 17 | 0 |
-| `docs/CHANGELOG.md` | 变更记录（CHANGELOG） | v3.0 | 2637 | 50 | 0 |
+| `docs/CHANGELOG.md` | 变更记录（CHANGELOG） | v3.0 | 2723 | 51 | 0 |
 | `docs/HANDOFF.md` | 交接提示词（新会话从这里开始） | v3.41，两者**不是同一个号**） | 343 | 10 | 23 |
 | `docs/PROGRESS.md` | 进度与续跑规则（durable memory） | — | 97 | 8 | 4 |
 | `docs/REVIEW-v3.0.md` | 详细设计 v3.0 评审报告（Review of v3.0 → 修正为 v3.1） | v3.0 | 68 | 5 | 0 |
@@ -244,6 +244,7 @@ flowchart LR
 | `tests/fakes/chrome.js` | `docs/02-extension.md` |
 | `tests/host/cookie.vector.test.ts` | `docs/03-bridge-plugin.md` |
 | `tests/host/integration.test.ts` | `docs/03-bridge-plugin.md` |
+| `tests/unit/_record.mjs` | `docs/11-台账.md` |
 | `tool-bridge.test.ts` | `docs/03-bridge-plugin.md` `docs/07-implementation-plan.md` |
 | `toolbar.js` | `docs/02-extension.md` |
 | `type.js` | `docs/02-extension.md` |

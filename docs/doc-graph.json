@@ -141,9 +141,9 @@
       "path": "docs/11-台账.md",
       "title": "项目台账（对照《详细设计文档》）",
       "version": "v3.1",
-      "lines": 243,
+      "lines": 245,
       "sections": 12,
-      "codeRefs": 9,
+      "codeRefs": 11,
       "docRefs": 0
     },
     {
@@ -177,8 +177,8 @@
       "path": "docs/CHANGELOG.md",
       "title": "变更记录（CHANGELOG）",
       "version": "v3.0",
-      "lines": 2637,
-      "sections": 50,
+      "lines": 2723,
+      "sections": 51,
       "codeRefs": 0,
       "docRefs": 1
     },
@@ -1190,6 +1190,10 @@
       {
         "doc": "docs/11-台账.md",
         "ref": "hub.ts"
+      },
+      {
+        "doc": "docs/11-台账.md",
+        "ref": "tests/unit/_record.mjs"
       },
       {
         "doc": "详细设计文档.md",

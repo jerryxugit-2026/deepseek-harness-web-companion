@@ -5,6 +5,92 @@
 
 ---
 
+## v3.47 — 2026-09-13（引导程序：六片 PiMoa 对抗审查 + 逐条验真后的修复）
+
+**触发**：用户要求对**向导程序**（此前从未实机跑过）做全方法 code review，并明确"调用多个 Pimoa
+子代理、把任务拆细"，以及"你要验真、判断、控住修改范围，警惕 overdesign；特别注意硬编码/接线/假绿"。
+
+### 1. 怎么审的（流程本身也是这次的产物）
+
+分两批共 **6 片**，每片给 Pimoa（`moa_verify`，quorum 2/2，每片 190–682 秒）的材料是
+**一段 diff + 该片模块的完整源码**（diff 是权威的"改了什么"，源码用来判断接线）：
+
+| 批次 | 片 | 范围 |
+|---|---|---|
+| 第一批 | 1 / 2 / 3 | 编排入口 / 探测与接线 / 交互与判定（假绿重灾区） |
+| 第二批 | 4a / 4b / 4c | 判定链 / 编排落地 / 数据安全＋测试咬合力 |
+| 补充 | 5 | **只审"补的那批测试改动"** |
+| 冻结版 | 6a / 6b | 从未被审过的那段修复（1633 行 diff） |
+
+**两条流程教训**（都写进 `docs/11-台账.md`）：
+
+- `--context` 是**进程启动那一刻的快照** ⇒ "先派 Pimoa、后改代码"会让改动掉进盲区。
+  第二次就是这么补出片 5 的 —— 而它恰好抓到了我自己新写的两条**环境依赖假红**。
+- 驱动的 receipt 解析有缺陷：它把"自己没解析出围栏 JSON"报成 `receipt 缺失 / quorum=null`，
+  而 spool 里的 receipt 是好的（`quorum=2/2`）。**这条本身是个误导**，应修。
+
+### 2. 最重的三条（都是真缺陷，且两条是我自己引入的）
+
+1. **`die()` 写成异步 ⇒ dry-run 承诺被打破**（片 A 判 BLOCKER，我的行为测试先咬出来）：
+   `process.stdout.write('', () => process.exit(code))` 不会立刻退出，调用点后面的代码照常跑 ⇒
+   `--yes` 下**真的创建了安装目录**（正面违反「默认只打印…不动真格」），且 `must()` 不再终止 ⇒
+   npm 失败后仍会链出一批指向不存在暂存包的坏链接。改成**同步**退出（代价：管道下可能截尾，写进注释）。
+2. **`removeCompanion` 会删到邻居**（片 2 判两条 BLOCKER）：`findEntrySpan` 原来圈的是**整个
+   `- insert:` 段**，而 DSH 允许一段装多条（用户真实 `cordis.patch.yml` 里 semble+codegraph 就同段）⇒
+   `replaceName` 取段内第一个 `name:` 会**覆盖邻居名字**、卸载会**连带删掉邻居**。改成只圈我们那一条；
+   卸载时"还有邻居就绝不动段头、一条不剩才连段头+配套注释一起摘"。
+3. **升级会丢用户配置**：`upsertCompanion` 原来整块重渲染 ⇒ 上一轮用 `--set` 写进 profile、
+   这一轮没显式传的键被**静默删除**（2026-09-12 的 `approvalForWriteOps: false` 事故就是这个成因）。
+   改成**先读旧键再让本次覆盖**，并返回 `preserved` 供安装器打印。
+
+### 3. 其余已修（按类别）
+
+- **假绿（判定/探测）**：`pingPlugin` 必须验身份（HTTP 200 + `body.ok` + `body.plugin === PLUGIN_ID`，
+  否则任何在该端口回 JSON 的服务都算"本插件应答"）；`portListening` 三态（查不出 ≠ 空闲）；
+  `checkDshCli` 版本读不出要 warn；`summarize` 未知 status 当阻断、`renderChecks` 渲染 ❓；
+  `finishBanner` **只列真查过的**硬判据、空判据**不算成功**、挂载被跳过/非交互全按否**判失败**；
+  **第 11 步复检不再被 `pause()` gate**（原来非交互下"一次没查却 exit 0"）。
+- **新造的假红**：收尾退出码拆开 —— `0` 全过 / `2` 前置条件不满足 / `3` 中途失败 /
+  `4` 用户拒绝关键步骤 / `5` 步骤跑完但复检没过（全新安装后 DSH 未重启就是这个）。
+  并把 `install-behavior` 里两条**环境依赖假红**（dry-run 有阻断项时本来就退 2）修掉。
+- **僵死**：`wizard.mjs#secret` 在用户于前面问句按过 Ctrl-D 后 Promise **永不 settle** ⇒
+  永久僵死在"贴 API key"。加 `inputClosed`/`readableEnded` 守卫 + `setRawMode` 包 try。
+- **数据安全**：三处 `.bak-before-*` 改为**首份原件只写一次**；native-host 清单 `.tmp`+rename；
+  `dist-port` 由 soft 改**硬**判据（缺 `check-dist-config` ＝ 安装残缺，不该被软判据掩盖）。
+- **依赖兜底**：DSH 里缺 `ws` ⇒ 下载到 `<安装目录>/.plugin-deps/` 再链；缺两个 `@deepseek-ai/*` ⇒
+  硬失败（必须与 DSH 同一实例）；**用户拒绝就是拒绝**（不再绕过确认去链）。
+- **硬编码**：`--help` 不再写死端口/默认目录；esbuild 版本从 `extension/package.json` 读；
+  测试里的 `3080` 改为 `import { DEFAULT_PORT }`（改默认端口现在会让测试变红）。
+- **测试自身**：33 个单测加"**断言重名**"守卫（同名会覆盖 ⇒ 一条红被另一条绿掩盖），
+  并借此抓出 3 个文件里 8 处真重名；新增 `tests/unit/install-behavior.test.mjs`
+  （**真的 spawn** 引导程序，断言 dry-run 连 `--yes` 都**不写盘**、非交互全按否时不许报成功）；
+  修掉 `credentials-write` §7 两条**恒真**断言。
+
+### 4. 台账 §5 新增「已知未清」的 5 条 MINOR（**用户 2026-09-13 决定：先记下再推**）
+
+这些都是**已验真**、但**明确没做**的，不许当成已解决：
+
+1. **`record` 守卫在 33 个单测里各有一份**（建议抽到 `tests/unit/_record.mjs`）。
+   我尝试过两次机械替换，**都切坏了文件**（import 插进多行 import 块中间；闭括号匹配到别处导致
+   11 个文件语法错），已**全部回退**。判断：这是纯重复代码、不是缺陷，**错误地批量改 33 个文件的风险
+   大于收益** —— 要做就得逐文件 `node --check` 自检 + 失败即回退。
+2. **只读探测未前移到打印计划之前**：`findDshRoot`/`planPluginLinks`/`classifyMissingPluginDeps`
+   仍在第 3 步才跑 ⇒ 升级场景下第 1/2 步**已经覆盖了安装目录**，之后才发现依赖是坏的。
+   文案已改实话，但控制流没动（结构改动，需配套测试）。
+3. **`preserved` 的消费端没有测试**：生产端有断言（`profile-patch.test.mjs` §12），
+   但 `install.mjs` 那句"保留了原有 config 键"要跑到第 8 步才出现，而 `install-behavior`
+   三个用例都停在"拒绝创建目录"⇒ 零覆盖。
+4. **`install-behavior.test.mjs` 的清理未放 `finally`**：任一用例抛错（含重名守卫 throw）会跳过
+   `rmSync(BASE)` ⇒ `/tmp` 残留。
+5. **`install-health.test.mjs` 有两个 `4.` 节号**（`distOk=null` 与 `finishBanner`）⇒
+   出问题时"第几节"这个唯一定位手段失效。
+
+（另有两条**已实测驳回**的，一并记下以免后人重复怀疑：`uninstall.mjs` 是整目录 `rmSync`，
+`.plugin-deps` 不会残留；`docs/reviews/m4-site-quality.json` 的 `false→true` 是真**重跑**快照，
+不是手改绿灯。）
+
+---
+
 ## v3.46 — 2026-09-13（插件依赖「链不上」时的兜底）
 
 **触发**：台账 §5 第 16 项，用户 2026-09-13 批准「这个可以做」。
