@@ -68,10 +68,13 @@ if (flag('help') || flag('h')) {
   node bootstrap/install.mjs --apply --yes    # 真的安装，不再逐项询问
 
 可选：
-  --install-dir <路径>   安装到哪（默认 ~/.dsh/plugins/dsh-web-companion；**不给就会问你一次**）
-  --dsh-home <路径>      DSH 数据目录（默认 $DSH_HOME 或 ~/.dsh；**不给就会问你一次**）
-  --port <端口>          DSH 端口（默认 3080）
+  --install-dir <路径>   安装到哪（默认 ${defaultInstallDir(homedir())}；**不给就会问你一次**）
+  --dsh-home <路径>      DSH 数据目录（默认 $DSH_HOME 或 ${join(homedir(), '.dsh')}；**不给就会问你一次**）
+  --port <端口>          DSH 端口（默认 ${String(DEFAULT_PORT)}）
   --dsh-version <版本>   要钉的 DSH 版本（默认用你已装的那个；**不要用 latest**）
+
+退出码：
+  0 成功   2 参数/前置条件不满足（含 dry-run 有阻断项）   3 中途失败   4 关键步骤被你拒绝   130 Ctrl-C
 `)
   process.exit(0)
 }
@@ -147,7 +150,15 @@ const dshHome = dshHomeArg === null
 
 const layout = resolveLayout({ installDir, dshHome, homeDir, port, platform: process.platform, env: process.env, exists: existsSync })
 
-const step = (n, title) => w.step(n, title)
+const step = (n, title) => {
+  /*
+   * 记住"现在是第几步"，给 `uncaughtException` 兜底用（2026-09-13）。
+   * 原来那些直接写盘的调用（applyPluginLinks / applyNativeHostInstall / writeFileSync）
+   * 一旦抛异常就是一段裸栈 + 退出码 1，用户看不出"停在哪一步、要不要回滚"。
+   */
+  currentStepTitle = `第 ${String(n)} 步 · ${title}`
+  return w.step(n, title)
+}
 const run = (cmd, args, opts = {}) => {
   const shown = [cmd, ...args].join(' ')
   w.detail(`$ ${shown}`)
@@ -165,12 +176,41 @@ const run = (cmd, args, opts = {}) => {
  * `@deepseek-ai/dsh-tools`）—— 把"装到一半"变成"原来的也不能用了"。
  * 所以宁可停在这里、由用户重跑，也不许带着坏依赖往下走。
  */
+/**
+ * 退出码约定（`--help` 里也印一份，自动化调用方可以依赖）：
+ *   0 成功 / 2 参数或前置条件不满足（dry-run 有阻断项也是 2）/ 3 中途失败 / 4 关键步骤被用户拒绝 / 130 Ctrl-C
+ */
+const die = (code) => {
+  /*
+   * 管道下 stdout 是**异步**的：`process.exit()` 会把它截断 —— 而本程序的全部价值就在那几行
+   * （dry-run 的计划、失败时"停在哪一步/怎么回滚"）。所以先 flush 再退（2026-09-13）。
+   */
+  try { process.stdout.write('', () => process.exit(code)) } catch { process.exit(code) }
+}
+let currentStepTitle = '（还没开始）'
+/*
+ * 兜底：任何没被接住的异常/拒绝，都要说清"停在哪一步"，而不是甩一段裸栈给用户。
+ * 退出码统一 3（中途失败），与 `must()` 一致。
+ */
+process.on('uncaughtException', (error) => {
+  w.warn(`在「${currentStepTitle}」崩了：${String(error?.message ?? error)}`)
+  w.warn('已完成的步骤是幂等的；修掉原因后重跑本程序即可。')
+  console.error(error)
+  die(3)
+})
+process.on('unhandledRejection', (reason) => {
+  w.warn(`在「${currentStepTitle}」崩了（未处理的 Promise 拒绝）：${String(reason?.message ?? reason)}`)
+  w.warn('已完成的步骤是幂等的；修掉原因后重跑本程序即可。')
+  console.error(reason)
+  die(3)
+})
+
 const must = (res, what) => {
   if (res.status === 0) return true
   w.warn(`${what} 失败（exit ${String(res.status)}）—— 就此停下，不改动你的 DSH 挂载。`)
   w.warn('修好之后重跑本程序即可（已完成的步骤是幂等的，不会重复做坏事）。')
   w.close()
-  process.exit(3)
+  die(3)
 }
 
 /**
@@ -323,12 +363,12 @@ if (verdict.blockers.length > 0 && !ASSUME_YES) {
   if (!go) { w.close(); process.exit(2) }
 }
 
-let created = false
+/** 第 8 步被拒 ⇒ 插件不会被 DSH 加载，收尾时必须如实标成"没装成"（2026-09-13）。 */
+let mountSkipped = false
 
 step(1, `创建安装目录 ${layout.installDir}`)
 if (await w.confirm('创建这个目录？')) {
   mkdirSync(layout.installDir, { recursive: true })
-  created = true
 } else {
   w.warn('用户拒绝创建目录 —— 无法继续。')
   w.close()
@@ -399,6 +439,13 @@ step(3, '准备 DSH 与插件依赖（DSH 缺了才装；插件依赖链接过�
       w.info(`   ✅ DSH 可用：${dshPath}`)
     } else {
       w.warn('未安装 DSH。后面的依赖链接与自检会失败 —— 建议先装完再重跑。')
+      /*
+       * ★ 当场停下（2026-09-13 修，PiMoa 片 1 第 16 条）：没有 DSH 就没有"同源子包"，
+       * 第 4/5/6 步会白下载约 11MB、白构建一次，最后到第 6.5 步才以模块找不到失败。
+       */
+      w.warn('就此停下（这一轮什么都没装成）。装好 DSH 后重跑本程序即可。')
+      w.close()
+      die(3)
     }
   } else {
     w.detail(`DSH 已装：${dshPath}${installedDshVersion === null ? '' : ` (${installedDshVersion})`} —— 跳过安装`)
@@ -441,6 +488,16 @@ step(4, '准备扩展构建依赖（esbuild —— 这一个要下载）')
   // 本机如果已经有（开发机的 extension/node_modules），直接链接，省一次下载。
   const localEsbuild = join(ROOT, 'extension', 'node_modules', 'esbuild')
   const targetDir = join(layout.installDir, 'extension', 'node_modules')
+  /*
+   * esbuild 的版本范围从 `extension/package.json` 读 —— **单一真源**（2026-09-13 修，PiMoa 片 1 第 12 条）。
+   * 此前这里另写死一份 `esbuild@^0.25.0`，与 `extension/package.json` 的声明**只是碰巧一致**；
+   * 将来改一处就会漂（构建脚本用 A、引导程序下载 B）。
+   */
+  const esbuildRange = (() => {
+    try {
+      return JSON.parse(readFileSync(join(layout.installDir, 'extension', 'package.json'), 'utf8')).devDependencies?.esbuild ?? '^0.25.0'
+    } catch { return '^0.25.0' }   // 读不到就退回已知可用的范围（installPayload 里必然含这个文件）
+  })()
   if (existsSync(localEsbuild) && resolve(localEsbuild) !== resolve(join(targetDir, 'esbuild'))) {
     w.detail(`复用本机已有的 esbuild：${localEsbuild}`)
     if (await w.confirm('链接它（不下载）？')) {
@@ -451,7 +508,7 @@ step(4, '准备扩展构建依赖（esbuild —— 这一个要下载）')
       if (existsSync(scope)) symlinkSync(scope, join(targetDir, '@esbuild'), 'dir')
     }
   } else if (await w.confirm('现在下载 esbuild（约 11MB，只有扩展构建需要它）？')) {
-    must(run('npm', ['install', '--no-audit', '--no-fund', '--no-save', '--prefix', join(layout.installDir, 'extension'), 'esbuild@^0.25.0']), '下载 esbuild')
+    must(run('npm', ['install', '--no-audit', '--no-fund', '--no-save', '--prefix', join(layout.installDir, 'extension'), `esbuild@${esbuildRange}`]), '下载 esbuild')
   }
 }
 
@@ -552,6 +609,13 @@ step(8, '把插件挂到 DSH profile（幂等，先备份）')
     if (existsSync(layout.profilePatch)) copyFileSync(layout.profilePatch, `${layout.profilePatch}.bak-before-companion`)
     mkdirSync(dirname(layout.profilePatch), { recursive: true })
     writeFileSync(layout.profilePatch, next.text)
+  } else {
+    /*
+     * ★ 拒绝写挂载 = **插件不会被 DSH 加载 = 等于没装**（2026-09-13 修，PiMoa 片 1 第 6 条）。
+     * 原来这里静默跳过，接着照样走完第 9/10/11 步并打印收尾横幅，用户会以为装好了。
+     */
+    mountSkipped = true
+    w.warn('已跳过挂载 —— DSH 不会加载本插件，**等于没装**（收尾横幅会如实标出来）。')
   }
 }
 
@@ -591,20 +655,24 @@ w.info('   5. 装好后点浏览器工具栏的图标打开侧边栏')
 w.info('（本程序查不到"扩展装没装"，只能查它有没有连上来 —— 所以这一步由你确认。）')
 
 const waited = await w.pause('装完了吗？')
-let health = []
-if (waited) {
-  step(11, '复检：DSH 应答 / 插件配对 / 产物端口 / 扩展连通（代理判据）')
+/*
+ * ★ 复检**不再被 `waited` gate 住**（2026-09-13 修；PiMoa 片 1 第 2 条与片 3 第 6 条**各自独立**
+ * 查出同一处）。原来 `if (waited) { ...probeHealth... }`：非交互（管道/CI）时 `w.pause()` 直接
+ * 返回 false ⇒ **一次健康检查都没跑**，最后却 `exit 0` —— "CI 报成功但从没验过"。
+ * `probeHealth()` 是只读的（ping 本机端口 + 跑 check-dist-config），随时可以跑，不该由 pause 把关。
+ */
+step(11, waited ? '复检：本插件应答 / 配对 / 产物端口 / 扩展连通（代理判据）' : '复检（非交互：跳过等待，直接查一遍）')
 
-  const probeOnce = () => probeHealth({ port, dshHome, installDir: layout.installDir })
+const probeOnce = () => probeHealth({ port, dshHome, installDir: layout.installDir })
 
-  health = await probeOnce()
-  for (const line of renderHealth(health)) w.info(`   ${line}`)
+let health = await probeOnce()
+for (const line of renderHealth(health)) w.info(`   ${line}`)
 
-  /*
-   * 「扩展连通」是**软判据**（代理：侧边栏一开，iframe 里的 DSH 页面半就会连上）。
-   * 它没过时给用户一次机会打开侧边栏再查，而不是直接说"你没装好" ——
-   * 因为本程序**看不到**扩展装没装，只能看它有没有连上来。
-   */
+/*
+ * 「扩展连通」是**软判据**（代理：侧边栏一开，iframe 里的 DSH 页面半就会连上）。
+ * 只有**人在终端前**时才给重试机会 —— 非交互时问也白问（`confirm()` 直接返回 false）。
+ */
+if (w.interactive) {
   const proxyItem = () => health.find((i) => i.id === 'extension-proxy')
   for (let attempt = 0; attempt < 3 && proxyItem()?.ok !== true; attempt += 1) {
     const retry = await w.confirm('打开侧边栏后再查一次？（本程序看不到扩展装没装，只能看它有没有连上来）')
@@ -617,16 +685,22 @@ if (waited) {
 w.blank()
 w.info('════════════════════════════════════════════════════════════')
 /*
- * `finishBanner()` 把"**没查**"（非交互跳过了第 11 步）与"**查了没过**"分开 ——
- * 原来直接用 `overallOk(health)`，而空数组是 false，于是非交互跑法会谎报"硬判据没过"。
+ * `finishBanner()` 负责把三种"不能算成功"的情形说清楚（都在 `health.mjs` 里、有单测）：
+ *   · 空数组 = **没查**（与"查了没过"分开，别谎报）；
+ *   · 挂载被跳过 = 等于没装；
+ *   · 非交互下 `confirm()` 全按否 = 什么都没装。
  */
-const banner = finishBanner(health)
+const banner = finishBanner(health, { mountSkipped, autoDeclined: w.autoDeclined })
 w.info(banner.text)
-if (banner.softHint) w.info(' 💡 那条 ⚠️ 是软判据：打开侧边栏后它会变 ✅ —— 那才是"扩展真的连上来了"的证据')
+for (const item of banner.softFailed) {
+  w.info(item.id === 'extension-proxy'
+    ? ' 💡 「扩展连通」是软判据：打开侧边栏后它会变 ✅ —— 那才是"扩展真的连上来了"的证据'
+    : ` ⚠️ 软判据没过（不阻断安装）：${item.label}`)
+}
 w.info('════════════════════════════════════════════════════════════')
 w.info(` 自查：node ${join(layout.installDir, 'bootstrap', 'doctor.mjs')}`)
 w.info(` 卸载：node ${join(layout.installDir, 'bootstrap', 'uninstall.mjs')}`)
 w.info(' 试试：打开侧边栏，在输入框写「看左边」')
 w.blank()
 w.close()
-process.exit(0)
+die(banner.ok ? 0 : 3)

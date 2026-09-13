@@ -7,7 +7,7 @@
 > 2. 每个里程碑（M1–M4）收尾必须执行一次，并把 `--check` 纳入交付前检查；
 > 3. `--check` 发现 broken-doc-link / missing-code-ref 时以非零码退出，作为质量门。
 
-## 1. 文档清单（57 份 / 219 个代码与配置文件）
+## 1. 文档清单（60 份 / 219 个代码与配置文件）
 
 | 文档 | 标题 | 版本 | 行数 | 二级标题数 | 代码引用数 |
 |---|---|---|---|---|---|
@@ -55,6 +55,9 @@
 | `docs/reviews/pimoa-code-review-4c-probes-m2.md` | PiMoa 对抗性审核结果 | — | 55 | 5 | 0 |
 | `docs/reviews/pimoa-code-review-4d-probes-m3.md` | PiMoa 对抗性审核结果 | — | 52 | 4 | 0 |
 | `docs/reviews/pimoa-verification-2026-09-12.md` | PiMoa 审核结论·独立验真（2026-09-12） | — | 115 | 10 | 0 |
+| `docs/reviews/pimoa-wizard-1-orchestration.md` | PiMoa 对抗性审核结果 | — | 60 | 4 | 0 |
+| `docs/reviews/pimoa-wizard-2-wiring.md` | PiMoa 对抗性审核结果 | — | 69 | 5 | 0 |
+| `docs/reviews/pimoa-wizard-3-interaction.md` | PiMoa 对抗性审核结果 | — | 67 | 5 | 0 |
 | `docs/reviews/probe-autostart-manual-verification.md` | M2 · 自动拉起（H4①）实测验证 —— 用户真实 Chrome | — | 26 | 4 | 0 |
 | `docs/reviews/probe-chip.md` | M0b 探针报告 · E2E-0 完整闭环（probe-chip） | — | 42 | 6 | 0 |
 | `docs/reviews/probe-composer.md` | M0a 探针报告 · composer / client 插件契约（probe-composer） | — | 46 | 3 | 0 |

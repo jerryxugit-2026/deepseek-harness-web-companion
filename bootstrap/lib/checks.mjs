@@ -50,6 +50,22 @@ export function checkDshCli({ dshCliPath, dshVersion, targetDshVersion }) {
       command: ['npm', ['install', '-g', `@deepseek-ai/dsh@${String(targetDshVersion)}`]],
     }
   }
+  /*
+   * ★ 路径在、但**版本读不出来**（2026-09-13 修，PiMoa 第 3 片查出）：
+   * `dsh -V` 失败、或 PATH 上是个**同名的别的程序**。原来的两个分支都不命中
+   * ⇒ 直落末尾 `status: 'ok'`，连"这是不是 DSH"都没验就报 ✅。
+   */
+  if (typeof dshVersion !== 'string' || dshVersion === '') {
+    return {
+      id: 'dsh',
+      label: 'DeepSeek Harness（dsh 命令）',
+      status: 'warn',
+      detail: `${dshCliPath} 在，但 \`dsh -V\` 读不出版本 —— 可能不是真的 DSH`,
+      fix: `先手动确认：${dshCliPath} -V；要重装：npm install -g @deepseek-ai/dsh@${String(targetDshVersion)}`,
+      installable: INSTALLABLE,
+      command: ['npm', ['install', '-g', `@deepseek-ai/dsh@${String(targetDshVersion)}`]],
+    }
+  }
   if (typeof dshVersion === 'string' && dshVersion !== targetDshVersion) {
     return {
       id: 'dsh',
@@ -89,6 +105,21 @@ export function checkPort({ port, listening, paired }) {
       status: 'warn',
       detail: '端口被占用，但应答的不是本插件',
       fix: `先确认那个进程是谁：lsof -nP -iTCP:${String(port)} -sTCP:LISTEN；或换一个端口（--port）`,
+      installable: MANUAL,
+      command: null,
+    }
+  }
+  /*
+   * ★ `listening === null` = **探测失败**，不是"空闲"（2026-09-13 修，PiMoa 第 3 片查出）。
+   * 原来落到末行 `status: 'ok', detail: '空闲'`，于是"lsof 查不出来"被渲染成绿灯。
+   */
+  if (listening !== true && listening !== false) {
+    return {
+      id: 'port',
+      label: `端口 ${String(port)}`,
+      status: 'warn',
+      detail: '查不出这个端口有没有人在听（lsof 缺失/无权限/被拦）',
+      fix: `手动看一眼：lsof -nP -iTCP:${String(port)} -sTCP:LISTEN`,
       installable: MANUAL,
       command: null,
     }
@@ -143,9 +174,16 @@ export function checkMount({ exists, entryPath, expectedPath }) {
   }
 }
 
-/** 汇总：有没有阻断项。 */
+/**
+ * 汇总：有没有阻断项。
+ *
+ * ★ **未知 status 一律当阻断**（2026-09-13 修，PiMoa 第 3 片查出）：原来只认 `missing`/`warn`，
+ * 新增 check 时把枚举拼错（例如写成 `'blocked'`）既不算阻断、渲染时还会退化成两个空格
+ * **整行隐身** ⇒ 静默假绿。
+ */
 export function summarize(checks) {
-  const blockers = checks.filter((c) => c.status === 'missing')
+  const known = new Set(['ok', 'warn', 'missing'])
+  const blockers = checks.filter((c) => c.status === 'missing' || !known.has(c.status))
   const warnings = checks.filter((c) => c.status === 'warn')
   return { blockers, warnings, ok: blockers.length === 0 }
 }
@@ -156,7 +194,8 @@ export function renderChecks(checks) {
   const width = Math.max(...checks.map((c) => c.label.length), 0)
   const lines = []
   for (const c of checks) {
-    lines.push(`${icon[c.status] ?? '  '} ${c.label.padEnd(width)}  ${c.detail}`)
+    // 未知状态显式渲染成 ❓，不许"隐身"（原来 `?? '  '` 会打出一整行空白）
+    lines.push(`${icon[c.status] ?? '❓'} ${c.label.padEnd(width)}  ${c.detail}`)
     if (c.fix !== null && c.fix !== undefined && c.status !== 'ok') lines.push(`${' '.repeat(width + 4)}↳ ${c.fix}`)
   }
   return lines

@@ -96,11 +96,20 @@ export function createWizard({ stdin = process.stdin, stdout = process.stdout, a
     /** 读密钥：在终端里不回显（避免 API key 留在屏幕上/滚动缓冲里）。非交互 ⇒ 空串（跳过）。 */
     async secret(question) {
       if (!interactive) { write(`? ${question} →（非交互环境，跳过）`); return '' }
+      /*
+       * ★ 输入已经没了就立刻收场（2026-09-13 修，PiMoa 第 3 片查出 BLOCKER）。
+       *
+       * 这里原来只看构造时捕获的 `interactive`。用户在**前面的问句**上按过 Ctrl-D 之后，
+       * stdin 的 'end' **已经发过** —— 再 `once('end')` 永不触发，而且不会再有 `data`
+       * ⇒ 下面那个 Promise **永不 settle**，安装器就永久僵死在"贴 API key"这一步
+       * （不是报错，是僵死；这正是最糟的失败形态）。
+       */
+      if (inputClosed || stdin.readableEnded === true) { write(`? ${question} →（输入已关闭，跳过）`); return '' }
       stdout.write(`? ${question} `)
       return await new Promise((resolve) => {
         let buf = ''
         const finish = (value) => {
-          stdin.setRawMode(false)
+          try { stdin.setRawMode(false) } catch { /* 流已关/不是真终端时会抛，收尾不该因此崩 */ }
           stdin.off('data', onData)
           stdin.off('end', onEnd)
           /*
@@ -126,7 +135,17 @@ export function createWizard({ stdin = process.stdin, stdout = process.stdout, a
         }
         /** stdin 被关掉（Ctrl-D / EOF）⇒ 当"跳过"收场，别让它挂在一个永远不会来的回车后面。 */
         const onEnd = () => finish('')
-        stdin.setRawMode(true)
+        /*
+         * `setRawMode` 在"不是真终端"或"输入已关闭"时会**抛**（管道、某些代理终端、已 end 的流）。
+         * 抛在 Promise executor 里会变成未捕获异常 ⇒ 安装器直接崩。这里退化成"跳过这一步"。
+         */
+        try {
+          stdin.setRawMode(true)
+        } catch {
+          write(`? ${question} →（拿不到终端原始模式，跳过）`)
+          resolve('')
+          return
+        }
         stdin.resume()
         stdin.on('data', onData)
         stdin.once('end', onEnd)

@@ -399,6 +399,33 @@
       "docRefs": 0
     },
     {
+      "path": "docs/reviews/pimoa-wizard-1-orchestration.md",
+      "title": "PiMoa 对抗性审核结果",
+      "version": null,
+      "lines": 60,
+      "sections": 4,
+      "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
+      "path": "docs/reviews/pimoa-wizard-2-wiring.md",
+      "title": "PiMoa 对抗性审核结果",
+      "version": null,
+      "lines": 69,
+      "sections": 5,
+      "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
+      "path": "docs/reviews/pimoa-wizard-3-interaction.md",
+      "title": "PiMoa 对抗性审核结果",
+      "version": null,
+      "lines": 67,
+      "sections": 5,
+      "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
       "path": "docs/reviews/probe-autostart-manual-verification.md",
       "title": "M2 · 自动拉起（H4①）实测验证 —— 用户真实 Chrome",
       "version": null,

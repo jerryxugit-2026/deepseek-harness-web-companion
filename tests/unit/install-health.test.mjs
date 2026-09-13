@@ -167,27 +167,50 @@ console.log('\n4. finishBanner：没复检 ≠ 复检没过')
   const none = finishBanner([])
   record('★ 没复检时不许说"硬判据没过"（退回 overallOk(health) ⇒ 这里红）', none.text.includes('硬判据没过') === false)
   record('没复检时要说清是"没做复检"', none.text.includes('没做复检'))
-  record('没复检时不提示软判据', none.softHint === false)
+  record('没复检时不提示软判据', none.softFailed.length === 0)
 
   const allHardOk = finishBanner([
-    { id: 'dsh-up', ok: true, soft: false },
-    { id: 'paired', ok: true, soft: false },
-    { id: 'dist-port', ok: true, soft: false },
+    { id: 'dsh-up', ok: true, soft: false, label: 'A' },
+    { id: 'paired', ok: true, soft: false, label: 'B' },
+    { id: 'dist-port', ok: true, soft: false, label: 'C' },
   ])
   record('硬判据全过 ⇒ 报"全过"', allHardOk.text.includes('硬判据全过'))
+  record('硬判据全过 ⇒ ok=true', allHardOk.ok === true)
 
   const hardFail = finishBanner([
-    { id: 'dsh-up', ok: true, soft: false },
-    { id: 'paired', ok: false, soft: false },
+    { id: 'dsh-up', ok: true, soft: false, label: 'A' },
+    { id: 'paired', ok: false, soft: false, label: 'B' },
   ])
   record('硬判据真没过 ⇒ 才报"没过"', hardFail.text.includes('硬判据没过'))
+  record('硬判据没过 ⇒ ok=false', hardFail.ok === false)
 
   const onlySoftFail = finishBanner([
-    { id: 'dsh-up', ok: true, soft: false },
-    { id: 'extension-proxy', ok: false, soft: true },
+    { id: 'dsh-up', ok: true, soft: false, label: 'A' },
+    { id: 'extension-proxy', ok: false, soft: true, label: '扩展连通' },
   ])
   record('只有软判据没过 ⇒ 硬判据仍算全过', onlySoftFail.text.includes('硬判据全过'))
-  record('且给出"打开侧边栏就会变 ✅"的提示', onlySoftFail.softHint === true)
+  record('软判据未过会点名 id（上层据此给"开侧边栏"提示）', onlySoftFail.softFailed.length === 1 && onlySoftFail.softFailed[0].id === 'extension-proxy')
+
+  /*
+   * ★ 2026-09-13 追加（PiMoa 片 3 第 2 条 BLOCKER + 片 1 第 6 条）：
+   *   ① 横幅括号里只能列**真查过**的判据；
+   *   ② 挂载被跳过 / 非交互全按否 ⇒ 不许报"装好了"。
+   * 退回写死文案、或退回不看这两个入参 ⇒ 下面三条立刻红。
+   */
+  const unchecked = finishBanner([
+    { id: 'dsh-up', ok: true, soft: false, label: '本插件应答' },
+    { id: 'paired', ok: true, soft: false, label: '已配对' },
+    { id: 'dist-port', ok: false, soft: true, label: '产物端口 == 真实端口' },
+  ])
+  record('★ 没查过的判据不许出现在"硬判据全过（…）"括号里', unchecked.text.includes('产物端口') === false)
+  record('★ 且它要出现在 softFailed 里（好让上层说清"这项没验"）', unchecked.softFailed.length === 1 && unchecked.softFailed[0].id === 'dist-port')
+  record('软判据没过不阻断安装本身', unchecked.ok === true)
+
+  const skipped = finishBanner([{ id: 'dsh-up', ok: true, soft: false, label: 'A' }], { mountSkipped: true })
+  record('★ 挂载被跳过 ⇒ 一律不算成功（退回 ⇒ 这里红）', skipped.ok === false && skipped.text.includes('等于没装'))
+
+  const declined = finishBanner([{ id: 'dsh-up', ok: true, soft: false, label: 'A' }], { autoDeclined: 3 })
+  record('★ 非交互下全按否 ⇒ 一律不算成功（退回 ⇒ 这里红）', declined.ok === false && declined.text.includes('什么都没装'))
 }
 
 const failed = Object.entries(results).filter(([, v]) => v !== true).map(([k]) => k)

@@ -39,11 +39,18 @@ export function evaluateHealth(facts) {
   return [
     {
       id: 'dsh-up',
+      /*
+       * `reachable` 现在由 `pingPlugin()` **验过身份**才算真（HTTP 200 + `body.ok` +
+       * `body.plugin === PLUGIN_ID`），所以这条判据其实是在问"**本插件**在这个端口应答吗"。
+       * 文案跟着说准，否则用户会以为"DSH 在跑"就够了（2026-09-13 修，PiMoa 第 3 片查出）。
+       */
       ok: ping?.reachable === true,
       soft: false,
-      label: `DSH 在本机 ${String(port)} 端口应答`,
+      label: `本插件在本机 ${String(port)} 端口应答（/ag/ping）`,
       detail: ping?.reachable === true ? '是' : '否',
-      fix: ping?.reachable === true ? null : '先启动 DSH：dsh web（本程序不能替你起它）',
+      fix: ping?.reachable === true
+        ? null
+        : `先确认 DSH 在跑（dsh web），再确认插件已挂载（重跑本程序）；手动验证：curl http://127.0.0.1:${String(port)}/ag/ping`,
     },
     {
       id: 'paired',
@@ -59,7 +66,15 @@ export function evaluateHealth(facts) {
       soft: distOk === null,
       label: '扩展产物端口 == 真实配对端口',
       detail: distOk === true ? '一致' : distOk === null ? '未检查' : '不一致',
-      fix: distOk === true ? null : `重跑构建：node ${installDir}/extension/build.mjs`,
+      /*
+       * `distOk === null` 不是"不一致"，是**没检查**（缺 `scripts/check-dist-config.mjs`，
+       * 而那意味着安装目录不完整）。两种情形的修法完全不同（2026-09-13 修，PiMoa 第 3 片查出）。
+       */
+      fix: distOk === true
+        ? null
+        : distOk === null
+          ? `缺 ${installDir}/scripts/check-dist-config.mjs（安装不完整）—— 重跑本引导程序补上`
+          : `重跑构建：node ${installDir}/extension/build.mjs`,
     },
     {
       id: 'extension-proxy',
@@ -114,18 +129,42 @@ export function pendingHard(items) {
  *
  * 所以这里把"**没查**"与"**查了没过**"分开（抽成纯函数是为了能被单测咬住）。
  */
-export function finishBanner(items) {
+export function finishBanner(items, { mountSkipped = false, autoDeclined = 0 } = {}) {
+  /*
+   * 挂载被跳过 ⇒ **等于没装**（DSH 不会加载本插件），不能报"装好了"。
+   * 2026-09-13 实测的坏形态：用户在第 8 步答 n，程序照样走完第 9/10/11 步并打印收尾横幅。
+   */
+  const prefix = mountSkipped
+    ? ' ⛔ 未完成：插件挂载被跳过 —— DSH 不会加载本插件，**等于没装**。'
+    : ''
+  /*
+   * 非交互 `--apply` 没给 `--yes` ⇒ 每个 `confirm()` 都按「否」⇒ **一个文件都没动**。
+   * 这种"什么都没做"必须显式说出来，否则（DSH 本来就在跑时）横幅照样一片绿。
+   */
+  const declined = autoDeclined > 0
+    ? ` ⛔ 本轮有 ${String(autoDeclined)} 个步骤在非交互环境下按「否」处理 —— 什么都没装（要真装请加 --yes）。`
+    : ''
+  const softFailed = items.filter((i) => i.soft && !i.ok).map((i) => ({ id: i.id, label: i.label }))
   if (items.length === 0) {
     return {
-      text: ' 安装步骤已跑完；本轮**没做复检**（非交互环境跳过了第 11 步）—— 随时可用下面的 doctor 自查',
-      softHint: false,
+      ok: !mountSkipped && autoDeclined === 0,
+      text: `${prefix}${declined} 安装步骤已跑完；本轮**没做复检**（非交互环境跳过了第 11 步）—— 随时可用下面的 doctor 自查`,
+      softFailed,
     }
   }
+  const hardOk = overallOk(items)
+  /*
+   * ★ 括号里**只列真的查过的**硬判据（2026-09-13 修，PiMoa 第 3 片查出）：原来是写死的
+   * "DSH 应答 / 已配对 / 产物端口一致"，而 `distOk === null`（缺 `scripts/check-dist-config.mjs`）
+   * 时那一项**根本没检查**，横幅却照样声称"一致" —— 假绿。
+   */
+  const passed = items.filter((i) => !i.soft && i.ok).map((i) => i.label).join(' / ')
   return {
-    text: overallOk(items)
-      ? ' ✅ 装好了，硬判据全过（DSH 应答 / 已配对 / 产物端口一致）'
-      : ' 安装步骤已跑完，但还有硬判据没过（见上面的 ❌ 与 ↳ 修法）',
-    softHint: pendingHard(items).length === 0 && items.some((i) => i.soft && !i.ok),
+    ok: hardOk && !mountSkipped && autoDeclined === 0,
+    text: `${prefix}${declined}${hardOk
+      ? ` ✅ 装好了，硬判据全过（${passed}）`
+      : ' 安装步骤已跑完，但还有硬判据没过（见上面的 ❌ 与 ↳ 修法）'}`,
+    softFailed,
   }
 }
 
