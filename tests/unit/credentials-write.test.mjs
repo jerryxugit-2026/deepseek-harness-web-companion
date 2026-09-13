@@ -19,6 +19,8 @@ import {
   upsertRef,
 } from '../../bootstrap/lib/credentials.mjs'
 import { parseScalar, yamlScalar } from '../../bootstrap/lib/yaml-scalar.mjs'
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 
 const results = {}
 const record = (name, value) => {
@@ -123,9 +125,23 @@ console.log('\n6. 值需要引号时不能写出非法 YAML')
 
 console.log('\n7. 防御：夹具是假的，本测试绝不碰用户真实的凭据文件')
 {
-  // 真实文件的绝对路径绝不出现成字面量（否则将来有人改成读真文件就会很危险）
-  record('本测试不含真实凭据路径', !import.meta.url.includes('.dsh/.credentials.yaml'))
-  record('夹具里的值都是假值', FIXTURE.includes('FAKE') && !FIXTURE.includes('sk-') === false)
+  /*
+   * ★ 2026-09-13 修（PiMoa 片 2 第 16 条）：原来这两条断言**都是无效的**。
+   *
+   *   · `!import.meta.url.includes(真实凭据路径)` —— `import.meta.url` 是**本文件自己的
+   *     路径**，永远不含那串 ⇒ **恒真**，什么都没断言。
+   *   · `FIXTURE.includes('FAKE') && !FIXTURE.includes('sk-') === false` —— `!` 优先级让表达式
+   *     实际是 `(... && (!B)) === false`；而夹具里的假 key 本来就带 `sk-` ⇒ 恒真、语义还反了。
+   *
+   * 现在两条都改成**真会咬**的：源码里不许出现真实凭据路径字面量（改成读真文件就红）；
+   * 夹具里每一把 key 都必须带 `FAKE` 标记（粘一把真 key 进来就红）。
+   */
+  const SELF_SOURCE = readFileSync(fileURLToPath(import.meta.url), 'utf8')
+  // needle 拆成两段写，否则这一行自己就命中自己
+  record('本测试源码里不含真实凭据路径字面量', SELF_SOURCE.includes('.dsh/' + '.credentials.yaml') === false)
+  const fixtureKeys = FIXTURE.match(/sk-[A-Za-z0-9-]+/gu) ?? []
+  record('夹具里的 key 全是明显假值（都带 FAKE，没有真 key）',
+    fixtureKeys.length > 0 && fixtureKeys.every((k) => k.includes('FAKE')))
   record('三个键名与真实文件一致', readRefKeys(FIXTURE).join(',') === `${DEEPSEEK_KEY_REF},ANTHROPIC_API_KEY,CLIPROXY_API_KEY`)
 }
 

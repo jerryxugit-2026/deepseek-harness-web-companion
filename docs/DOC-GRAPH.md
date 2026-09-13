@@ -7,7 +7,7 @@
 > 2. 每个里程碑（M1–M4）收尾必须执行一次，并把 `--check` 纳入交付前检查；
 > 3. `--check` 发现 broken-doc-link / missing-code-ref 时以非零码退出，作为质量门。
 
-## 1. 文档清单（60 份 / 219 个代码与配置文件）
+## 1. 文档清单（61 份 / 220 个代码与配置文件）
 
 | 文档 | 标题 | 版本 | 行数 | 二级标题数 | 代码引用数 |
 |---|---|---|---|---|---|
@@ -70,17 +70,18 @@
 | `scripts/review-prompts/wizard-1-orchestration.md` | Prompt：安装/升级向导（片 1／共 3）—— 编排、幂等、假 dry-run、失败语义 | — | 76 | 5 | 4 |
 | `scripts/review-prompts/wizard-2-wiring.md` | Prompt：安装/升级向导（片 2／共 3）—— 环境探测、路径规划与"接线" | — | 82 | 5 | 14 |
 | `scripts/review-prompts/wizard-3-interaction.md` | Prompt：安装/升级向导（片 3／共 3）—— 交互、预检与"健康判定"（假绿重灾区） | — | 66 | 4 | 5 |
+| `scripts/review-prompts/wizard-4-changes.md` | Prompt：审查**刚做完的这批改动**（引导程序修复 + 依赖兜底） | — | 52 | 4 | 1 |
 | `详细设计文档.md` | DSH Web Companion · 详细设计规范说明书 | v3.37 | 930 | 16 | 44 |
 
 ## 2. 文档 ↔ 代码 覆盖矩阵
 
 | 代码区 | 职责 | 描述它的文档 |
 |---|---|---|
-| `extension/` | Chrome MV3 扩展（side panel / service worker / content script） | `docs/01-protocol.md` `docs/06-test-plan.md` `docs/HANDOFF.md` `详细设计文档.md` |
+| `extension/` | Chrome MV3 扩展（side panel / service worker / content script） | `docs/01-protocol.md` `docs/06-test-plan.md` `docs/HANDOFF.md` `scripts/review-prompts/wizard-4-changes.md` `详细设计文档.md` |
 | `dsh-plugin/` | DSH 进程内插件（host 桥接 + client composer 注入） | `docs/01-protocol.md` `docs/HANDOFF.md` `scripts/review-prompts/code-adversarial.md` `详细设计文档.md` |
 | `native-host/` | native messaging 宿主（拉起 dsh web，M2） | `docs/01-protocol.md` `docs/HANDOFF.md` |
 | `protocol/` | 单源消息 schema + codegen | `docs/01-protocol.md` `docs/06-test-plan.md` `详细设计文档.md` |
-| `scripts/` | 安装 / 配对 / 工具脚本 | `docs/05-native-host.md` `docs/06-test-plan.md` `docs/07-implementation-plan.md` `docs/11-台账.md` `docs/HANDOFF.md` `scripts/review-prompts/code-adversarial.md` `scripts/review-prompts/code-review.md` `scripts/review-prompts/design-adversarial.md` `scripts/review-prompts/wizard-1-orchestration.md` `scripts/review-prompts/wizard-2-wiring.md` `scripts/review-prompts/wizard-3-interaction.md` `详细设计文档.md` |
+| `scripts/` | 安装 / 配对 / 工具脚本 | `docs/05-native-host.md` `docs/06-test-plan.md` `docs/07-implementation-plan.md` `docs/11-台账.md` `docs/HANDOFF.md` `scripts/review-prompts/code-adversarial.md` `scripts/review-prompts/code-review.md` `scripts/review-prompts/design-adversarial.md` `scripts/review-prompts/wizard-1-orchestration.md` `scripts/review-prompts/wizard-2-wiring.md` `scripts/review-prompts/wizard-3-interaction.md` `scripts/review-prompts/wizard-4-changes.md` `详细设计文档.md` |
 | `tests/e2e/` | E2E harness 与用例 | `docs/06-test-plan.md` |
 | `spike/` | 可行性实验（回归基线） | `docs/06-test-plan.md` `详细设计文档.md` |
 

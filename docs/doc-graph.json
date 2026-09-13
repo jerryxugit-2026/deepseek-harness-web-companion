@@ -534,6 +534,15 @@
       "docRefs": 0
     },
     {
+      "path": "scripts/review-prompts/wizard-4-changes.md",
+      "title": "Prompt：审查**刚做完的这批改动**（引导程序修复 + 依赖兜底）",
+      "version": null,
+      "lines": 52,
+      "sections": 4,
+      "codeRefs": 1,
+      "docRefs": 0
+    },
+    {
       "path": "详细设计文档.md",
       "title": "DSH Web Companion · 详细设计规范说明书",
       "version": "v3.37",
@@ -544,12 +553,13 @@
     }
   ],
   "code": {
-    "indexedFiles": 219,
+    "indexedFiles": 220,
     "areas": {
       "extension": [
         "docs/01-protocol.md",
         "docs/06-test-plan.md",
         "docs/HANDOFF.md",
+        "scripts/review-prompts/wizard-4-changes.md",
         "详细设计文档.md"
       ],
       "dsh-plugin": [
@@ -579,6 +589,7 @@
         "scripts/review-prompts/wizard-1-orchestration.md",
         "scripts/review-prompts/wizard-2-wiring.md",
         "scripts/review-prompts/wizard-3-interaction.md",
+        "scripts/review-prompts/wizard-4-changes.md",
         "详细设计文档.md"
       ],
       "tests/e2e": [

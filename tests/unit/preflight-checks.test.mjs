@@ -18,6 +18,9 @@ import {
   renderChecks,
   summarize,
 } from '../../bootstrap/lib/checks.mjs'
+// ★ 端口从 `layout.mjs` 导（2026-09-13 修；PiMoa 片 3 第 17 条）：原来逐字写死 3080，
+//   于是改默认端口**不会让任何测试变红**。
+import { DEFAULT_PORT } from '../../bootstrap/lib/layout.mjs'
 
 const results = {}
 const record = (name, value) => {
@@ -63,13 +66,13 @@ console.log('\n2. dsh 命令：缺了要给出**钉版本**的安装命令（不
 
 console.log('\n3. 端口：三种情形必须分得清（这是最容易卡住用户的地方）')
 {
-  const reuse = checkPort({ port: 3080, listening: true, paired: true })
+  const reuse = checkPort({ port: DEFAULT_PORT, listening: true, paired: true })
   record('已有本插件在跑 → ok 且说"会复用"', reuse.status === 'ok' && reuse.detail.includes('复用'))
   record('复用时不建议用户去动它（无 fix）', reuse.fix === null)
 
-  const stolen = checkPort({ port: 3080, listening: true, paired: false })
+  const stolen = checkPort({ port: DEFAULT_PORT, listening: true, paired: false })
   record('★ 端口被别人占 → warn', stolen.status === 'warn')
-  record('★ 给出 lsof 自查命令（含端口号）', stolen.fix.includes('lsof') && stolen.fix.includes('3080'))
+  record('★ 给出 lsof 自查命令（含端口号）', stolen.fix.includes('lsof') && stolen.fix.includes(String(DEFAULT_PORT)))
 
   const free = checkPort({ port: 3099, listening: false, paired: false })
   record('空闲 → ok', free.status === 'ok')
@@ -106,7 +109,7 @@ console.log('\n5. Chrome / 挂载：查不到 Chrome 是警告；挂载指向别
 console.log('\n6. 汇总与渲染')
 {
   const ok = checkNode({ nodeVersion: 'v22.22.3' })
-  const warn = checkPort({ port: 3080, listening: true, paired: false })
+  const warn = checkPort({ port: DEFAULT_PORT, listening: true, paired: false })
   const block = checkNode({ nodeVersion: 'v16.0.0' })
   const v = summarize([ok, warn, block])
   record('只有一个阻断', v.blockers.length === 1)

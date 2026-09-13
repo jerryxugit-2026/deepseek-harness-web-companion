@@ -1,0 +1,102 @@
+#!/usr/bin/env node
+/**
+ * `bootstrap/install.mjs` 的**行为**测试（2026-09-13 加）。
+ *
+ * 由来（PiMoa 片 2 第 8 条）：原有 5 个引导程序单测**全部**只测 `bootstrap/lib/*` 的纯函数，
+ * 于是用户那几条硬约束 ——「默认只打印'我打算改哪些文件', 不动真格」——**零回归保护**。
+ * 这个文件把 HOME / 安装目录 / DSH 数据目录全指到临时目录，然后**真的 spawn** 引导程序。
+ *
+ * 三个用例（各自独立一个假 HOME，互不污染）：
+ *   A. 默认（dry-run）：退出码 0，**一个文件都没创建**；
+ *   B. dry-run + `--yes`：最危险的组合 —— 少了 DRY_RUN 的提前退出，`--yes` 会把每个
+ *      `confirm()` 变成"是"，于是一路真写下去。这里同样断言**什么都没创建**；
+ *   C. `--apply` 但在**非交互**下没给 `--yes`：每个 `confirm()` 都按"否" ⇒ 同样**什么都没装**，
+ *      而且必须**如实说出来**，不许报成功、退出码必须非 0。
+ *
+ * 咬合验证：把 `install.mjs` 里 `if (DRY_RUN) { … process.exit(…) }` 那段提前退出删掉 ⇒ B 立刻红。
+ *
+ * 用法：node tests/unit/install-behavior.test.mjs
+ */
+import { execFileSync } from 'node:child_process'
+import { existsSync, mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const HERE = dirname(fileURLToPath(import.meta.url))
+const ROOT = resolve(HERE, '..', '..')
+const INSTALLER = join(ROOT, 'bootstrap', 'install.mjs')
+
+const results = {}
+const record = (name, value) => {
+  results[name] = value
+  console.log(`  ${value === true ? '✅' : value === false ? '❌' : '·'} ${name}: ${JSON.stringify(value).slice(0, 170)}`)
+}
+
+const BASE = mkdtempSync(join(tmpdir(), 'dshwc-behavior-'))
+
+/**
+ * 跑一次引导程序。
+ *
+ * 两个目录都**显式**用参数给出 ⇒ 连"问你装到哪"都不会触发，测试完全确定；
+ * stdin 用管道（非 TTY）⇒ 任何 `confirm()`/`ask()` 都不会阻塞。
+ */
+function runInstaller(tag, argv) {
+  const home = join(BASE, tag, 'home')
+  const installDir = join(BASE, tag, 'install')
+  const dshHome = join(BASE, tag, 'dsh')
+  const args = [
+    INSTALLER, ...argv,
+    '--install-dir', installDir,
+    '--dsh-home', dshHome,
+  ]
+  let out = ''
+  let code = 0
+  try {
+    out = execFileSync(process.execPath, args, {
+      cwd: ROOT,
+      env: { ...process.env, HOME: home, DSH_HOME: dshHome },
+      input: '',
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+      timeout: 180000,
+    })
+  } catch (error) {
+    code = error?.status ?? 1
+    out = `${String(error?.stdout ?? '')}${String(error?.stderr ?? '')}`
+  }
+  return { home, installDir, dshHome, code, out }
+}
+
+console.log('\n1. ★ 默认 dry-run：只打印计划，一个文件都不创建')
+{
+  const r = runInstaller('dry', [])
+  record('退出码 0', r.code === 0)
+  record('安装目录没被创建', existsSync(r.installDir) === false)
+  record('DSH 数据目录没被创建', existsSync(r.dshHome) === false)
+  record('打印了"将要写入"的计划与"dry-run 结束"', r.out.includes('将要写入') && r.out.includes('dry-run 结束'))
+}
+
+console.log('\n2. ★ dry-run + --yes：最危险的组合，也必须一个文件都不创建')
+{
+  const r = runInstaller('dryyes', ['--yes'])
+  record('退出码 0', r.code === 0)
+  record('★ 安装目录没被创建（退回"删掉 DRY_RUN 提前退出" ⇒ 这里红）', existsSync(r.installDir) === false)
+  record('DSH 数据目录没被创建', existsSync(r.dshHome) === false)
+}
+
+console.log('\n3. ★ --apply 但非交互且没给 --yes：一个字节都不动，且必须如实说"什么都没装"')
+{
+  const r = runInstaller('applyno', ['--apply'])
+  record('安装目录没被创建（每个 confirm 都按否）', existsSync(r.installDir) === false)
+  record('★ 不许报成功（输出里没有"装好了"）', r.out.includes('装好了') === false)
+  record('★ 说清为什么没装（拒绝创建目录 / 什么都没装 / 就此停下）',
+    r.out.includes('拒绝创建目录') || r.out.includes('什么都没装') || r.out.includes('就此停下'))
+  record('★ 退出码非 0（不把"什么都没做"当成功）', r.code !== 0)
+}
+
+rmSync(BASE, { recursive: true, force: true })
+
+const failed = Object.entries(results).filter(([, v]) => v !== true).map(([k]) => k)
+console.log(`\n${failed.length === 0 ? '✅ 全部通过' : `❌ 失败 ${String(failed.length)} 项：${failed.join('、')}`}（${String(Object.keys(results).length)} 条断言）`)
+process.exitCode = failed.length === 0 ? 0 : 1

@@ -17,6 +17,9 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { evaluateHealth, finishBanner, overallOk, pendingHard, probeHealth, renderHealth } from '../../bootstrap/lib/health.mjs'
+// ★ 端口从 `layout.mjs` 导（2026-09-13 修；PiMoa 片 3 第 17 条）：原来这里逐字写死 3080，
+//   于是改默认端口**不会让任何测试变红**。
+import { DEFAULT_PORT } from '../../bootstrap/lib/layout.mjs'
 
 const results = {}
 const record = (name, value) => {
@@ -25,7 +28,7 @@ const record = (name, value) => {
 }
 
 const FACTS_OK = {
-  port: 3080,
+  port: DEFAULT_PORT,
   ping: { reachable: true, paired: true, connectedClients: 3 },
   distOk: true,
   installDir: '/inst',
@@ -121,7 +124,7 @@ console.log('\n7. ★ probeHealth（有 I/O 的那层）：引导程序第 11 �
   const fakePing = async () => ({ reachable: true, paired: true, connectedClients: 2 })
 
   const okItems = await probeHealth({
-    port: 3080, dshHome: base, installDir: withScript,
+    port: DEFAULT_PORT, dshHome: base, installDir: withScript,
     ping: fakePing, spawn: () => ({ status: 0 }),
   })
   record('注入了 ping 就按注入的走（reachable/paired 传进判定）', byId(okItems, 'dsh-up').ok === true && byId(okItems, 'paired').ok === true)
@@ -130,14 +133,14 @@ console.log('\n7. ★ probeHealth（有 I/O 的那层）：引导程序第 11 �
   record('总判定通过', overallOk(okItems) === true)
 
   const failedDist = await probeHealth({
-    port: 3080, dshHome: base, installDir: withScript,
+    port: DEFAULT_PORT, dshHome: base, installDir: withScript,
     ping: fakePing, spawn: () => ({ status: 1 }),
   })
   record('产物脚本 exit 1 ⇒ 该条失败', byId(failedDist, 'dist-port').ok === false)
   record('总判定失败', overallOk(failedDist) === false)
 
   const noScript = await probeHealth({
-    port: 3080, dshHome: base, installDir: withoutScript,
+    port: DEFAULT_PORT, dshHome: base, installDir: withoutScript,
     ping: fakePing, spawn: () => ({ status: 0 }),
   })
   record('★ 没有产物脚本时 distOk=null（不假装通过）', byId(noScript, 'dist-port').ok === false)
@@ -145,7 +148,7 @@ console.log('\n7. ★ probeHealth（有 I/O 的那层）：引导程序第 11 �
   record('此时总判定仍只看另外两条硬判据 → 通过', overallOk(noScript) === true)
 
   const down = await probeHealth({
-    port: 3080, dshHome: base, installDir: withScript,
+    port: DEFAULT_PORT, dshHome: base, installDir: withScript,
     ping: async () => ({ reachable: false, paired: false, connectedClients: null }),
     spawn: () => ({ status: 0 }),
   })
