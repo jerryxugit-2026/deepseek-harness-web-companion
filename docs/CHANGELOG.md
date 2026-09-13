@@ -266,6 +266,39 @@ DOM 与文案表不一致 —— 这些在**任何一种**语言下都会红。*
 `globalThis.__AG_PANEL__`（`panel.js` 第 47 行，在 `applyI18n()` 第 20 行**之后**执行）
 ⇒ 见到它就意味着本地化已经填过了。
 
+### 14. ★★ 为"远端全新机器"演练抓到的一个真 bug：依赖提升布局认不出来
+
+**背景**：用户计划在**远端 mac（10.0.0.1）**上从 GitHub 下载后做安装测试 —— 那是**全新机器**。
+动手前先在本机把"只有远端才会走到"的两条路各自演练了一遍（都**不碰**本机全局环境）：
+
+| 演练 | 做法 | 结果 |
+|---|---|---|
+| DSH 能不能按钉死的版本装上 | `npm install --prefix /tmp/wc-dsh-trial @deepseek-ai/dsh@0.1.5-rc.2` | ✅ 装上 0.1.5-rc.2（522 个包 / 59s） |
+| esbuild 的**下载**分支（本机一直是链接本地的） | `npm install --prefix /tmp/wc-ext-trial esbuild@^0.25.0` | ✅ 0.25.12 |
+| 依赖链接能不能认出新装的 DSH | 拿 `/tmp/wc-dsh-trial/node_modules/.bin/dsh` 跑 `findDshRoot` + `planPluginLinks` | ❌ **三个包全判成"缺"** |
+
+**根因（真 bug）**：`planPluginLinks()` 原来只认一种布局 —— `<dshRoot>/node_modules/<pkg>`，
+也就是"依赖**嵌在** dsh 包自己的 node_modules 里"。本机的**全局**安装恰好是这种，所以一直没暴露。
+但 `npm install --prefix X` 会把依赖**提升**到 `X/node_modules/`，
+于是 `<dshRoot>/node_modules/...` 根本不存在 ⇒ 三个包全判缺 ⇒ **一个符号链接都不建** ⇒
+第 6.5 步自检失败。**远端走的正是这条路径**，也就是说：不演练的话，用户会在远端撞上它。
+
+**修法**：按 Node 的查找顺序**逐层向上**找候选 `node_modules`（`candidateNodeModules()`），
+取第一个真正存在的 —— 嵌套布局与提升布局都覆盖。两种布局都实测通过：
+
+```
+前缀安装（提升）: dshRoot=/private/tmp/wc-dsh-trial/node_modules/@deepseek-ai/dsh
+  @deepseek-ai/dsh-tools=true, @deepseek-ai/dsh-credentials=true, ws=true
+本机全局（嵌套）: dshRoot=/Users/mac/.hermes/node/lib/node_modules/@deepseek-ai/dsh
+  @deepseek-ai/dsh-tools → .../dsh/node_modules/@deepseek-ai/dsh-tools  available=true
+```
+
+**回归**：`tests/unit/dsh-root.test.mjs` 新增一节（共 25 条断言），专门造出**提升布局**并断言
+三个包可用、且 `target` 指向前缀的 `node_modules`；同时断言嵌套布局**仍**命中（别修坏另一种）。
+**咬合验证**：把实现退回"只看 `dshRoot/node_modules`" ⇒ **2 条断言变红**。
+
+`npm run check` → **exit 0**（35 个测试套件）。
+
 ### 13. ★★ 产品定位改定：**只发布 `en`，永远是英文版**（用户 2026-09-13）
 
 用户指示：「用户的 chrome 设置成中文或者英文, 我们的插件都是英文版, 就可以」。

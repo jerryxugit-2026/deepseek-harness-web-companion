@@ -60,16 +60,46 @@ export function findDshRoot(dshPath, { realpath = realpathSync, exists = existsS
 }
 
 /**
+ * 按 Node 的查找顺序列出可能的 `node_modules` 目录（从 DSH 包往上走）。
+ *
+ * ★ 为什么不能只看 `<dshRoot>/node_modules`（2026-09-13 实测踩到的真 bug）：
+ * npm 的**提升（hoisting）**不同布局不一样 ——
+ *   · 本机的**全局**安装：依赖**嵌在** dsh 包自己的 node_modules 里
+ *     ⇒ `<dshRoot>/node_modules/@deepseek-ai/dsh-tools` ✅
+ *   · `npm install --prefix X @deepseek-ai/dsh`（**前缀**安装）：依赖被**提升**到
+ *     `X/node_modules/@deepseek-ai/dsh-tools`，而 `<dshRoot>/node_modules/...` **不存在** ❌
+ * 只认第一种的话，前缀安装（正是全新机器上会走的那条路）会被判成"三个依赖全缺"，
+ * 于是链接一个都不建、自检失败。所以这里按祖先逐层找，与 Node 的解析顺序一致。
+ */
+export function candidateNodeModules(dshRoot) {
+  const out = []
+  let at = dshRoot
+  for (let i = 0; i < 12; i += 1) {
+    out.push(join(at, 'node_modules'))
+    const up = dirname(at)
+    if (up === at) break
+    at = up
+  }
+  return out
+}
+
+/**
  * 算出要建哪些链接。`available=false` 表示 DSH 里没有那个包（那时只能回落到下载）。
  */
 export function planPluginLinks({ dshRoot, pluginDir, exists = existsSync }) {
   const nodeModules = join(pluginDir, 'node_modules')
-  return PLUGIN_RUNTIME_DEPS.map((name) => ({
-    name,
-    target: dshRoot === null ? null : join(dshRoot, 'node_modules', name),
-    linkPath: join(nodeModules, name),
-    available: dshRoot !== null && exists(join(dshRoot, 'node_modules', name)),
-  }))
+  return PLUGIN_RUNTIME_DEPS.map((name) => {
+    // 逐层找：命中 Node 实际会解析到的那个位置（嵌套 / 提升两种布局都覆盖）
+    const target = dshRoot === null
+      ? null
+      : candidateNodeModules(dshRoot).map((dir) => join(dir, name)).find((p) => exists(p)) ?? null
+    return {
+      name,
+      target,
+      linkPath: join(nodeModules, name),
+      available: target !== null,
+    }
+  })
 }
 
 /**

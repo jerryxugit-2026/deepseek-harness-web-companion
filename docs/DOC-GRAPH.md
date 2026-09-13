@@ -30,7 +30,7 @@
 | `docs/12-实机验收-测试方案.md` | 实机验收测试方案（v3.38 · 2026-09-12） | — | 188 | 7 | 6 |
 | `docs/13-installation.md` | Install & deploy (the bootstrapper) | — | 225 | 17 | 0 |
 | `docs/13-安装部署.md` | 安装与部署（引导程序） | — | 219 | 17 | 0 |
-| `docs/CHANGELOG.md` | 变更记录（CHANGELOG） | v3.0 | 2320 | 47 | 0 |
+| `docs/CHANGELOG.md` | 变更记录（CHANGELOG） | v3.0 | 2353 | 47 | 0 |
 | `docs/HANDOFF.md` | 交接提示词（新会话从这里开始） | v3.41，两者**不是同一个号**） | 343 | 10 | 23 |
 | `docs/PROGRESS.md` | 进度与续跑规则（durable memory） | — | 97 | 8 | 4 |
 | `docs/REVIEW-v3.0.md` | 详细设计 v3.0 评审报告（Review of v3.0 → 修正为 v3.1） | v3.0 | 68 | 5 | 0 |

@@ -15,7 +15,7 @@
  *
  * 用法：node tests/unit/dsh-root.test.mjs
  */
-import { PLUGIN_RUNTIME_DEPS, applyPluginLinks, describePluginLinks, findDshRoot, planPluginLinks } from '../../bootstrap/lib/dsh-root.mjs'
+import { PLUGIN_RUNTIME_DEPS, applyPluginLinks, candidateNodeModules, describePluginLinks, findDshRoot, planPluginLinks } from '../../bootstrap/lib/dsh-root.mjs'
 
 const results = {}
 const record = (name, value) => {
@@ -76,6 +76,35 @@ console.log('\n3. ★ 链接计划：三个运行时依赖，逐个标出 DSH �
   const none = planPluginLinks({ dshRoot: null, pluginDir: '/inst/dsh-plugin', exists: () => true })
   record('找不到 DSH 根时全部不可用', none.every((i) => i.available === false))
   record('此时 target 为 null（不会链到字符串 "null" 上）', none.every((i) => i.target === null))
+}
+
+console.log('\n3b. ★ 提升布局（前缀安装）：依赖在 prefix 的 node_modules 里，也必须找得到')
+{
+  /*
+   * 真 bug（2026-09-13，做"远端全新机器"演练时抓到）：原来只认
+   * `<dshRoot>/node_modules/<pkg>`（依赖**嵌在** dsh 包里的那种布局，本机全局安装就是它）。
+   * 但 `npm install --prefix X @deepseek-ai/dsh` 会把依赖**提升**到 `X/node_modules/`，
+   * 于是三个包全被判成"缺" ⇒ 一个链接都不建 ⇒ 自检失败。全新机器上正是这条路径。
+   */
+  const dshRoot = '/prefix/node_modules/@deepseek-ai/dsh'
+  const hoisted = new Set([
+    '/prefix/node_modules/@deepseek-ai/dsh-tools',
+    '/prefix/node_modules/@deepseek-ai/dsh-credentials',
+    '/prefix/node_modules/ws',
+  ])
+  const plan = planPluginLinks({ dshRoot, pluginDir: '/inst/dsh-plugin', exists: (p) => hoisted.has(p) })
+  record('★ 提升布局下三个包都判为可用', plan.every((i) => i.available))
+  record('★ target 指向前缀的 node_modules（不是 dsh 包内部）',
+    plan[0].target === '/prefix/node_modules/@deepseek-ai/dsh-tools')
+  const candidates = candidateNodeModules(dshRoot)
+  record('候选目录里既含 dsh 包内层、也含前缀那层',
+    candidates.includes('/prefix/node_modules/@deepseek-ai/dsh/node_modules') && candidates.includes('/prefix/node_modules'))
+
+  // 嵌套布局（本机全局安装）仍然要能命中，不能被这次修改弄坏
+  const nested = new Set(['/g/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-tools'])
+  const nestedPlan = planPluginLinks({ dshRoot: '/g/node_modules/@deepseek-ai/dsh', pluginDir: '/i', exists: (p) => nested.has(p) })
+  record('嵌套布局仍然命中（优先就近的那个）',
+    nestedPlan[0].target === '/g/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-tools')
 }
 
 console.log('\n4. 说明行把"缺什么"讲出来（而不是静默少链一个）')
