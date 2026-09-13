@@ -33,18 +33,18 @@
       "path": "README.en.md",
       "title": "DSH Web Companion",
       "version": null,
-      "lines": 155,
-      "sections": 9,
+      "lines": 6,
+      "sections": 1,
       "codeRefs": 0,
-      "docRefs": 6
+      "docRefs": 1
     },
     {
       "path": "README.md",
-      "title": "DSH Web Companion（Antigravity Web Companion）",
+      "title": "DSH Web Companion",
       "version": null,
-      "lines": 140,
-      "sections": 9,
-      "codeRefs": 0,
+      "lines": 361,
+      "sections": 12,
+      "codeRefs": 3,
       "docRefs": 2
     },
     {

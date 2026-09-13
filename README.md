@@ -1,139 +1,360 @@
-# DSH Web Companion（Antigravity Web Companion）
+# DSH Web Companion
 
-> **语言**：本插件是**英文版** —— 无论你的 Chrome 界面语言设成中文还是英文，界面文案、报错文案与面向模型的工具说明**都显示英文**（发布的语言包只有 `en`；Chrome 的规则是「找不到匹配语言就退到 default_locale」，所以少发一个包就等于锁死英文）。
+**English** (this section) · [中文](#中文) · [Install (EN)](./docs/13-installation.md) · [安装部署 (中文)](./docs/13-安装部署.md)
 
-> **English**: [`README.en.md`](./README.en.md) —— the same content for English readers / open-source
-> visitors. 安装部署也有英文版：[`docs/13-installation.md`](./docs/13-installation.md)。
+A Chrome extension that puts **your own AI agent next to the page you are looking at** — in the browser
+side panel. It can *read* the page for you (as clean Markdown) and, when you allow it, *operate* the
+browser: fill forms, click, translate, gather data across tabs.
 
-点一下浏览器按钮即开侧边栏、直接看到**本地 DSH agent**，并把你正在看的网页一键交给他 —— 同时给 agent 读写磁盘、执行命令、反向操作浏览器的能力。
+> The extension UI ships **English only** — whatever your Chrome language is. (Chrome falls back to
+> `default_locale` when it cannot match your language, so shipping only `en` locks the UI to English.)
 
-> 设计真源：`详细设计文档.md`（v3.29）。所有结论都带证据标签（【实测】/【源码】/【文档】/【推理】/【目标·未测】）；本 README 只做入口与现状汇总。
+---
 
-## 它长什么样
+## Why this project exists
 
+I am Jerry. I noticed that **a browser side panel + an AI agent** solves a whole class of everyday
+"using the web" problems — the ones that used to mean copying and pasting back and forth:
+
+- **Filling in forms** — applications, sign-ups, tax/registration forms: the agent reads the form,
+  understands each field, and fills it in.
+- **Translating a page** — in context, keeping the layout and the terminology consistent.
+- **Summarising a long page** — a 50-page policy, a long thread, a docs page: just the parts that matter,
+  with follow-up questions.
+- **Gathering data across tabs** — compare one product on three shops, collect addresses from five pages,
+  write it all into one table.
+
+I first used a ChatGPT browser extension and it was genuinely great. But **many people in China cannot use
+ChatGPT**, while **DeepSeek 4.1 Flash is already very good and is available in China**. **DeepSeek Harness**
+— the local agent runtime I use — had **no such extension**. So I built this one.
+
+The agent runs **on your own machine**; the side panel is just the window into it. Your pages never have to
+be shipped to a third-party browser service.
+
+---
+
+## Architecture
+
+```text
+┌──────────────────────────────── Chrome ─────────────────────────────────┐
+│  any web page                      side panel                          │
+│  ┌──────────────┐                 ┌─────────────────────────────────┐  │
+│  │ the page you │                 │ DSH Web Companion panel         │  │
+│  │ look at      │                 │ attach page / selection / shot  │  │
+│  └──────┬───────┘                 │ browser control / write-approval│  │
+│         │ content script          └───────┬─────────────────────────┘  │
+│         │ extracts page/selection         │ embeds → the DSH web UI    │
+│         ▼                                 ▼  (the "page half")         │
+│  ┌──────────────────────┐          ┌──────────────────────────┐        │
+│  │ extension service    │          │ DSH web UI (in an iframe)│        │
+│  │ worker: capture page │          │ composer + conversation  │        │
+│  │ / selection / shot,  │          └────────┬─────────────────┘        │
+│  │ run browser ops      │                   │                          │
+│  └────────┬─────────────┘                   │                          │
+└───────────┼─────────────────────────────────┼──────────────────────────┘
+            │ WS /ag/agent                    │ WS /ag/client
+            │ (extension half)                │ (DSH-page half)
+            ▼                                 ▼
+   ┌────────────────────────────────────────────────────────────┐
+   │ DSH (DeepSeek Harness) — running locally on your Mac       │
+   │  ┌──────────────────────────────────────────────────────┐  │
+   │  │ dsh-web-companion-bridge (a DSH/cordis plugin)        │  │
+   │  │  · /ag/* HTTP routes   · hub (two WebSockets)         │  │
+   │  │  · tools the model may call (browser_*)               │  │
+   │  │  · approval gate for write operations                 │  │
+   │  │  · capture store + audit log + retention              │  │
+   │  └──────────────────────────────────────────────────────┘  │
+   │        captures become Markdown files in your workspace,    │
+   │        referenced in the chat as @file                      │
+   └────────────────────────────────────────────────────────────┘
+            ▲ native messaging (Chrome can start DSH if it is not running)
+      ┌─────┴──────┐
+      │ native host │
+      └─────────────┘
 ```
-┌─ Chrome ──────────────────────┐        ┌─ 本机 DSH（dsh web） ─────────────┐
-│ 侧边栏（panel.html 微壳）      │        │ 桥接插件 dsh-web-companion-bridge │
-│  ├ 状态灯 / Attach 网页 / 选区 │←─WS───→│  /ag/agent  /ag/client            │
-│  ├ 授权并抓取 / 浏览器控制/写操作│  HTTP  │  /ag/enter /ag/attach /ag/control│
-│  └ iframe：真正的 DSH GUI      │←──────→│                                   │
-└───────────────────────────────┘        └───────────────────────────────────┘
-        │ chrome.scripting / chrome.debugger
-        ▼
-   左侧当前网页（正文抽取 / 截图 / 可信点击与输入）
-```
 
-三条通道刻意分开：`/ag/client`（DSH 页面半通道：抓取推送、意图、ack）、`/ag/agent`（扩展：意图转发、`browser_*` 工具调用）、HTTP 控制面（配对票据、进入握手、运行期开关）。
+Three local pieces:
 
-## 快速开始（推荐：用引导程序）
+1. **The Chrome extension** — the only part that touches web pages (text, selections, screenshots, clicks).
+2. **A plugin inside DSH** (`dsh-web-companion-bridge`) — runs *inside* your local DSH process: it exposes
+   the model's tools, decides what is allowed, stores captures, keeps the audit log.
+3. **A native messaging host** — a tiny launcher so the extension can start DSH when it is not running.
+
+### Why not the simple design?
+
+The obvious design is: *put DSH in the sidebar, type "look left", grab the page text.* I deliberately did
+**not** ship only that, because it collapses as soon as you want more than reading:
+
+- **Reading is not enough.** Filling a form and translating a page are *actions*. A text-only design has
+  nowhere to put "click this / type that / wait for the page" — and no place to ask you first.
+- **One page dump is not always what you want.** Sometimes the **selection**, sometimes a **screenshot**
+  (chart, canvas, PDF viewer), sometimes the **accessibility tree**. So capture is three buttons, not one
+  hidden behaviour.
+- **Something has to hold the privileged access.** A page inside an iframe cannot read other tabs or
+  cross-origin pages, and cannot use Chrome's debugging capabilities. Only the extension can — so the
+  extension is the "hands" and DSH is the "brain".
+- **Each half sees only half.** The extension cannot read the DSH composer; the DSH page cannot read other
+  sites. That is why the **"look left" intent is sniffed by the DSH page half** (it can see your input box)
+  while the **capture is done by the extension half** — they talk through the local plugin.
+- **Write operations need a gate and a paper trail.** Anything that *changes* a page goes through an approval
+  gate, and every capture/attach/ack is appended to an audit log. "The AI silently clicked a button" is not
+  acceptable.
+
+The extra structure (attach page / attach selection / screenshot / browser control / write-op approval)
+exists so the agent can **act** while you keep **control**.
+
+---
+
+## Features
+
+**1. Give the page to the agent**
+- **Attach page** — the whole page flattened to clean Markdown, saved in your workspace, referenced as `@网页捕获/….md`.
+- **Attach selection** — only what you highlighted.
+- **Attach screenshot** — charts, canvases, PDF viewers, anything that is not text.
+- **Right-click → send to agent** — same capture without leaving the page.
+- **"看左边" / "look left"** — type it in the DSH composer and the page in the other tab is captured (both languages work).
+
+**2. Let the agent use the browser (read-only tools)**
+- `browser_read` (page or one element as text) · `browser_tabs` (which tabs are open) ·
+  `browser_wait` (wait for something to appear) · `browser_screenshot` · `browser_ax` (accessibility tree).
+
+**3. Let the agent *do* things (write operations, behind a gate)**
+- Click, type, select, scroll, navigate — what actually fills a form or drives a wizard.
+- **Every write operation passes an approval gate.** With the gate on you are asked first; if the session is
+  configured never to ask, write operations are **refused** rather than silently allowed.
+- Nothing is claimed that did not happen: each operation reports a real result and failures come back as
+  errors the model can react to.
+
+**4. Keep you in control**
+- The panel shows what the agent is doing, and every capture/attach/ack goes to a local audit log.
+- **Retention**: captures older than 24 h are swept automatically, so the folder cannot grow forever.
+- `bootstrap/uninstall.mjs` removes only what the installer added; `bootstrap/doctor.mjs` re-checks any time.
+
+**5. Make it installable by normal people**
+- A terminal wizard (`bootstrap/install.mjs`): **dry-run by default**, asks before every write, verifies the
+  result, and can repair or upgrade an existing installation.
+
+---
+
+## Security
+
+Everything runs on your machine, and nothing happens without your consent.
+
+- **No third-party browser service** — your extension captures the page and hands it to your local DSH process.
+- **Nothing but localhost** — the plugin listens only on your local DSH port and does not talk to the outside network.
+- **Two-channel pairing with a key** — both WebSockets (`/ag/agent`, `/ag/client`) require the pairing key and
+  an exact `Origin` match (the extension's own ID). A random page cannot talk to the bridge; a random process
+  cannot impersonate the extension.
+- **The extension ID is pinned** by a public key committed in `manifest.key`, and the native-host manifest
+  allow-lists exactly that ID.
+- **Write operations fail closed** — no approval mechanism, or an "ask" policy that cannot be satisfied, means
+  the write is **refused**, and the message says the *policy* said no.
+- **Every write is asked for and recorded** — the installer asks before each change; the plugin gates each
+  browser write; the audit log keeps the record.
+- **No secrets in the repository** — no keys, no pairing file, no built extension, no absolute paths from the
+  author's machine; `npm run check` has a gate that scans for exactly that.
+
+---
+
+## Installing
+
+Full walkthrough: [`docs/13-installation.md`](./docs/13-installation.md).
 
 ```bash
-cd "dsh project/网页插件"
+git clone https://github.com/jerryxugit-2026/deepseek-harness-web-companion.git
+cd deepseek-harness-web-companion
 
-node bootstrap/install.mjs          # ① 先看它打算做什么（默认 dry-run，不动任何文件）
-node bootstrap/install.mjs --apply  # ② 真装（每一步都会单独问你一次）
-node bootstrap/doctor.mjs           # ③ 装完随时自查（硬判据 + 一条如实标注的软判据）
+node bootstrap/install.mjs          # dry-run: prints what it *would* change
+node bootstrap/install.mjs --apply  # really install; every step asks you first
 ```
 
-引导程序会：选安装目录 → 逐项体检依赖（Node 只检测不代装；DSH 缺了可以装）→
-接上插件依赖（**链接**到你那份 DSH，不下载）→ 现场构建扩展 → 装 native messaging host →
-幂等写 profile 挂载行 → 引导你粘贴 DeepSeek API key → 告诉你 Chrome 扩展怎么点 →
-复检并退出。**只考虑 macOS。**
+Then, once:
 
-装完后在 `chrome://extensions` 里 **加载已解压的扩展程序** → 选 `<安装目录>/extension/dist`，
-点侧边栏图标即可。卸载：`node bootstrap/uninstall.mjs --apply`。
-
-> **完整说明（前置条件 / 十步各动哪些文件 / 依赖为什么是链接 / 排错 / 回滚）见
-> `/Users/mac/ai_tools/dsh project/网页插件/docs/13-安装部署.md`。**
->
-> 那份文档里的路径**故意写成 `<安装目录>` 这类占位**，因为它是给别人的机器看的 ——
-> 硬编码绝对路径正是本次改造要消灭的东西。
-
-<details>
-<summary>开发期手工流程（改本插件自身时才需要）</summary>
+1. `chrome://extensions` → **Developer mode** → **Load unpacked** → pick the `extension/dist` folder the
+   installer just built.
+2. Click the extension icon to open the side panel — that is your agent's window.
+3. Restart DSH (`dsh web`) so it loads the freshly mounted plugin, then run:
 
 ```bash
-npm install                       # 根依赖（含 ws、codegraph；测试/脚本用）
-(cd extension && npm install)     # 扩展构建依赖（esbuild）——注意这是**独立的一个包**
-node scripts/init-key.mjs         # 生成配对 key（幂等）→ ~/.dsh/dsh-web-companion.json
-node native-host/install.mjs      # 安装 native messaging host
-npm run build:ext                 # 构建扩展 → extension/dist
-dsh web                           # 启动 DSH（web profile，默认 3080）
+node bootstrap/doctor.mjs           # checks DSH, pairing, the built extension, connectivity
 ```
 
-插件安装（开发期）：在 `~/.dsh/profiles/web/cordis.patch.yml` 加一行
-`- insert: [{ id: dsh-web-companion-bridge, name: '<绝对路径>/dsh-plugin/src/host/index.js' }]`，
-然后重启 `dsh web`。**引导程序做的就是把这行按参数幂等地写进去**，正常用户不需要手改。
+**What the wizard does**: asks (interactively) where to install and where your DSH data lives; checks Node,
+`dsh`, Chrome and the port; installs DSH if missing; links the plugin's runtime dependencies from your DSH
+(or downloads the one package that is safe to download); builds the extension **on your machine** with your
+port and pairing key baked in; writes the Chrome native-messaging manifest; adds one mount line to your DSH
+profile (backed up first); then verifies everything.
 
-</details>
+**Requirements**: macOS, Node ≥ 22, Chrome/Chromium. (Windows is not supported — the wizard says so and stops
+instead of pretending.)
 
-## 现在能做什么（每条都有实测）
+---
 
-| 能力 | 用法 | 证据 |
-|---|---|---|
-| 侧边栏内嵌真实 DSH GUI | 点图标 → 面板 iframe | E2E-1 真实 GUI 通过 |
-| 抓取整页正文为 Markdown | 面板「Attach 网页」/ 右键菜单 | UI 噪音三条启发式 + 占位锚点清理；真站（apexnc.org）实测 |
-| 抓取选区 | 先在网页划选，再点「Attach 选区」 | 选区文件仅含选区（282 字），含 `> **用户选区**` 块 |
-| 输入框写「看左边」自动抓当前页 | 在 DSH 输入框写「看左边」 | 全链路 22/22（无 `<all_urls>` 授权下）：嗅探 → 转发 → 抓取 → 落盘 → 回推 → 胶囊 + 引用写入当前会话 |
-| agent 反向操作浏览器 | 开「浏览器控制」；模型调用 `browser_read/click/type/navigate/tabs/wait/screenshot/ax` | ops 30/30（真 Chrome）：非可信/可信两条路径都真的改变页面，`trusted` 如实标注 |
-| 写操作开关 + 审批 | 面板「写操作」开关 | 控制面 11/11：能力集 5↔8 无需重启；`approvalMode` 如实报告（`ask` = 每次先请求批准；`policy-never` = 本会话审批提示被关，写操作会被当场拒绝并说明是策略） |
-| 抓取目录不膨胀 | 自动（每次落盘后清扫 24h 前的本插件文件） | 单测 19 断言 + 现场断言（25h 前文件被清、用户文件保留） |
+<a id="中文"></a>
+# DSH Web Companion（中文）
 
-## 安全模型（三道闸门 + 一条保留策略）
+**English**（见上） · **中文**（本节） · [Install (EN)](./docs/13-installation.md) · [安装部署 (中文)](./docs/13-安装部署.md)
 
-1. **配对**：`key + 精确扩展 Origin`（F2/F3），iframe 用一次性 ticket（30s、单次）而非长期 key；DSH 自身 `/api` 围栏**未**被削弱。
-2. **写操作三层**：`allowBrowserWriteOps=false` 时写类工具**不注册**（模型看不见）→ 扩展对同一帧复核（`E_READONLY`）→ `tools/pre-execute` waterfall 交给 DSH 审批逐次批准。
-3. **调试器**：`debugger` 是必需权限（Chrome 拒绝 optional，ADR-12），但**默认不 attach**，由「浏览器控制」开关决定，关闭即释放。
-4. **保留策略**：每次落盘后清掉同目录 24h 前**本插件命名**的文件；用户自己放进目录的文件永不删。
+一个 Chrome 扩展：把**你自己的 AI agent 放到你正在看的网页旁边** —— 就在浏览器侧边栏里。它能替你**读**页面
+（压成干净的 Markdown），在你允许时也能替你**操作**浏览器：填表、点击、翻译、跨标签页收集资料。
 
-## 测试与门禁
+> 扩展界面**只发英文**，无论你的 Chrome 设成中文还是英文。（Chrome 匹配不到语言时会退到 `default_locale`，
+> 所以只发 `en` 等于把界面锁死为英文。）
+
+---
+
+## 为什么做这个
+
+我是 Jerry。我发现**浏览器侧边栏 + AI agent** 能解决一大类"上网办事"的问题 —— 那些以前只能靠来回复制粘贴的事：
+
+- **填表** —— 申请、注册、报税/登记类表单：agent 读懂表单、理解每个字段，替你填。
+- **翻译网页** —— 结合上下文翻，保持版式与术语前后一致。
+- **长页面总结** —— 几十页的条款、很长的帖子、一篇文档：只给要紧的部分，还能就着它追问。
+- **跨标签页收集资料** —— 在三家店比一个商品、从五个页面里收地址，再整理成一张表。
+
+我最早用的是 Chrome + ChatGPT 的插件，**确实非常好用**。但我发现**很多人在国内无法使用 ChatGPT**，而
+**DeepSeek 4.1 Flash 已经非常好用、国内可以直接用**。可是 **DeepSeek Harness 没有这样的扩展程序**。
+于是我自己做了这个。
+
+结果是：agent 跑在**你自己的机器上**，侧边栏只是它的窗口。你的网页不需要交给任何第三方的浏览器服务。
+
+---
+
+## 架构
+
+```text
+┌──────────────────────────────── Chrome ─────────────────────────────────┐
+│  任意网页                          侧边栏                               │
+│  ┌──────────────┐                 ┌─────────────────────────────────┐  │
+│  │ 你正在看的    │                 │ DSH Web Companion 面板           │  │
+│  │ 那个页面      │                 │ 附页面 / 附选区 / 截图           │  │
+│  └──────┬───────┘                 │ 浏览器控制 / 写操作审批          │  │
+│         │ 内容脚本                 └───────┬─────────────────────────┘  │
+│         │ 抽取页面/选区                    │ 内嵌 → DSH 界面             │
+│         ▼                                  ▼ （"页面半"）               │
+│  ┌──────────────────────┐          ┌──────────────────────────┐        │
+│  │ 扩展 service worker  │          │ DSH 界面（在 iframe 里） │        │
+│  │ 抓整页 / 选区 / 截图 │          │ 输入框 + 会话            │        │
+│  │ 执行浏览器操作       │          └────────┬─────────────────┘        │
+│  └────────┬─────────────┘                   │                          │
+└───────────┼─────────────────────────────────┼──────────────────────────┘
+            │ WS /ag/agent                    │ WS /ag/client
+            │ （扩展半）                      │ （DSH 页面半）
+            ▼                                 ▼
+   ┌────────────────────────────────────────────────────────────┐
+   │ DSH（DeepSeek Harness）—— 跑在你本机 Mac 上                 │
+   │  ┌──────────────────────────────────────────────────────┐  │
+   │  │ dsh-web-companion-bridge（一个 DSH/cordis 插件）      │  │
+   │  │  · /ag/* HTTP 路由   · hub（两条 WebSocket）          │  │
+   │  │  · 模型能调用的工具（browser_*）                      │  │
+   │  │  · 写操作审批闸门                                     │  │
+   │  │  · 抓取存档 + 审计日志 + 保留策略                     │  │
+   │  └──────────────────────────────────────────────────────┘  │
+   │        抓到的内容写成 Markdown 文件放进你的工作目录，        │
+   │        并在对话里以 @文件 引用                              │
+   └────────────────────────────────────────────────────────────┘
+            ▲ native messaging（DSH 没跑时，Chrome 能把它拉起来）
+      ┌─────┴──────┐
+      │ native host │
+      └─────────────┘
+```
+
+三块，全在本地：
+
+1. **Chrome 扩展** —— 唯一能碰网页的部分（文字、选区、截图、点击）。
+2. **DSH 里的插件**（`dsh-web-companion-bridge`）—— 跑在**本机 DSH 进程内部**：提供模型能调用的工具、
+   判定什么允许做、保存抓取内容、维护审计日志。
+3. **native messaging host** —— 一个很小的拉起器：DSH 没在跑时，点扩展就能把它拉起来。
+
+### 为什么不用"最简单的那种"做法
+
+最容易想到的做法是：**把 DSH 放进侧边栏，打一句「看左边」，把页面文字抓过来就行**。我**故意没有只做这个**，
+因为只要你想要的不止"读"，它就会塌：
+
+- **光读不够。** 填表和翻译都是**动作**。只抓文字的设计没有地方安放"点这里/输入那个/等页面加载"，
+  也没有地方在动手前问你一句。
+- **整页一把抓不总是你要的。** 有时要**选区**，有时要**截图**（图表、canvas、PDF 阅读器），有时只要
+  **无障碍树**。所以抓取是三个独立入口，而不是一个藏在背后的行为。
+- **特权访问得有个东西来拿。** iframe 里的页面读不到别的标签页、读不到跨域页面、也用不了 Chrome 的调试能力 ——
+  只有扩展能。所以扩展当"手"，DSH 当"脑"。
+- **两半各只能看到一半。** 扩展读不到 DSH 输入框；DSH 页面读不到别的网站。这就是为什么「看左边」的**嗅探**放在
+  **DSH 页面半**（它看得见你的输入框），而真正的**抓取**由**扩展半**做 —— 两者通过本机插件通信。
+- **写操作需要闸门与留痕。** 任何会**改动**页面的动作都走审批闸门，每次抓取/投递/回执都写审计日志。
+  "AI 悄悄点了个按钮"是不可接受的。
+
+一句话：多出来的这些结构（附页面／附选区／截图／浏览器控制／写操作审批），是为了让 agent 能**动手**，
+同时让你始终**握着方向盘**。
+
+---
+
+## 功能
+
+**1. 把页面交给 agent**
+- **附上页面** —— 整页压平成干净的 Markdown，存进你的工作目录，以 `@网页捕获/….md` 引用。
+- **附上选区** —— 只给你划中的那段。
+- **附上截图** —— 图表、canvas、PDF 阅读器，任何不是文字的东西。
+- **右键 → 交给 agent** —— 不离开页面就能抓。
+- **「看左边」/「look left」** —— 在 DSH 输入框打这句，**另一个**标签页的页面被自动抓过来（中英都认）。
+
+**2. 让 agent 用浏览器（只读工具）**
+- `browser_read`（页面或某个元素读成文字）· `browser_tabs`（有哪些标签页）·
+  `browser_wait`（等东西出现）· `browser_screenshot`（截图）· `browser_ax`（无障碍树）。
+
+**3. 让 agent 动手（写操作，走闸门）**
+- 点击、输入、选择、滚动、跳转 —— 真正能填完一张表、走完一个向导的那些操作。
+- **每个写操作都过审批闸门。** 闸门开着时先问你；若会话被配置成"从不询问"，写操作会被**明确拒绝**，
+  而不是偷偷放行。
+- 不谎报：每个操作都返回真实结果，失败以错误形式回到模型那里。
+
+**4. 让你握着方向盘**
+- 面板如实显示 agent 在做什么，每次抓取/投递/回执都进本机审计日志。
+- **保留策略**：超过 24 小时的抓取自动清理，目录不会无限膨胀。
+- `bootstrap/uninstall.mjs` 只摘掉安装器加的东西；`bootstrap/doctor.mjs` 随时重新体检。
+
+**5. 让普通人也能装**
+- 终端向导（`bootstrap/install.mjs`）：**默认 dry-run**、每一步写盘前都问你、装完自证，能修复/升级已有安装。
+
+---
+
+## 安全性
+
+全部跑在你本机，且没有你的同意就什么都不做。
+
+- **不经过任何第三方的浏览器服务** —— 页面由你自己的扩展抓取，交给你本机的 DSH 进程。
+- **只走 localhost** —— 插件只监听本机 DSH 端口，不与外部网络通信。
+- **两条通道都要配对钥匙** —— `/ag/agent` 与 `/ag/client` 都要求配对钥匙 + `Origin` 精确匹配（扩展自己的 ID）。
+  随便一个网页跟插件说不上话，随便一个进程也冒充不了扩展。
+- **扩展 ID 是钉死的** —— 由提交在 `manifest.key` 里的公钥推导，native host 清单只允许这一个 ID。
+- **写操作 fail-closed** —— 没有审批机制、或"询问"策略问不了，写操作**当场被拒**，并说明是**策略**拒绝的。
+- **每次写操作都要问、且留痕** —— 安装器每改一处先问；插件对每次浏览器写操作把关；审计日志留记录。
+- **仓库里没有任何机密** —— 没有密钥、配对文件、构建产物、作者机器的绝对路径；`npm run check` 有门禁专扫这些。
+
+---
+
+## 安装
+
+完整步骤见 [`docs/13-安装部署.md`](./docs/13-安装部署.md)。
 
 ```bash
-npm run check          # 七道门：协议一致性 → 图谱同步 → 文档图谱 → 反模式黑名单 → 协议契约 → 单测 → 构建
-npm run check:strict   # 交付前：文档图谱逐字节比对
+git clone https://github.com/jerryxugit-2026/deepseek-harness-web-companion.git
+cd deepseek-harness-web-companion
 
-npm run test:unit              # tickets + retention + frame-budget + browser-tools + write-gate
-npm run probe:look-left        # 「看左边」桥接跳（11 断言，需 dev 实例）
-npm run probe:look-left-e2e    # 「看左边」全链路（16 断言，真 Chrome）
-npm run probe:capture          # 抓取：整页/选区/噪音/硬化/保留（真 Chrome）
-npm run probe:m3-ops           # 浏览器 op 层（31 断言，真 Chrome）
-npm run probe:m3-control       # 写操作开关控制面（10 断言，真 Chrome + dev 实例）
-npm run probe:m3-debugger      # debugger 能力前置（14 断言）
-npm run probe:sites            # 五类页面抓取质量回归（真 Chrome，本地夹具）
-npm run probe:all              # 一条命令跑完全部 Chrome 探针（自己拉 dev 实例）
-npm run audit:captures         # 用真实抓取文件做质量审计
+node bootstrap/install.mjs          # dry-run：只打印"打算"改哪些文件
+node bootstrap/install.mjs --apply  # 真装：每一步都先问你
 ```
 
-需要 dev 实例的探针先跑：`DSH_HOME="$PWD/.devhome" dsh web --no-open --port 3099 &`。
+然后一次性的事：
 
-## 目录结构
+1. `chrome://extensions` → 开**开发者模式** → **加载已解压的扩展程序** → 选安装器刚构建的 `extension/dist`。
+2. 点扩展图标打开侧边栏 —— 那就是 agent 的窗口。
+3. 重启 DSH（`dsh web`）让它加载刚挂上的插件，然后跑：
 
-```
-protocol/          单源协议（messages.schema.json → codegen 生成三份产物 + 契约测试向量）
-dsh-plugin/        桥接插件：host 半（路由/hub/工具/保留策略）+ client 半（DSH 页面内）
-extension/         MV3 扩展：sw（抓取、ops）/ content（抽取器）/ sidepanel（微壳 + agent 通道）
-native-host/       native messaging host（自动拉起 dsh web）
-scripts/           配对、文档图谱、反模式黑名单、PiMoa 对抗审核
-tests/             单测 + 各里程碑探针（m0a/m0b/m1/m2/m3）
-docs/              分册文档、研究、审核记录、探针报告
+```bash
+node bootstrap/doctor.mjs           # 体检：DSH / 配对 / 构建产物 / 连通性
 ```
 
-## 已知限制（诚实清单）
+**向导做了什么**：问你装到哪、DSH 数据目录在哪；检查 Node、`dsh`、Chrome、端口；DSH 缺了就装；
+把插件依赖从你已装的 DSH 链接过来（只有一个普通包允许下载）；在**你的机器上**现场构建扩展并把端口与钥匙
+烤进去；写 Chrome native messaging 清单；往 DSH profile 加一行挂载（改前备份）；最后自证一遍。
 
-- **多站点抓取质量**：启发式是保守的；导航型短链接列表在某些站点仍可能被误删（可用 `stripChipRows: false` 等开关逐条关闭）。
-- **`browser_screenshot` 的工具结果给的是文件路径**，不是图片块：像素落 `<workspace>/网页捕获/assets/`，避免猜 DSH 图片块的形状。
-- **意图抓取依赖扩展侧授权**：未授予 `<all_urls>` 时，只能抓已持 host 权限的站点（如 `127.0.0.1`）；面板会给出可操作的提示。
-- **胶囊**已由 DSH 自己的 `conversation.input.dock` 插槽渲染；`inject` 只保证"等声明"，若声明未出现则回退到 DOM 条带（`__AG_CLIENT__.chips()` 的 `host` 字段会说明是哪种）。
-- **CI 尚未接入**：`npm run check` 可直接进 CI；`npm run probe:all`（7 个 Chrome 探针）需要一台带 Chrome 与本机 DSH 的机器，目前在本地跑。
-
-## 相关文档
-
-- `/Users/mac/ai_tools/dsh project/网页插件/docs/13-安装部署.md` —— **安装部署引导程序**（十步说明 / 依赖策略 / 排错 / 回滚）
-- `/Users/mac/ai_tools/dsh project/网页插件/详细设计文档.md` —— 架构、ADR、协议、模块、测试方案、安全模型、里程碑
-- `/Users/mac/ai_tools/dsh project/网页插件/docs/11-台账.md` —— **对照设计的完成度台账**（哪些完成 / 哪些改了实现方式 / 哪些没做 + 证据索引）
-- `/Users/mac/ai_tools/dsh project/网页插件/docs/HANDOFF.md` —— **交接提示词**（可直接粘贴给新会话）+ 避坑清单
-- `/Users/mac/ai_tools/AGENT-SEARCH-TOOLS.md` —— **本机检索规范（唯一真源）**：文档问题走 semble、代码问题走 codegraph；本项目一切检索都要按它执行
-- `/Users/mac/ai_tools/dsh project/网页插件/docs/CHANGELOG.md` —— 每个版本改了什么、为什么（含被推翻的结论）
-- `/Users/mac/ai_tools/dsh project/网页插件/docs/reviews/` —— 探针报告与对抗审核结论
-- `/Users/mac/ai_tools/dsh project/网页插件/docs/09-manual-checklist.md` —— 人工验收清单
-- `/Users/mac/ai_tools/dsh project/网页插件/docs/10-automation.md` —— 自动化分层
+**前置条件**：macOS、Node ≥ 22、Chrome/Chromium。（不支持 Windows —— 向导会明确说并**当场停下**，不假装成功。）
