@@ -33,7 +33,7 @@ const PROBES = [
   { script: 'probe:m3-debugger', file: 'tests/m3/debugger-probe.mjs', note: 'debugger 能力前置（14 断言，不需要 dev 实例）' },
   { script: 'probe:look-left', file: 'tests/m2/look-left-probe.mjs', note: '「看左边」桥接跳（11 断言）' },
   { script: 'probe:capture', file: 'tests/m2/capture-probe.mjs', note: '抓取：整页/选区/空选区/噪音/硬化/保留（真 Chrome）' },
-  { script: 'probe:sites', file: 'tests/quality/probe-sites.mjs', note: '多站点质量回归（5 类页面，真 Chrome）' },
+  { script: 'probe:sites', file: 'tests/quality/probe-sites.mjs', note: '多站点质量回归（6 类页面，真 Chrome）' },
   { script: 'probe:m3-ops', file: 'tests/m3/ops-probe.mjs', note: '浏览器 op 层（真 Chrome）' },
   { script: 'probe:m3-control', file: 'tests/m3/control-probe.mjs', note: '写操作控制面（真 Chrome + dev 实例）' },
   { script: 'probe:look-left-e2e', file: 'tests/m2/look-left-e2e-probe.mjs', note: '「看左边」全链路（真 Chrome + dev 实例）' },

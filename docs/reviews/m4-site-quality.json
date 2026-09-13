@@ -1,13 +1,14 @@
 {
   "probe": "m4/sites",
   "fixturePort": 3994,
-  "at": "2026-09-13T03:02:33.599Z",
+  "at": "2026-09-13T04:45:45.345Z",
   "cases": [
     "文档站",
     "新闻",
     "政务站",
     "SPA 控制台",
-    "论坛"
+    "论坛",
+    "表单页"
   ],
   "results": {
     "文档站：抓取成功": true,
@@ -25,7 +26,11 @@
     "SPA 控制台：标签页、Load more、侧栏 chip 必须清掉": true,
     "论坛：抓取成功": true,
     "论坛：正文完整（4/4）": true,
-    "论坛：操作标签（Share / Report / Copy link）必须清掉": true
+    "论坛：操作标签（Share / Report / Copy link）必须清掉": true,
+    "表单页：抓取成功": true,
+    "表单页：正文完整（2/7） 缺: Repository name | Add a README file | 仓库名称 | 可见性 | 私有": false,
+    "表单页：小搜索框仍必须清掉（只按大小判，不按 form 标签整类删）": true,
+    "表单页：大表单正文没被当噪音删掉（正文非空）": false
   },
   "observations": {}
 }

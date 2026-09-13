@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Create a new repository</title>
+</head>
+<body>
+  <!--
+    夹具：**正文本身就是一个大表单**的页面（照 github.com/new 与 /settings/ssh/new 的形态写）。
+
+    为什么要有它（2026-09-13 真事）：`extract.fn.js` 的 NOISE 列表原来含 `form`，
+    把整类 `<form>` 当噪音删掉 ⇒ 这类页面抓出来**只有 front-matter、正文 0 行**。
+    两次实测：GitHub 建仓库页、GitHub 加 SSH key 页。
+
+    同时故意放了**中英两种标签**：本次改动不能只顾英文页，中文表单页同样要能抓到。
+    另外放了一个**小搜索框**：那种表单仍然必须被清掉（`stripSmallForms` 的判据）。
+  -->
+  <header>
+    <form class="search" role="search">
+      <input type="search" placeholder="Search or jump to..." />
+      <button type="submit">Search</button>
+    </form>
+  </header>
+
+  <main>
+    <h1>Create a new repository</h1>
+    <p>FORM-MARKER A repository contains all project files, including the revision history.</p>
+
+    <form id="new-repo">
+      <h2>General</h2>
+      <label for="owner">Owner</label>
+      <select id="owner"><option>jerryxugit-2026</option></select>
+
+      <label for="repo-name">Repository name</label>
+      <input id="repo-name" type="text" />
+      <p class="hint">Great repository names are short and memorable.</p>
+
+      <label for="repo-desc">Description</label>
+      <input id="repo-desc" type="text" />
+      <p class="hint">Optional. A short description of your repository.</p>
+
+      <fieldset>
+        <legend>Visibility</legend>
+        <label><input type="radio" name="vis" /> Public — anyone on the internet can see this repository.</label>
+        <label><input type="radio" name="vis" /> Private — you choose who can see and commit to this repository.</label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Initialize this repository with</legend>
+        <label><input type="checkbox" /> Add a README file</label>
+        <label><input type="checkbox" /> Add .gitignore</label>
+        <label><input type="checkbox" /> Choose a license</label>
+      </fieldset>
+
+      <h2>中文标签同样要抓到</h2>
+      <label for="repo-name-zh">仓库名称</label>
+      <input id="repo-name-zh" type="text" />
+      <p class="hint">名字要短、要好记。</p>
+      <label for="repo-desc-zh">描述</label>
+      <input id="repo-desc-zh" type="text" />
+      <fieldset>
+        <legend>可见性</legend>
+        <label><input type="radio" name="vis-zh" /> 公开 —— 互联网上的任何人都能看到这个仓库。</label>
+        <label><input type="radio" name="vis-zh" /> 私有 —— 由你决定谁能看到与提交。</label>
+      </fieldset>
+
+      <button type="submit">Create repository</button>
+    </form>
+  </main>
+
+  <footer>© 2026 GitHub, Inc.</footer>
+</body>
+</html>

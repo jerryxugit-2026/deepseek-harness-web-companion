@@ -5,6 +5,58 @@
 
 ---
 
+## v3.44 — 2026-09-13（抓取：正文是表单的页面不再抓成空）
+
+**触发**：用户真机使用时发现 —— 用「看左边」抓 `github.com/new`（建仓库页）落盘的文件**只有 front-matter、正文 0 行**；
+随后抓 `github.com/settings/ssh/new`（加 SSH key 页）**同样为空**。用户指示：改进它，**中英页面都要管**。
+
+### 1. 根因（一行代码，但影响一整类页面）
+
+`extension/src/content/extract.fn.js` 的 `NOISE` 列表里**含 `form`**：
+
+```js
+const NOISE = 'script,style,noscript,svg,canvas,nav,footer,header,aside,form,iframe,…'
+```
+
+它把**整类 `<form>`** 当噪音删掉。而**正文本身就是表单的页面**（建仓页、设置页、结算页、登录页…）
+删完就什么都不剩 ⇒ 抽取结果为空，落盘文件只有 front-matter。
+**与页面语言无关**：中文表单页、英文表单页一样中招。
+
+当初把 `form` 写进去的动机是对的（搜索框 / 订阅框该清），但**判据不该是标签名**。
+
+### 2. 修法：`form` 移出 NOISE，改按"大小/形态"清
+
+新增规则 **E. `stripSmallForms()`**（与既有四条启发式并列，同样可单独关闭 `stripSmallForms: false`）：
+
+```js
+const SMALL_FORM_MAX = 120
+for (const form of [...clone.querySelectorAll('form')]) {
+  if (text(form).length <= SMALL_FORM_MAX) form.remove()   // 搜索框 / 订阅框：文字极少
+}
+```
+
+判据**只看可见文字量**：搜索框的文字通常只有 "Search" 一两个词（`placeholder` **不算** `textContent`），
+订阅框是 "Email / Subscribe"；而真正的表单页满屏标签与说明。120 给了足够余量。
+
+### 3. 回归：新增第 6 类夹具 `form.html`（`probe:sites`，16 → **20 条断言**）
+
+夹具照 GitHub 建仓页的形态写，**故意同时放中英两种标签**（用户要求"中英都要管"）：
+
+| 断言 | 结果 |
+|---|---|
+| 抓取成功 | ✅ |
+| 正文完整 7/7：`FORM-MARKER`、`Create a new repository`、`Repository name`、`Add a README file`、**`仓库名称`**、**`可见性`**、**`私有`** | ✅ |
+| 大表单正文非空（>400 字符） | ✅ |
+| **小搜索框仍被清掉** | ✅ |
+
+**咬合验证**：把 `form` 塞回 `NOISE` ⇒ **2 条变红**，且缺的正是那 5 个中英标签
+（`Repository name | Add a README file | 仓库名称 | 可见性 | 私有`）—— 证明这条夹具**中英两面都能咬**。
+
+### 4. 顺带
+
+- `scripts/probe-all.mjs` 里 `probe:sites` 的说明由"5 类页面"改为"**6 类**页面"。
+- `npm run check` → **exit 0**（35 个测试套件）；`probe:sites` **20/20**。
+
 ## v3.43 — 2026-09-12（英文版，进行中）
 
 **触发**：用户下令开工英文版（「你做英文版了吗? 可以做了啊」）。四个已定决定：**同一份代码双语**

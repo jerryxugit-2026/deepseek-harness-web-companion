@@ -7,7 +7,18 @@
  */
 export function extractPage(options = {}) {
   const maxChars = typeof options.maxChars === 'number' ? options.maxChars : 120000
-  const NOISE = 'script,style,noscript,svg,canvas,nav,footer,header,aside,form,iframe,[aria-hidden="true"],[role="navigation"],[role="banner"],[role="contentinfo"],.ad,.ads,.advert,.cookie,.newsletter'
+  /*
+   * ★ `form` **不在**这个列表里（2026-09-13 修）。
+   *
+   * 原来这里是 `...,form,iframe,...` —— 把整类 `<form>` 当噪音删掉。后果：**正文本身就是表单的页面
+   * 抓出来是空的**。实测两次：`github.com/new`（建仓库）与 `github.com/settings/ssh/new`（加 SSH key），
+   * 落盘文件里只有 front-matter，正文 0 行。
+   *
+   * 为什么当初会写进去：搜索框 / 订阅框这类"表单"确实该清。但那应该按**大小/形态**判，
+   * 不该按标签名整类删 —— 见下面的 `stripSmallForms()`：只清"文字很少"的表单，
+   * 保留真正的表单页（设置页、建仓页、结算页…）。
+   */
+  const NOISE = 'script,style,noscript,svg,canvas,nav,footer,header,aside,iframe,[aria-hidden="true"],[role="navigation"],[role="banner"],[role="contentinfo"],.ad,.ads,.advert,.cookie,.newsletter'
   const absolute = (href) => { try { return new URL(href, location.href).href } catch { return href } }
 
   /**
@@ -143,11 +154,29 @@ export function extractPage(options = {}) {
     }
   }
 
+  /**
+   * E. **小表单**（2026-09-13 新增，替代"整类删掉 `<form>`"）。
+   *
+   * 搜索框 / 订阅框 / 登录小挂件都是表单，该清；但**正文本身就是表单的页面**（建仓页、设置页、
+   * 结算页）整类删掉就什么都不剩 —— `github.com/new` 与 `/settings/ssh/new` 实测抓成空文件。
+   *
+   * 判据故意**只看可见文字量**：搜索框的文字通常只有 "Search" 一两个词
+   * （占位符不算 textContent），订阅框是 "Email / Subscribe"；而真正的表单页满屏标签与说明。
+   * 阈值 120 给足了余量，且**不看 title/placeholder**（那些不是页面正文）。
+   */
+  const SMALL_FORM_MAX = 120
+  const stripSmallForms = () => {
+    for (const form of [...clone.querySelectorAll('form')]) {
+      if (text(form).length <= SMALL_FORM_MAX) form.remove()
+    }
+  }
+
   const applied = []
   if (options.stripPlaceholderAnchors !== false) { stripPlaceholderAnchors(); applied.push('placeholder-anchors') }
   if (options.stripChipRows !== false) { stripChipRows(); applied.push('chip-rows') }
   if (options.stripActionLabels !== false) { stripActionLabels(); applied.push('action-labels') }
   if (options.stripTrailingMeta !== false) { stripTrailingMeta(); applied.push('trailing-meta') }
+  if (options.stripSmallForms !== false) { stripSmallForms(); applied.push('small-forms') }
 
   /** Convert one subtree to Markdown (single pass, explicit node walk). */
   const toMarkdown = (el) => {

@@ -3,13 +3,13 @@
     "limitBytes": 1048576,
     "metric": "dist/ total, uncompressed"
   },
-  "totalBytes": 156783,
+  "totalBytes": 157080,
   "gzipBytes": 399,
   "pass": true,
   "files": [
     {
       "path": "src/sw/index.js",
-      "bytes": 86777
+      "bytes": 87074
     },
     {
       "path": "src/sidepanel/panel.js",

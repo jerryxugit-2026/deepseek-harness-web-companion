@@ -101,6 +101,23 @@ const CASES = [
     drop: [/Copy link/iu, /^\s*[-*]?\s*Share\s*$/mu],
     dropWhy: '操作标签（Share / Report / Copy link）必须清掉',
   },
+  {
+    /*
+     * 2026-09-13 新增：**正文本身是个大表单**的页面（建仓页 / 设置页那种）。
+     * 回归对象：NOISE 里曾经有 `form`，把整类表单删掉 ⇒ 这类页面抓成空文件
+     * （实测 github.com/new 与 /settings/ssh/new 都只落盘 front-matter）。
+     * 中英标签都放进了夹具，因为"只顾英文页"是这次最容易犯的错。
+     */
+    file: 'form.html',
+    name: '表单页',
+    keep: ['FORM-MARKER', 'Create a new repository', 'Repository name', 'Add a README file', '仓库名称', '可见性', '私有'],
+    extra: [{
+      name: '大表单正文没被当噪音删掉（正文非空）',
+      test: (body) => String(body).trim().length > 400,
+    }],
+    drop: [/^\s*[-*]?\s*Search\s*$/mu],
+    dropWhy: '小搜索框仍必须清掉（只按大小判，不按 form 标签整类删）',
+  },
 ]
 
 const sites = new Map(CASES.map((c) => [`/${c.file}`, readFileSync(join(SITES, c.file), 'utf8')]))
