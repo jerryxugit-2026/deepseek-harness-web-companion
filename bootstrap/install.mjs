@@ -238,7 +238,7 @@ const must = (res, what) => {
  *
  * 暂存区放在**安装目录里**（不是 /tmp）：重跑与升级时已有就不重复下载。
  * ⚠️ 调用点必须在 `applyPluginLinks()` **之后** —— 它开头就 `rm -rf node_modules`。
- * 本函数只在 apply 路径上可达（dry-run 在第 276 行就退出了），所以不需要 `DRY_RUN` 分支。
+ * 本函数只在 apply 路径上可达（见上方 `if (DRY_RUN) { … }` 的提前退出），所以不需要 `DRY_RUN` 分支。
  */
 async function linkDownloadablePluginDeps(names) {
   const stage = join(layout.installDir, '.plugin-deps')
@@ -650,11 +650,24 @@ step(8, '把插件挂到 DSH profile（幂等，先备份）')
   w.detail(`挂载路径：${layout.pluginEntry}`)
   w.detail(mountBefore.found === true ? '这是**已有**安装：不写 attachDir（沿用原目录名，历史引用不失效）' : '这是**新装**：写 attachDir=captures（英文目录名）')
   w.detail(`要写的 config：${Object.keys(config).length === 0 ? '（无）' : JSON.stringify(config)}`)
+  /*
+   * ★ 把 `preserved` 消费掉（2026-09-13；PiMoa 片 B 第 7 条）。
+   * `upsertCompanion()` 现在会**自动保留**上一轮写进 profile、本轮没显式传的 config 键，
+   * 并把它们报在 `preserved` 里。返回值没人读就是死接线 —— 而且用户看不到"你的设置被保住了"。
+   */
+  if (next.preserved.length > 0) {
+    w.info(`   💡 保留了原有 config 键：${next.preserved.join('、')}（本次没传，按你原来的设置不动）`)
+  }
   w.detail(next.action === 'unchanged' ? '内容已是目标状态（无需改动）' : `动作：${next.action}`)
   w.detail(`备份到：${layout.profilePatch}.bak-before-companion`)
   if (Object.keys(config).length === 0 && mountBefore.found === true) {
     w.info('   💡 本程序只写它自己管理的键（attachDir / approvalForWriteOps）。')
-    w.info('      若你之前设过别的键（例如 approvalForWriteOps: false），用 `--approval-for-write-ops false` 或 `--set key=value` 显式带上；它不会自己去猜。')
+    /*
+     * ★ 文案必须与行为一致（2026-09-13；PiMoa 片 B 第 7 条）：代码现在**会**自动保留旧键，
+     * 原文却写"它不会自己去猜、请用 --set 显式带上" —— 叫用户做多余的事，还错描述了行为。
+     */
+    w.info('      你在 profile 里已有的其它键（例如 approvalForWriteOps: false）会被**原样保留**，不需要重新传。')
+    w.info('      想改哪个键才用 `--approval-for-write-ops false` 或 `--set key=value` 显式覆盖。')
   }
   if (await w.confirm('写入这一行挂载？')) {
     // ★ 首份原件只备份一次（2026-09-13 修；见配对文件那处注释）

@@ -152,9 +152,14 @@ export function finishBanner(items, { mountSkipped = false, autoDeclined = 0 } =
     : ''
   const softFailed = items.filter((i) => i.soft && !i.ok).map((i) => ({ id: i.id, label: i.label }))
   if (items.length === 0) {
+    /*
+     * ★ 文案改成说实话（2026-09-13；PiMoa 片 B 第 8 条）：第 11 步复检早已**不再**被
+     * `pause()` gate 住（`install.mjs` 里是无条件跑），所以"非交互环境跳过了第 11 步"是**假的**。
+     * 这个分支现在只有"`probeHealth` 一条判据都没返回"这种异常情况才会走到（由单测喂）。
+     */
     return {
       ok: !mountSkipped && autoDeclined === 0,
-      text: `${prefix}${declined} 安装步骤已跑完；本轮**没做复检**（非交互环境跳过了第 11 步）—— 随时可用下面的 doctor 自查`,
+      text: `${prefix}${declined} 安装步骤已跑完；但**没拿到任何健康判据**（probeHealth 返回空）—— 请用下面的 doctor 自查`,
       softFailed,
     }
   }

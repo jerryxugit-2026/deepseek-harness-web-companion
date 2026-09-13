@@ -171,6 +171,19 @@ console.log('\n6. 汇总与渲染')
     idIn(pingSrc, /plugin:\s*'([^']+)'/u) === null || idIn(pingSrc, /plugin:\s*'([^']+)'/u) === bootstrapId)
 }
 
+/*
+ * ★ 2026-09-13 追加（PiMoa 片 A/C 第 5 条）：`checkDshCli` 的"路径在、版本读不出"分支是
+ * **行为改动**却一条断言都没有 —— 退回旧行为（直落 status:'ok'）不会变红。它防的是
+ * "PATH 上有个同名但不相干的程序"被当成 DSH 报 ✅。
+ */
+{
+  const unreadable = checkDshCli({ dshCliPath: '/usr/local/bin/dsh', dshVersion: null, targetDshVersion: '0.1.5-rc.2' })
+  record('★ 路径在但版本读不出 ⇒ warn，不是 ok（退回旧行为 ⇒ 这里红）', unreadable.status === 'warn')
+  record('★ 且说清"读不出版本"并给出自查命令', unreadable.detail.includes('读不出版本') && unreadable.fix.includes('-V'))
+  record('版本读得出且一致时仍是 ok（别把正常情况也判 warn）',
+    checkDshCli({ dshCliPath: '/x/dsh', dshVersion: '0.1.5-rc.2', targetDshVersion: '0.1.5-rc.2' }).status === 'ok')
+}
+
 const failed = Object.entries(results).filter(([, v]) => v !== true).map(([k]) => k)
 console.log(`\n${failed.length === 0 ? '✅ 全部通过' : `❌ 失败 ${String(failed.length)} 项：${failed.join('、')}`}（${String(Object.keys(results).length)} 条断言）`)
 process.exitCode = failed.length === 0 ? 0 : 1

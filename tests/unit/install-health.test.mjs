@@ -176,7 +176,8 @@ console.log('\n4. finishBanner：没复检 ≠ 复检没过')
 {
   const none = finishBanner([])
   record('★ 没复检时不许说"硬判据没过"（退回 overallOk(health) ⇒ 这里红）', none.text.includes('硬判据没过') === false)
-  record('没复检时要说清是"没做复检"', none.text.includes('没做复检'))
+  // ★ 2026-09-13 改：复检早已无条件跑，"跳过了第 11 步"是假话，文案改成"没拿到任何健康判据"
+  record('没判据时要说清是"没拿到任何健康判据"（退回旧文案 ⇒ 这里红）', none.text.includes('没拿到任何健康判据'))
   record('没复检时不提示软判据', none.softFailed.length === 0)
 
   const allHardOk = finishBanner([
