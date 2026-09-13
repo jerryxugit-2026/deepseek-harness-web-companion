@@ -16,6 +16,7 @@ import { rotateIfNeeded } from '../../native-host/rotate.mjs'
 
 const results = {}
 const record = (name, value) => {
+  if (Object.hasOwn(results, name)) throw new Error(`断言名重复：「${name}」—— 同名会覆盖，红会被绿掩盖，请改一个唯一的名字`);
   results[name] = value
   console.log(`  ${value === true ? '✅' : value === false ? '❌' : '·'} ${name}: ${JSON.stringify(value).slice(0, 140)}`)
 }

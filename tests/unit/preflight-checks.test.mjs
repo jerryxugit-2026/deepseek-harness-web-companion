@@ -18,12 +18,14 @@ import {
   renderChecks,
   summarize,
 } from '../../bootstrap/lib/checks.mjs'
+import { readFileSync } from 'node:fs'
 // ★ 端口从 `layout.mjs` 导（2026-09-13 修；PiMoa 片 3 第 17 条）：原来逐字写死 3080，
 //   于是改默认端口**不会让任何测试变红**。
 import { DEFAULT_PORT } from '../../bootstrap/lib/layout.mjs'
 
 const results = {}
 const record = (name, value) => {
+  if (Object.hasOwn(results, name)) throw new Error(`断言名重复：「${name}」—— 同名会覆盖，红会被绿掩盖，请改一个唯一的名字`);
   results[name] = value
   console.log(`  ${value === true ? '✅' : value === false ? '❌' : '·'} ${name}: ${JSON.stringify(value).slice(0, 160)}`)
 }
@@ -147,6 +149,26 @@ console.log('\n6. 汇总与渲染')
     mixedLines.some((l) => l.startsWith('❓')))
   record('合法状态照旧渲染（ok/warn/missing 都在）',
     mixedLines.some((l) => l.startsWith('✅')) && mixedLines.some((l) => l.startsWith('⚠️')) && mixedLines.some((l) => l.startsWith('❌')))
+}
+
+/*
+ * ★ 插件 id 的**跨包一致性**核对（2026-09-13 加；PiMoa 片 A 第 13 条）：
+ * 身份判据 `pingPlugin` 依赖 `body.plugin === PLUGIN_ID`；`PLUGIN_ID` 在引导侧是常量、在插件侧
+ * 是另一个包里的字面量（`dsh-plugin/src/host/index.js` 的 `export const name`）。两处各改一处
+ * ⇒ 要么所有安装都报"本插件没应答"（假红），要么永远连不上。跨包不能 import（插件的依赖在 DSH 里），
+ * 所以这里读**源码文本**比对。
+ */
+{
+  const layoutSrc = readFileSync(new URL('../../bootstrap/lib/layout.mjs', import.meta.url), 'utf8')
+  const pluginSrc = readFileSync(new URL('../../dsh-plugin/src/host/index.js', import.meta.url), 'utf8')
+  const pingSrc = readFileSync(new URL('../../dsh-plugin/src/host/routes/ping.js', import.meta.url), 'utf8')
+  const idIn = (src, re) => re.exec(src)?.[1] ?? null
+  const bootstrapId = idIn(layoutSrc, /PLUGIN_ID = '([^']+)'/u)
+  const pluginId = idIn(pluginSrc, /export const name = '([^']+)'/u)
+  record('引导侧 PLUGIN_ID 与插件侧 name 一致（改一处漏一处 ⇒ 这里红）',
+    bootstrapId !== null && bootstrapId === pluginId)
+  record('ping 路由若自带字面量，也必须与之相同（身份判据靠它）',
+    idIn(pingSrc, /plugin:\s*'([^']+)'/u) === null || idIn(pingSrc, /plugin:\s*'([^']+)'/u) === bootstrapId)
 }
 
 const failed = Object.entries(results).filter(([, v]) => v !== true).map(([k]) => k)

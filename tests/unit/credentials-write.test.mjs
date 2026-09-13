@@ -24,6 +24,7 @@ import { fileURLToPath } from 'node:url'
 
 const results = {}
 const record = (name, value) => {
+  if (Object.hasOwn(results, name)) throw new Error(`断言名重复：「${name}」—— 同名会覆盖，红会被绿掩盖，请改一个唯一的名字`);
   results[name] = value
   console.log(`  ${value === true ? '✅' : value === false ? '❌' : '·'} ${name}: ${JSON.stringify(value).slice(0, 160)}`)
 }
@@ -96,7 +97,7 @@ console.log('\n4. ★ 键不存在时：插进 refs: 块里，不跑到 records 
   record('插入后取得到', readRef(text, DEEPSEEK_KEY_REF) === NEW_KEY)
   record('插在 records 之前（仍在 refs 块内）', text.indexOf(DEEPSEEK_KEY_REF) < text.indexOf('records:'))
   record('缩进是 2 空格（对齐兄弟键）', text.includes(`\n  ${DEEPSEEK_KEY_REF}: `))
-  record('★ records 段逐字节不动', recordsSection(text) === recordsSection(noKey))
+  record('★ records 段逐字节不动（第2次）', recordsSection(text) === recordsSection(noKey))
   record('别的两把 key 仍在', readRef(text, 'ANTHROPIC_API_KEY') !== null && readRef(text, 'CLIPROXY_API_KEY') !== null)
   record('行数正好 +1', text.split('\n').length === noKey.split('\n').length + 1)
 }
@@ -105,10 +106,10 @@ console.log('\n5. 连 refs: 块都没有时：新建一个，records 仍然不�
 {
   const noRefs = `version: 1\nrecords:\n  client-connection/browser-session:\n    kind: hmac\n`
   const { text, action } = upsertRef(noRefs, DEEPSEEK_KEY_REF, NEW_KEY)
-  record("action === 'inserted'", action === 'inserted')
+  record("action === 'inserted'（第2次）", action === 'inserted')
   record('新建了 refs: 块', text.includes('\nrefs:\n') || text.startsWith('refs:\n'))
   record('取得到新值', readRef(text, DEEPSEEK_KEY_REF) === NEW_KEY)
-  record('★ records 段逐字节不动', recordsSection(text) === recordsSection(noRefs))
+  record('★ records 段逐字节不动（第3次）', recordsSection(text) === recordsSection(noRefs))
 }
 
 console.log('\n6. 值需要引号时不能写出非法 YAML')

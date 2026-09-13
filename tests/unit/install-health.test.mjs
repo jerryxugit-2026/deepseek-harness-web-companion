@@ -23,6 +23,7 @@ import { DEFAULT_PORT } from '../../bootstrap/lib/layout.mjs'
 
 const results = {}
 const record = (name, value) => {
+  if (Object.hasOwn(results, name)) throw new Error(`断言名重复：「${name}」—— 同名会覆盖，红会被绿掩盖，请改一个唯一的名字`);
   results[name] = value
   console.log(`  ${value === true ? '✅' : value === false ? '❌' : '·'} ${name}: ${JSON.stringify(value).slice(0, 170)}`)
 }
@@ -72,7 +73,7 @@ console.log('\n3. 硬判据挂了 ⇒ 总判定必须失败，并给出修法')
 
   const badDist = evaluateHealth({ ...FACTS_OK, distOk: false })
   record('产物端口不一致 → 该条失败', byId(badDist, 'dist-port').ok === false)
-  record('总判定失败', overallOk(badDist) === false)
+  record('总判定失败（第2次）', overallOk(badDist) === false)
   record('修法给出重建命令（含安装目录）', byId(badDist, 'dist-port').fix.includes('/inst/extension/build.mjs'))
 }
 
@@ -137,15 +138,20 @@ console.log('\n7. ★ probeHealth（有 I/O 的那层）：引导程序第 11 �
     ping: fakePing, spawn: () => ({ status: 1 }),
   })
   record('产物脚本 exit 1 ⇒ 该条失败', byId(failedDist, 'dist-port').ok === false)
-  record('总判定失败', overallOk(failedDist) === false)
+  record('总判定失败（第3次）', overallOk(failedDist) === false)
 
   const noScript = await probeHealth({
     port: DEFAULT_PORT, dshHome: base, installDir: withoutScript,
     ping: fakePing, spawn: () => ({ status: 0 }),
   })
   record('★ 没有产物脚本时 distOk=null（不假装通过）', byId(noScript, 'dist-port').ok === false)
-  record('★ 且标为 soft（不因缺脚本把安装判死）', byId(noScript, 'dist-port').soft === true)
-  record('此时总判定仍只看另外两条硬判据 → 通过', overallOk(noScript) === true)
+  /*
+   * ★ 2026-09-13 改（PiMoa 片 3 BLOCKER 的后半 / 片 A 第 4 条）：原来钉的是 `soft === true`
+   * 与"总判定仍通过" ⇒ "缺 check-dist-config 脚本（＝安装复制不完整）"被软判据掩盖、横幅照样说
+   * "✅ 装好了"。缺脚本就是安装残缺，改硬判据。
+   */
+  record('★ 标为硬判据（缺脚本＝安装残缺；退回 soft ⇒ 这里红）', byId(noScript, 'dist-port').soft === false)
+  record('★ 因此总判定**不通过**（退回 soft ⇒ 这里红）', overallOk(noScript) === false)
 
   const down = await probeHealth({
     port: DEFAULT_PORT, dshHome: base, installDir: withScript,

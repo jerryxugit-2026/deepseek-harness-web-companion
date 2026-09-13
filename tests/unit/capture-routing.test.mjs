@@ -21,6 +21,7 @@ import { createHub } from '../../dsh-plugin/src/host/hub.js'
 
 const results = {}
 const record = (name, value) => {
+  if (Object.hasOwn(results, name)) throw new Error(`断言名重复：「${name}」—— 同名会覆盖，红会被绿掩盖，请改一个唯一的名字`);
   results[name] = value
   console.log(`  ${value === true ? '✅' : value === false ? '❌' : '·'} ${name}: ${JSON.stringify(value).slice(0, 150)}`)
 }
@@ -103,7 +104,7 @@ console.log('\n4. 只有主标签页时它能收到（侧边栏关着不该丢�
   const solo = await connectClient({ embedded: false, sessionId: 'sess-tab2' })
   const delivered = hub.pushClientPrimary(attachEvent('cap-four'))
   await sleep(80)
-  record('投出去了（返回收件方 id）', typeof delivered === 'string')
+  record('无指定收件方时也投出去了（返回收件方 id）', typeof delivered === 'string')
   record('主标签页收到了', solo.attachIds().join() === 'cap-four')
   solo.close()
   await sleep(150)

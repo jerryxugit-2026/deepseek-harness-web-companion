@@ -63,7 +63,13 @@ export function evaluateHealth(facts) {
     {
       id: 'dist-port',
       ok: distOk === true,
-      soft: distOk === null,
+      /*
+       * ★ 改**硬判据**（2026-09-13；PiMoa 片 3 BLOCKER 的后半 / 片 A 第 4 条）：
+       * 原来 `soft: distOk === null` ⇒ 安装目录缺 `scripts/check-dist-config.mjs`（等于第 2 步复制
+       * 不完整）时，总判定照样通过、横幅还说"✅ 装好了"。**缺这个脚本本身就是安装残缺**，
+       * 不该被软判据掩盖。现在它硬失败，横幅会说清"未检查"并给出修法。
+       */
+      soft: false,
       label: '扩展产物端口 == 真实配对端口',
       detail: distOk === true ? '一致' : distOk === null ? '未检查' : '不一致',
       /*

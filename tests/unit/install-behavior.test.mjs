@@ -29,6 +29,7 @@ const INSTALLER = join(ROOT, 'bootstrap', 'install.mjs')
 
 const results = {}
 const record = (name, value) => {
+  if (Object.hasOwn(results, name)) throw new Error(`断言名重复：「${name}」—— 同名会覆盖，红会被绿掩盖，请改一个唯一的名字`);
   results[name] = value
   console.log(`  ${value === true ? '✅' : value === false ? '❌' : '·'} ${name}: ${JSON.stringify(value).slice(0, 170)}`)
 }
@@ -98,15 +99,15 @@ console.log('\n2. ★ dry-run + --yes：最危险的组合，也必须一个文�
   record('★ 仍然走的是 dry-run 出口（正面证据，不只是"目录不存在"）', r.out.includes('dry-run 结束'))
   record('退出码 0 或 2', r.code === 0 || r.code === 2)
   record('★ 安装目录没被创建（退回"删掉 DRY_RUN 提前退出" ⇒ 这里红）', existsSync(r.installDir) === false)
-  record('DSH 数据目录没被创建', existsSync(r.dshHome) === false)
+  record('DSH 数据目录没被创建（第2次）', existsSync(r.dshHome) === false)
 }
 
 console.log('\n3. ★ --apply 但非交互且没给 --yes：一个字节都不动，且必须如实说"什么都没装"')
 {
   const r = runInstaller('applyno', ['--apply'])
-  record('进程真的跑起来了', r.spawnFailed === false)
+  record('进程真的跑起来了（第2次）', r.spawnFailed === false)
   record('安装目录没被创建（每个 confirm 都按否）', existsSync(r.installDir) === false)
-  record('DSH 数据目录没被创建', existsSync(r.dshHome) === false)
+  record('DSH 数据目录没被创建（第3次）', existsSync(r.dshHome) === false)
   /*
    * ★ 三条停法都要认（2026-09-13 修；PiMoa 片 5 第 2 条）：预检**有阻断项**时会先在
    * "仍有阻断项，仍要继续吗？"处非交互按否并 exit 2，那三个旧关键词一个都不打印 ⇒ 换台机器就假红。

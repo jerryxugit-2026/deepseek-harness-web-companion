@@ -58,6 +58,16 @@ export function findEntrySpan(text, id) {
   const idAt = all.findIndex((line) => idLinePattern(id).test(line))
   if (idAt === -1) return null
   const entryIndent = /^\s*/u.exec(all[idAt])?.[0] ?? ''
+  /*
+   * ★ 起点可能不在 `id:` 那一行（2026-09-13 修；PiMoa 片 A 第 11 条）：
+   * 手写形状 `- name: …` 换行 `  id: …` 里，条目的破折号行在 `id:` **上面一行**。
+   * 不把起点上移的话，那行会被当成"同缩进的邻居" ⇒ 段头摘不掉、卸载后**残留半条**。
+   */
+  let start = idAt
+  const prev = all[idAt - 1] ?? ''
+  if (/^\s*-\s/u.test(prev) && (/^\s*/u.exec(prev)?.[0] ?? '').length === Math.max(0, entryIndent.length - 2)) {
+    start = idAt - 1
+  }
   let end = all.length
   for (let i = idAt + 1; i < all.length; i += 1) {
     if (all[i].trim() === '') continue
@@ -65,7 +75,7 @@ export function findEntrySpan(text, id) {
     const isSibling = indent.length === entryIndent.length && /^\s*-\s/u.test(all[i])
     if (indent.length < entryIndent.length || isSibling) { end = i; break }
   }
-  return { start: idAt, end, idAt }
+  return { start, end, idAt }
 }
 
 /**
@@ -322,7 +332,11 @@ export function removeCompanion(text, { id, dropLeadingComment = true } = {}) {
    * `- --liftoff-only` 也匹配 `/^\s*-\s/`，于是我方段被判成"还有邻居"、段头摘不掉
    * （`profile-patch.test.mjs` 第 6 节当场咬出来）。
    */
-  const entryIndent = (/^\s*/u.exec(all[span.idAt])?.[0] ?? '').length
+  /*
+   * 缩进取**条目自己那行**（`span.start`）—— 手写 `- name:` / `id:` 形状下，破折号行的缩进
+   * 比 `id:` 少两格；用 `idAt` 的缩进去找邻居会一个都找不到（2026-09-13 修）。
+   */
+  const entryIndent = (/^\s*/u.exec(all[span.start])?.[0] ?? '').length
   const siblings = segment === null
     ? []
     : all

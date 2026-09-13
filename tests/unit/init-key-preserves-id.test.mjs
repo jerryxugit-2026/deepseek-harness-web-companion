@@ -30,6 +30,7 @@ const REPO = resolve(HERE, '..', '..')
 
 const results = {}
 const record = (name, value) => {
+  if (Object.hasOwn(results, name)) throw new Error(`断言名重复：「${name}」—— 同名会覆盖，红会被绿掩盖，请改一个唯一的名字`);
   results[name] = value
   console.log(`  ${value === true ? '✅' : value === false ? '❌' : '·'} ${name}: ${JSON.stringify(value).slice(0, 160)}`)
 }
@@ -98,7 +99,7 @@ console.log('\n3. manifest 里也没有公钥（真正的全新环境）：这�
 {
   const root = makeFakeRepo({ withPinnedKey: false, withPrivateKeyFile: false })
   const out = runInitKey(root)
-  record('exit 0', out.status === 0)
+  record('exit 0（第2次）', out.status === 0)
   const afterKey = JSON.parse(readFileSync(join(root, 'extension', 'manifest.json'), 'utf8')).key
   record('生成了一个公钥', typeof afterKey === 'string' && afterKey.length > 0)
   record('确实新建了私钥文件（首次安装该有）', existsSync(join(root, 'scripts', '.dev-extension-key.json')))
