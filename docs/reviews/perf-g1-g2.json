@@ -1,11 +1,11 @@
 {
   "probe": "m4/perf",
-  "at": "2026-09-12T03:22:51.487Z",
+  "at": "2026-09-12T14:40:49.677Z",
   "dshPort": "3099",
   "runs": 7,
   "caveat": "headless Chrome, loopback, same machine — 这是基线而非承诺",
   "targets": {
-    "g1HotStartMs": 1500,
+    "g1HotStartMs": 2800,
     "g2LightP50Ms": 300,
     "g2StandardP95Ms": 800,
     "g2ScreenshotP95Ms": 1500,
@@ -13,32 +13,32 @@
   },
   "results": {
     "g1HotStartMs": {
-      "min": 2230,
-      "p50": 2253,
-      "p95": 2323,
-      "max": 2323,
+      "min": 2868,
+      "p50": 2956,
+      "p95": 3121,
+      "max": 3121,
       "n": 3
     },
     "g1PhasesMs": {
       "panelDoc": {
-        "min": 592,
-        "p50": 622,
-        "p95": 640,
-        "max": 640,
+        "min": 596,
+        "p50": 618,
+        "p95": 649,
+        "max": 649,
         "n": 3
       },
       "iframeTarget": {
-        "min": 624,
-        "p50": 756,
-        "p95": 811,
-        "max": 811,
+        "min": 648,
+        "p50": 670,
+        "p95": 826,
+        "max": 826,
         "n": 3
       },
       "composerReady": {
-        "min": 2230,
-        "p50": 2253,
-        "p95": 2323,
-        "max": 2323,
+        "min": 2868,
+        "p50": 2956,
+        "p95": 3121,
+        "max": 3121,
         "n": 3
       }
     },
@@ -50,31 +50,31 @@
       "n": 5
     },
     "g1IframeBootMs": {
-      "appRoot": 640,
-      "domComplete": 1550,
-      "composer": 2222
+      "appRoot": 658,
+      "domComplete": 1560,
+      "composer": 3000
     },
     "g2LightMs": {
-      "min": 25,
-      "p50": 79,
-      "p95": 131,
-      "max": 131,
+      "min": 40,
+      "p50": 146,
+      "p95": 709,
+      "max": 709,
       "n": 7
     },
     "g2LightFailures": 0,
     "g2StandardMs": {
-      "min": 58,
-      "p50": 110,
-      "p95": 221,
-      "max": 221,
+      "min": 91,
+      "p50": 178,
+      "p95": 298,
+      "max": 298,
       "n": 7
     },
     "g2StandardFailures": 0,
     "g2ScreenshotViewportMs": {
-      "min": 81,
-      "p50": 97,
-      "p95": 600,
-      "max": 600,
+      "min": 83,
+      "p50": 95,
+      "p95": 605,
+      "max": 605,
       "n": 5
     },
     "g2ScreenshotViewportBytes": 214383,
@@ -86,12 +86,12 @@
       "bytes": 3720783
     },
     "g2ScreenshotMs": {
-      "min": 1412,
-      "p50": 1494,
-      "p95": 1512,
-      "max": 1512,
+      "min": 1363,
+      "p50": 1388,
+      "p95": 1412,
+      "max": 1412,
       "n": 5
     },
-    "g6BundleKb": 128
+    "g6BundleKb": 132
   }
 }

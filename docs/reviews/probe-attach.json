@@ -4,50 +4,16 @@
   "workspace": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a",
   "results": {
     "wsOpen": true,
-    "attachStatus": 200,
-    "attachBody": {
-      "ok": true,
-      "captureId": "M0B-PROBE-A",
-      "fileRef": "@网页捕获/2026-09-11-1550-m0b-probe-page-a-ROBE-A.md",
-      "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-11-1550-m0b-probe-page-a-ROBE-A.md",
-      "deliveredTo": [
-        "client:1"
-      ]
-    },
     "fileExists": true,
-    "frontMatter": {
-      "hasCaptureId": true,
-      "hasUrl": true,
-      "hasTrigger": true,
-      "hasSelectionBlock": true,
-      "hasBody": true,
-      "lines": 21,
-      "snapshotSha256": "13959b7c574e188c"
-    },
-    "pushedEvents": 1,
-    "pushedEventSummary": {
-      "type": "attach",
-      "captureId": "M0B-PROBE-A",
-      "fileRef": "@网页捕获/2026-09-11-1550-m0b-probe-page-a-ROBE-A.md",
-      "mode": "selection+page",
-      "hasImage": true,
-      "summary": {
-        "chars": 32,
-        "truncated": false,
-        "hasSelection": true,
-        "bytes": 366
-      }
-    },
-    "ackStatus": 200,
-    "offlineAttachStatus": 200,
-    "offlineDeliveredTo": [],
-    "pendingPeekCount": 1,
-    "pendingDrainCount": 1,
-    "pendingAfterDrain": 0,
-    "noKey": 403,
-    "wrongKey": 403,
-    "extensionOriginWithoutKey": 403,
-    "schemaRejected": 400,
-    "oversize": 413
+    "★ oversize 的 413 如实声明 connection: close（否则下一个请求踩死 socket）": true,
+    "离线抓取的 attach 是 200": true,
+    "deliveredTo 是空数组（没人收，如实入队）": true,
+    "入队了（peek 里能找到它）": true,
+    "晚到的页面半连上了": true,
+    "★ 页面上线后主动要，积压的抓取被推过来了（不再永远躺在队列里）": true,
+    "推的是那条抓取（captureId 对得上）": true,
+    "带上可直接引用的 fileRef": true,
+    "再要一次不会重复推同一条（计数仍是 1）": true,
+    "队列里已经没有它了（补投是\"取走\"而不是\"复制\"）": true
   }
 }

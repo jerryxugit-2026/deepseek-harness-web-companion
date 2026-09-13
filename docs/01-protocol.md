@@ -102,18 +102,35 @@ Set-Cookie: dsh-auth-<hash>=v1.<payload>.<sig>; Path=/; HttpOnly; SameSite=None;
 
 ### 2.6 错误码表（HTTP 与 WS 共用）
 
+**闭集**：这张表就是 `messages.schema.json#/$defs/ErrorCode` 的枚举，`error.code` 一律用 `$ref` 指向它。
+放一个集合外的码进任何 HTTP 响应或 WS 帧 ⇒ `validateAs` 拒绝整帧，而宿主**丢弃被拒的帧**
+（`capture-result` 被丢 ⇒ 意图与抓取失联、attach 会落到错误的页面半）。所以：
+代码里出现新码时必须同时改 schema 与这张表，`tests/unit/protocol-error-codes.test.mjs` 会盯着两边。
+
 | code | HTTP | 含义 | 触发 |
 |---|---|---|---|
 | `E_AUTH` | 403 | Origin 或 key 不匹配 | 未授权扩展/网站 |
 | `E_VERSION` | 409 | 协议版本不匹配 | 扩展与插件版本漂移 |
-| `E_PAYLOAD` | 400 | 结构校验失败 | schema 不通过 |
-| `E_TOO_LARGE` | 413 | 超过体积上限 | 截图/正文超限（默认 8MB） |
+| `E_PAYLOAD` | 400 | 结构校验失败 | schema 不通过（含集合外的错误码、成功的 `capture-result` 缺 `captureId`） |
+| `E_TOO_LARGE` | 413 | 超过体积上限 | 截图/正文超限（默认 8MB）；响应带 `Connection: close`（故意没读完请求体） |
 | `E_NO_WORKSPACE` | 409 | 目标工作区不可用 | 未选择工作区或路径不存在 |
 | `E_STORAGE` | 500 | 落盘/附件存储失败 | 磁盘或权限问题 |
 | `E_EXT_OFFLINE` | 503 | 扩展未连接（工具桥） | WS `/ag/agent` 不在线 |
-| `E_TIMEOUT` | 504 | 浏览器操作超时 | 默认 10s |
-| `E_TARGET` | 422 | 选择器/元素未命中 | 点击/输入目标不存在 |
+| `E_TIMEOUT` | 504 | 浏览器操作/请求超时 | 工具默认 10s；`/ag/attach` 一次尝试 8s |
+| `E_TARGET` | 422 | 目标未命中 | 点击/输入目标不存在；没有可抓取的标签页；截图没取到图 |
+| `E_DSH_DOWN` | 503 | 本地 DSH 未运行 | `ensure-dsh` 起不来（面板提示「请先启动 dsh web」） |
+| `E_UNPAIRED` | 409 | 未完成配对 | 插件侧没有配对文件；扩展取票据失败后 **fail-closed**（不回落长期密钥） |
+| `E_NATIVE_MISSING` | 500 | native host 不可用 | Chrome 起不来 native messaging host |
+| `E_NO_PERMISSION` | 403 | 缺少网页访问授权 | 没有 `<all_urls>`/`activeTab`；抓的是插件自己的界面 |
+| `E_PERMISSION` | 403 | **用户明确拒绝了**授权弹窗 | 与 `E_NO_PERMISSION` 区分：这个可以再问一次，那个要去设置里给权限 |
+| `E_NO_SELECTION` | 422 | 「Attach 选区」但页面上没有选区 | 不再静默回退抓整页（v3.22 起） |
+| `E_READONLY` | 403 | 写操作被开关拦下 | `allowBrowserWriteOps=false` 时扩展拒绝写 op（插件侧也不注册这些工具） |
+| `E_TARGET_BUSY` | 409 | 目标标签页被别的调试器占用 | DevTools 正开着 |
+| `E_PLUGIN` | 502 | 桥接插件自身答非 2xx | 扩展侧归类（不是网页、不是浏览器的问题） |
 | `E_INTERNAL` | 500 | 未归类错误 | — |
+
+> 面板本地还有一个 `E_WS`（`agent-channel.js` 的 `onState({error:'E_WS'})`）：它只是面板内部的
+> 连接状态标记，**不上线**，因此不属于协议错误码（门禁里显式登记为 local-only）。
 
 ---
 

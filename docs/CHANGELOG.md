@@ -5,7 +5,596 @@
 
 ---
 
-## v3.37 — 2026-09-11（当前）
+## v3.41 — 2026-09-12（当前）
+
+**触发**：v3.40 收尾时列出的「P1 剩余项」按顺序做完（截图假绿 → 积压补投 → `perf` 判定 → `CHIP_LABEL_MAX` 注释），再进 P2。用户指令：**不停下来汇报，按 P0 剩余 → 重跑探针 → P1 → P2 持续做完**，且**不许过度设计**。
+
+### 1. P1：`mode:'screenshot'` 抓不到图却回 `ok:true`（假绿）
+
+| 项 | 问题 | 修法 | 回归 |
+|---|---|---|---|
+| 截图模式假绿 | `captureVisibleTab` 失败（没有 `<all_urls>` 权限、标签页不在前台、体积超限）时，`buildCapture` 把 `{dropped:true, dropReason}` 写进 body 照常投递，而 `sw/index.js` 只看 `sendCapture` 的结果就回 `ok:true`：面板显示「已附加」、审计记 `ok:true`，而**用户唯一要的那个产物（图）根本不存在**（`base64` 是空串，图片文件压根没写） | 新增纯函数 `capture.js#shotProblem(body)`（只在 `mode==='screenshot'` 时判定，因为那正是"要的就是图"的模式），SW 入口据此把**结果**判失败并把原因说清（「截图没成功，正文已照常投递：…」）；两份 `dropped` 对象补上机器可读的 `code`（`E_TOO_LARGE` / 传播真实错误码） | `tests/unit/screenshot-mode.test.mjs`（22 断言，**跑到 SW 入口的 `route()`** 而不是只测那个纯函数；退回旧行为 ⇒ **10 条变红**） |
+
+补两个"修过头"防线（同测试内）：`mode:'page'` 的截图失败**不许**影响正文抓取的结论；真拿到图时**必须** `ok:true` 且 body 里带非空 base64。
+
+> 说明：`includeScreenshot` 参数目前**只有 SW 内部**会传（`mode==='screenshot'` 派生），全仓无第二个调用者，所以判据取 `mode` 已覆盖所有真实路径。
+
+### 2. P1：积压抓取补投（队列此前是**只写**的）
+
+**缺陷**（台账 §5 第 11 项，v3.38 查出）：`attachRoute` 在无页面半连接时 `store.enqueue()` 并如实回 `deliveredTo: []`；而 client 半**每次连上都会发** `{type:'request-pending'}`（设计 §4.2），**host 侧没有这个帧的 handler**，唯一能 `drain()` 的 `GET /ag/pending` **全仓无调用者**。于是"没开 DSH 页面时抓的东西"落盘、入队、然后永远躺在内存队列里（上限 32，超了静默丢最旧）。用户看到的现象就是"抓了，但什么都没发生"。
+
+**修法**：
+
+- `onClientFrame` 收下 `request-pending` → `deliverPending(entry)`；
+- 投递复用与实时 attach **同一个原语** `hub.pushClientPrimary(item, owner)`：owner 记着的（「看左边」那条链）必须回到当初发起它的页面半，否则 `sessionMode:'current'` 会插进**另一个页面半**的会话；没有 owner 时投给**提问的那个半**；
+- **投不出去就放回队列**（`store.enqueue(item)`）—— 只 drain 不管的死法是本次要修的 bug，不能顺手再引入一次；
+- 审计新增 `kind:'pending-replay'`（`queued`/`delivered`/`requeued` 三个计数已加进 `AUDIT_FIELDS`）。
+
+| 验证 | 内容 |
+|---|---|
+| 真机路径 | `tests/m0b/attach-probe.mjs` **第 7 节（新）**：离线 attach（`deliveredTo: []`）→ peek 里找得到 → 页面半连上并 `request-pending` → **真的收到那条 attach**、`fileRef` 可引用、再要一次不会重复推、队列里已经没有了。退回旧行为 ⇒ **5 条变红**（观测里能看到 `pendingAfterReplay: ["M0B-PROBE-PENDING"]`，队列里那条就是"永远投不出去"的实证） |
+| 探针够不到的那一支 | `tests/unit/pending-delivery.test.mjs`（16 断言，真 hub + 真队列）：投不出去时**抓取仍在队列里**、owner 优先于默认胜者、无 owner 时投给提问方、空队列不写噪音审计。去掉"放回队列" ⇒ **3 条变红** |
+
+### 3. 顺带修掉的真缺陷：413 之后的下一个请求必踩 `ECONNRESET`
+
+写第 7 节时探针**当场崩了**（`TypeError: fetch failed … ECONNRESET`，位置正好是 413 之后的那次 `GET /ag/pending`）。实测复现并定位：
+
+```
+1 oversize POST OK 413          ← 请求体 9MB，超 attachMaxBytes
+2 immediate peek FAIL ECONNRESET ← 同一个连接池里的下一条请求
+3 再来一次 OK                    ← 新连接，正常
+```
+
+`readBody` 在超限时是**故意不读完**请求体的（这正是 413 的意义），socket 上还有未读数据 ⇒ Node 必须销毁它；但响应头写的是 `connection: keep-alive` **外加** `keep-alive: timeout=5` —— **在撒谎**。客户端于是把这条死连接放回池子，下一条请求直接撞上 reset。
+
+**修法**：`attachRoute` 的 413 分支显式回 `connection: close`（400/E_PAYLOAD 那种"读完才失败"的路径不关，它本来就能复用）。**回归**：`attach-probe` 新增断言「oversize 的 413 如实声明 `connection: close`」；退回旧行为 ⇒ 该断言变红，且 `1→2→3` 那段实测复现 reset。
+
+### 4. P1：`perf` 判定改造（G1 不再是"能悄悄变红的墙"）
+
+`tests/m2/perf-probe.mjs` 原先三个指标一起进退出码，而 **G1（热启动 p50）本就是浮动基线**（实测 2090–2956ms，用户已接受 2.1–2.7s、文档目标 ≤2.8s）。它的抖动会周期性把整条探针判红，制造"狼来了"，而红的那次并不代表回归。
+
+- `G1_HOT_TARGET = 2800`：**记为基线、不参与退出码**，超线时打印 `G1 p50 … 超 … —— 基线指标，不影响退出码`；
+- G2 / G6 仍是**硬门禁**（体积、开关生效），并且 G6 判定与文案统一引用常量 `G6_LIMIT`（此前是"判 1KB 却印 1024KB"式的自相矛盾）；`build-size.json` 缺 `totalBytes`/`totalKb` 时直接抛，不再被当成 0 混过去。
+- **咬合验证**（实测）：G2/G6 仍能把退出码打成 1 —— 例如把 `G6_LIMIT` 临时改成 1 时 `PERF_EXIT(应=1): 1`（随后还原），G1 超线只影响打印。
+
+### 5. P2：协议收紧 + 单一真源 + 口径统一
+
+| 项 | 问题（逐字） | 修法 | 回归 |
+|---|---|---|---|
+| `error.code` 不是闭集 | `CaptureResultEvent` / `AgentToolResult` 的 `error.code` 是 `{"type":"string"}` ⇒ 任何字符串都过关 | 改成 `$ref: #/$defs/ErrorCode`（与 `ErrorEnvelope` 一致） | `protocol/vectors/invalid/capture-result-unknown-error-code.json` |
+| **枚举漏掉 5 个真实在用的码** | 代码里用了 `E_NO_SELECTION` / `E_READONLY` / `E_TARGET_BUSY` / `E_PERMISSION` / `E_PLUGIN`，枚举里都没有；光收紧 schema 会让这些帧**整帧被判非法并被宿主丢弃**（`capture-result` 被丢 ⇒ 意图与抓取失联、attach 落错页面半） | 枚举补齐（19 个）+ `docs/01 §2.6` 表补全（含每个码的 HTTP 状态与修法）；`E_WS` 是面板本地状态串，**不进协议**，在门禁里显式登记为 local-only | 新增 `tests/unit/protocol-error-codes.test.mjs`（11 断言）：扫 44 个源文件里的 `'E_…'` 字面量逐个核对闭集、三端枚举一致、文档不许漏码、集合外的码必须被拒 |
+| `captureId` 该必填 | 成功的 `capture-result` 缺 `captureId` ⇒ 宿主拿不到 `requestId→captureId` 关联，owner 链断掉；但失败帧**本来就没有** id，无条件 `required` 会把合法失败帧一起判非法 | 校验器补 `if/then/else` 支持，schema 写 `if ok:true → then required: [captureId]` | `protocol/vectors/invalid/capture-result-success-without-captureid.json` + 正向失败帧向量 |
+| **顺手抓到的潜伏 bug** | 校验器里 `required` 只在 `properties`/`additionalProperties` 同时存在时才被检查 ⇒ **只有 `required` 的子模式等于什么都没查**（新写的 if/then 规则就是这样"看着生效、其实放行"的） | 判定条件补上 `schema.required !== undefined` | 就是上面那条反向量：修之前它**意外通过**，修之后被拒 |
+| 扩展侧可能发出集合外的码 | 捕获失败时 `error.code` 直接透传被抛错误的 `code`，抛出的东西可能是 DOM/chrome 的错误对象 | 面板侧新增 `wireCode()`：不在闭集里一律降级 `E_INTERNAL`（宁可码粗一点，也不能让整帧被丢） | 由 `protocol-error-codes` 门禁 + 三处发送点共用同一个归一化函数 |
+| 路由靠字符串替换拼 | `/ag/wsecho`、`/ag/wsprobe` 由 `ROUTE.whoami.replace('/whoami','/wsecho')` 得到：哪天把 `whoami` 改个名，两条升级处理器会**注册到同一个路径**（后者静默盖掉前者），而不是报错 | 把两条路由进 `codegen.mjs` 的 ROUTE 表（代码生成物的一部分），注册点直接用 `ROUTE.wsEcho` / `ROUTE.wsProbe` | `tests/protocol/contract.test.mjs`（三端路由一致）+ `node protocol/codegen.mjs --check` |
+| `stamp` 两处实现 | `store.js#stamp` 与 `tools.js#stampOf` 各写一份 `yyyy-MM-dd-HHmm`：文件名约定改一处就会只改一半 | `tools.js` 改为复用 `store.js#stamp`（保留旧导出名，避免调用方跟着改） | `tests/unit/browser-tools.test.mjs`（31 断言，含截图落盘） |
+| "常量漂移"查证 | ①`3080` 在产品代码里只出现在 `extension/src/lib/dev-config.js`（真实配对文件的镜像），其余是测试/文档夹具；真正真源是 `~/.dsh/dsh-web-companion.json`，已由 `check-dist-config` 门禁盯着 ②`keepLines` 1200（插件审计）vs 800（native host 日志）是**两个不同文件**的轮转，且 `docs/12` 已按 1200 记档 | **不改**。如实记进本表：这条是从评审清单里带过来的假设，核对后不成立；为了"显得在做工"而硬统一两处跨包常量反而是耦合 | — |
+| `paired` 同词两义 | `/ag/ping`：`key && extensionOrigins>0`；`/ag/wsprobe`：只看 `key`。而面板、`probe-all`、4 个探针、`docs/09`、`docs/12` 都拿 `paired===true` 当"这套安装可用"的判据 —— 有 key 没登记扩展 origin 的安装，一个端点说配对、另一个说没配对，谁读到哪个算哪个 | 判据收进 `key-store.js#isPaired`（唯一实现），两端点都引用；诊断函数抽成纯函数 `wsProbeDiagnostic()` 以便测试 | 新增 `tests/unit/pairing-semantics.test.mjs`（20 断言，**跨端点**断言两边 verdict 相同 + `keyConfigured` 仍如实） |
+| `/ag/ping` 会把诊断路由打成 500 | 状态对象没有 `liveTickets`/`connectedClients` 探针时，payload 里留下 `liveTickets: undefined` 这样的键，而校验器把"键在、值为 undefined"判为类型错误 ⇒ 一条本该解释安装状态的诊断路由回 `E_INTERNAL` | 改为"没有就不写这个键"（`...(fn ? {k: fn()} : {})`） | 同上（测试用最小 state 驱动真实 `pingRoute`，修之前 12 条红） |
+| `pimoa-review` 的裁决永远是 `unknown` | 真实 PiMoa 回答是「Markdown + 围栏 JSON receipt」，而驱动用 `JSON.parse(block.text)` 取 `structured` ⇒ 必然抛 ⇒ **每一份** review 都写着 `裁决（status）：unknown`；同时 `quorum` / `proposerMarks` / 聚合模型 / 耗时全被丢掉。核对真实 receipt（`~/.pimoa/spool`）：**根本没有 `status` 字段** | 新增 `scripts/pimoa-result.mjs`（纯函数：`receiptOf`/`bodyOf`/`describeReceipt`/`summaryLine`）：读围栏 JSON、正文剥离、如实摊开 quorum 与逐模型标记，并明说"receipt 里没有 status，这里不编一个" | 新增 `tests/unit/pimoa-result.test.mjs`（22 断言）+ `tests/unit/pimoa-driver.test.mjs`（16 断言：本地假 MCP 端到端跑完驱动，断言报告里**没有** unknown、quorum 被点出、会话 id 有带上） |
+| `pimoa-review` 撞 300s 墙 | 用 `fetch` 调 MCP ⇒ undici 默认 300s body 超时；实测成功耗时 189–309s **正贴这道墙**，更慢的审核会在厂商已经出结果后报 `TypeError: fetch failed` | 改用 `node:http`（无该默认值），`--timeout-ms` 成为唯一的钟；超时也给出可读原因 | 上面的 driver 集成测试 |
+| 审批策略 `never` 甩锅（台账 §5-12） | `approval.js#modeOf` 只问"审批服务在不在"，不看策略 ⇒ 面板承诺"每次都会先问你"，而 `dsh-user-approval` 在 `policy:'never'` 下 `decide()` 在问任何人之前就 `return 'rejected'`，模型收到 `the user rejected tool "browser_click"` —— **没有人被问过** | 新增 `policyOf(agent)`（按**本次调用**所属会话读 `effectivePolicy`，拿不到会话退到配置默认）；`mode` 多一个真实取值 `policy-never`；写调用在 `never` 下**当场拒绝**且理由是策略（不是"用户拒绝"）；面板文案按策略分支；顺带把 control 审计里塞进 `errorCode` 的 mode 挪到 `status` | `tests/unit/write-gate.test.mjs` 扩到 33 断言，含"另一个被改回 ask 的会话仍要能问"（这是第一版修法的真 bug：它按无会话的 mode 判定，会把那个会话的写操作**静默放行**）与"理由不许甩锅给用户" |
+
+### 6. 门禁自身的接线（新增测试必须真的进 `npm run check`）
+
+`test:unit` 是一条**显式列举**的 `&&` 链：新写的单测文件如果不加进去，`npm run check` 根本不会跑到它 —— 那就是门禁层面的假绿。本轮 6 个新文件（`screenshot-mode`、`pending-delivery`、`protocol-error-codes`、`pairing-semantics`、`pimoa-result`、`pimoa-driver`）已全部接入（17 → **23** 个文件）。
+
+### 7. 本轮验证（如实，全部在**收紧之后**的判定下取得）
+
+```
+npm run check        → exit 0
+   反模式规则 20 条 / 235 文件；单测 23 个文件全绿；codegen --check 一致（schema 608a16de9b9d…）
+   协议契约：正向量 23 / 反向量 13 / 三端产物 3 一致
+   build:ext：136.7 KB（G6 判据 ≤1024KB 通过）；dist-config: OK（port=3080，且与真实配对文件一致）
+
+npm run probe:all    → exit 0，8/8
+   m3-debugger ✅43s  look-left ✅5s  capture ✅48s  sites ✅54s
+   m3-ops ✅53s  m3-control ✅23s  look-left-e2e ✅28s  agent-turn（真模型回合）✅69s
+
+npm run probe:attach → exit 0（12 断言 / 18 观测；新增第 7 节积压补投 + 413 的 connection: close）
+npm run probe:chip   → exit 0（3 断言 / 12 观测）
+```
+
+> 上面这份汇总取自**全部改动落地之后**的最后一次运行（含 §8 的探针判定统一：6 个探针从
+> `filter(v === false)` 迁到 `createResults`；迁移后的断言/观测数见 §8 的表）。
+
+**"能不能咬"逐条实测**（不是为了好看，每条都真的把修复退回去看过它变红）：
+
+| 退回什么 | 变红的断言 |
+|---|---|
+| `sw/index.js` 不再判 `shotProblem` | `screenshot-mode` 10 条 |
+| `pending.js` 投不出去时不放回队列（"取走即丢"） | `pending-delivery` 3 条 |
+| `index.js` 去掉 `request-pending` handler | `probe:attach` 第 7 节 5 条（观测里能看到队列里那条 `M0B-PROBE-PENDING` 仍在） |
+| 413 去掉 `Connection: close` | 新断言变红，且 `1 oversize POST OK 413 → 2 immediate peek FAIL ECONNRESET` 当场复现 |
+| 校验器的 if/then 规则（`required` 单独存在时不被检查） | 新的反向量**意外通过** → 修完才被拒 |
+| 审批策略 `never`（第一版修法用无会话的 `mode` 判定） | `write-gate` 第 7 节抓到：被改回 `ask` 的那个会话的写操作会被**静默放行** |
+
+> 唯一一处"查证后不改"的：3080 常量与 `keepLines` 1200/800 —— 见 §5 表格最后两行，如实记录为**不成立的假设**，而不是为了显得在做工而硬改。
+
+### 8. P0-C 收尾：剩下 6 个探针的判定也统一了（"只有布尔 true 算过"）
+
+v3.40 把 8 个探针接到了 `tests/lib/probe-result.mjs`，但**还有 6 个在 `probe:all` 里跑的探针**留着自己那份
+`filter(([, v]) => v === false)` 判定 —— 凡记成 `null`/对象/字符串的断言**静默算过**。本轮补齐：
+
+| 探针 | 迁移前的判定 | 现在 |
+|---|---|---|
+| `probe:m3-debugger` | `v === false` | `createResults`（断言 14 / 观测 0） |
+| `probe:look-left` | `v === false` | `createResults`（断言 11 / 观测 0） |
+| `probe:sites` | `v === false` | `createResults`（断言 16 / 观测 0） |
+| `probe:m3-ops` | `v === false` | `createResults`（断言 30 / 观测 0） |
+| `probe:m3-control` | `v === false` | `createResults`（断言 11 / 观测 0） |
+| `probe:look-left-e2e` | `v === false` | `createResults`（断言 22 / 观测 0） |
+
+顺手清掉的三处"结构性假绿 / 死代码"：
+
+1. **两套判定并存**：`agent-turn-probe` 与 `attach-probe` 已经用了 `createResults`，却还各留着一段旧的
+   `filter(... === false)` 失败集**并抢着设退出码**。两套并存时说话的是松的那套。已删，判定只由 `finish()` 出。
+2. **只有标题、没有断言的小节**：`ops-probe` 里 `console.log('\n6. 写操作门禁的运行时开关…')` 之后**什么都没有** ——
+   读报告的人会以为这一段测过了。已删除并写明真正的覆盖在 `probe:m3-control`（扩展侧复核 `E_READONLY` 在第 2 节）。
+3. **恒真合取**：`control-probe` 那条"面板探针同步拿到新能力集"写成
+   `Array.isArray(x.constructor === String ? JSON.parse(x) : []) && …` —— 两个分支分别是"真数组"与 `[]`，
+   第一个合取项**恒为真**，同一次 `evaluate` 还被求值三遍。已改成取一次值 + 两条干净断言
+   （新增「面板能力集与插件侧一致」）。
+
+**★ 顺带抓到的真问题：探针本身有 order-dependence。** 复查时我连跑了三次 `probe:look-left`，第 2、3 次各红 3 条。
+原因不是产品：v3.40 给宿主加的意图去重规则是"同一 `sessionId+draft`、来自**另一个**页面半、5 秒内折叠成一次"，
+而探针每次开新 socket（新 client id）却用**固定的** `sessionId+draft` ⇒ 5 秒内再跑一次，它的意图被判成
+"另一个页面半的重复投递"吃掉了。草稿改为带时间戳后**连跑 3 次全绿**（这也说明该探针此前"跑一次绿"的结果里
+有一半是运气）。
+
+**咬合验证**：把一条断言强改 `false` ⇒ `❌ m2/look-left 失败 1/11 项：错误 key 的 /ag/agent 被拒（403）`，exit 1；
+改成非布尔对象 ⇒ 进观测桶、**不计通过**（旧判定下它会静默算过）。
+
+**计数如实（文档里旧的数字一并纠正）**：`ops` 文档原写"31/31"，实测**迁移前后都是 30**（老数字本身就偏了）；
+`control` 由 10 → **11**（本轮新增一条）；`look-left-e2e` 由文档的 16 → **22**。
+
+### 9. ★ 我上一版埋的回归：面板"读"写开关从来没成功过（这次是真浏览器抓出来的）
+
+**背景**：v3.40 §A3 为了不再"打开面板就把写开关关掉"，把面板的初始化从
+`POST {allowBrowserWriteOps:false}` 改成 `GET /ag/control`。当时的回归栏写的是
+*"旧契约由 test:unit 断言 + 真实环境验证（下次重启后…）"* —— **实际上没有在浏览器里验过**。
+
+**本轮第一步就撞上了**：给 `panel-probe` 加上"先把开关置 on 再开面板，看面板读到什么"之后，
+第一次真浏览器运行就是 `dshHttp: {"200 /":1,"403 /ag/control":1}` + `consoleErrors: [403 Forbidden]`。
+
+**服务端逐字证据**（临时日志，已移除）：
+
+```
+[dbg-control-403] {"url":"/ag/control?key=…","origin":null,"site":"none","mode":"cors","keyPresent":true}
+```
+
+也就是说：**Chrome 对扩展文档发出的"简单"跨域 GET 不带 `Origin`**（扩展页面有宿主权限、CORS 豁免，
+所以连预检都没有；实测直接给 route 发 OPTIONS 预检是 400，也证明预检根本没发生）。
+而 F2 只认"精确 `Origin`" ⇒ **403** ⇒ 面板 `enabled` 恒为 `false`：开关看着永远是关的。
+**开关本身一直能用**，因为 POST 是非简单方法、会带 `Origin` —— 这就是它"看起来正常"的原因，
+也是这处回归能活下来的原因：真正坏的是**读**，而不是写。
+
+**修法**（与 F4 已有的做法对称）：`guard.originOk` —— `Origin` **存在**必须精确等于配对里的扩展 origin；
+**缺失**时要求 `Sec-Fetch-Site: none` **且** `Sec-Fetch-Mode: cors`。两个头都由浏览器置入、页面无法伪造
+（网站的 fetch 是 `cross-site`，导航是 `navigate`），且 key 仍然必需 —— 凭据强度不变，只是承认了它到达的形态。
+设计 `详细设计文档 §5.4` 的 F2 行同步改写（v3.1 的 F4 就是这么修的，这次是 F2 的同类补丁）。
+
+**回归与咬合（都真跑了，不是"应该会红"）**：
+
+| 验什么 | 退回旧行为（只认 Origin） | 修好后 |
+|---|---|---|
+| `tests/unit/guard-client.test.mjs` 第 6 节（26 断言，新增 7 条：网站 `cross-site` / 导航 `navigate` / 两个头都缺 / 伪造 Origin 都不许过） | 2 条红 | 全绿 |
+| `probe:panel` 新增第 4 节「面板读到的状态 == 插件真实状态」（真 Chrome；前置用 F2 POST 把开关置 on） | `dshHttp: {"200 /":1,"403 /ag/control":1}`、断言红 | `{"200 /":1,"200 /ag/control":1}`、`consoleErrors: []`、断言绿 |
+
+**教训（同一类错误第二次）**：v3.40 §A3 的回归栏写着"真实环境验证"，但那件事**没有做**；
+本文档的原则一直是"未跑过的，不许当证据"。从此凡改动**浏览器侧请求形态**的，回归栏必须点名
+**跑过哪个真 Chrome 探针**，否则只能写"未验证"。
+
+**顺带修掉的两处探针自身问题**（都是这次才发现的）：
+
+- `panel-probe` 默认端口是 **3080（用户真实实例）**，而它加载的面板 iframe 又走 `dist` 里烤的
+  `DEV_CONFIG` ⇒ 旧行为下"探针的过滤器看 3099、面板实际打 3080"（实测 `dshHttp: {}`，自相矛盾）。
+  现在默认 **3099（开发实例）**，并且像其它探针一样**重写 dev-config → 重建 dist → 结束时还原并重建**
+  —— 整条探针（含面板）指向同一个实例；要验真实实例必须显式 `--port 3080`。
+- 想验真实实例时也不会再"顺手把用户的实例当测试床"。
+
+**仍未做（明确清单，不藏）**：
+1. **要你做**：重启一次 `dsh web`（宿主端插件有改动），并跑一遍人工验收 6 项（`docs/09-manual-checklist.md`）；写操作那一步请先看 `/ag/control` 的 `approvalMode`（`ask` 才会弹提示）。
+2. 面板上仍**没有截图按钮**（能力有、入口没有，台账 §5 第 10 项）；`intentCaptureMode` 默认整页。
+3. G5 的 SPA 成功率样本、域名黑名单、快捷键、把 `probe:all` 接进 CI —— 都还在台账 §5 里挂着。
+4. `probe:attach` / `probe:chip` / `probe:panel` / 各 M0a·M1 探针不在 `probe:all` 的 8 条里，需要单独跑（本轮已单独跑过；但"一条命令全跑完"目前不包含它们）。
+
+---
+
+### 10. ★ 真机上抓到的两个"工具层"缺陷（只在真机用工具才会遇到）
+
+**怎么抓到的**：你在真机打开侧边栏、打开「浏览器控制」之后，我调了一次 `browser_ax`，得到
+
+```
+tool "browser_ax" returned invalid output: "value" must match exactly one oneOf branch (matched 0)
+```
+
+也就是**模型拿不到无障碍树**，只拿到一句 schema 报错。顺着查，同一层还有第二个：
+
+| 缺陷 | 现状（逐字） | 为什么两边门禁都没抓到 | 修法 |
+|---|---|---|---|
+| `browser_ax` 的 output schema 把 `nodeId` 声明成 **number** | CDP 里 `Accessibility.AXNode.nodeId` 是**字符串**（`DOM.Node.nodeId` 才是数字）⇒ 真实的无障碍树**整条**过不了 output schema，引擎直接判 `invalid output` | ①`probe:m3-ops` 看的是 **op 层**返回值（`opAx` 原样透传，探针只断言"节点数 > 5"）；②`browser-tools.test.mjs` 的 `browser_ax` 夹具是**手搓的**，`nodeId` 恰好写成数字 `11`，把缺陷盖住了 | schema 改为 `str(...)`；夹具改成真实形态（字符串），并注明两个 CDP 域的区别 |
+| `browser_screenshot` 的 `execute` 用了 `randomBytes` 但**没有 import** | 每次通过工具层截图都是 `ReferenceError: randomBytes is not defined`（v3.40 我把后缀随机数从 `Math.random` 改成 `randomBytes(3)`，只加了用法没加 import） | ①op 层探针不碰工具层；②单测第 2 节的 schema 校验**恰好跳过了 screenshot**（它要落盘），而直接调 `persistScreenshot` 的那几条又显式传了 `id6`，绕过了那一句 | 补 `import { randomBytes } from 'node:crypto'`；单测把 screenshot 的 `execute` 也纳入（给临时工作区） |
+
+**结构性修法（比修这两条更重要）**：把"**真值驱动工具层**"接成门禁 —— `probe:m3-ops` 新增一节，
+用**真实 CDP 值**去调每个工具的 `execute()`，再把工具真正返回的东西撞它自己声明的 output schema（8 个工具逐条）。
+注意必须是 `execute()` 而不是 op 值：`browser_screenshot` 的工具层会**变换**返回值（op 给 base64/tabId/notes，
+工具落盘后换成 filePath/fileRef），拿 op 值去比会误报。
+
+**咬合（都真跑过）**：
+
+- `nodeId` 退回 `num` ⇒ 新断言红，且报错**逐字复现**真机那句 `"value" must match exactly one oneOf branch (matched 0)`；
+- 去掉 `randomBytes` 的 import ⇒ 单测当场 `ReferenceError`；补回后单测 33 断言、`probe:m3-ops` **39 断言**全绿。
+
+**教训**：这两个缺陷都不是"没测"，而是**测错了层**——op 层绿、工具层全靠手搓夹具。凡是"模型看得到的东西"，
+就必须有至少一条断言走**模型走的那条路**（`tool.execute` → output schema）。
+
+### 11. 真机人工验收（用户本人操作）—— 又抓到一个同族缺陷，并推翻一条旧期望
+
+记录全文：`docs/reviews/manual-acceptance-2026-09-12.md`。本轮在真机上**通过**的项：
+B4（调试横幅，见下）、B6（取消「浏览器控制」后 `browser_ax` → `E_NO_PERMISSION`）、C8（写「看左边」→ 抓取/落盘/推送，
+审计逐字 `trigger:look_left`、`sessionMode:current`、`delivered:1`）、C10（面板关着写的意图，面板一开就补投，
+`kind:"intent-replay"`）、E14（保留策略现场：25h 的**抓取形态**文件被删、用户命名文件保留）。
+
+**推翻的旧期望（横幅）**：`docs/09` B4 与 `docs/12` T8 原写"勾选「浏览器控制」→ 目标页出现**不可消除**的调试横幅"。
+实测：开关只是**许可**，attach 发生在**每次操作内部**（`ops/debugger.js#withDebugger`：attach → 执行 → `finally` 里 detach），
+所以横幅只在一次调用进行中短暂出现（用户亲眼看到那行「浏览器正在调试」闪过，连发两次整页截图均可复现）。两处文档已按实测改写。
+
+**推翻的旧期望（DevTools）**：B7 原写"打开 DevTools ⇒ attach 失败并报 `Another debugger is already attached…`"。
+实测（真机 Chrome 150，DevTools 打开着，连测两次）：**attach 照样成功**，`browser_ax` 都返回了树（`total: 999`）。
+也就是说新版 Chrome 允许多个调试器并存；`E_TARGET_BUSY` 的真实触发是**另一个扩展**占着该目标。
+`docs/09` B7 已作废并写明实测、`docs/12` T8 同步，面板提示从"（例如 DevTools 打开着）"收窄为"（通常是另一个扩展在调试该页）"，单测同步。
+
+**★ 第 4 个真缺陷：页面的回执帧被静默丢弃**（与 `request-pending`、`agent-hello` 同族：**有生产者、没有消费者**）
+
+| | |
+|---|---|
+| 现象 | 想在验收里回答"引用到底插进输入框没有"，去审计找页面的回执 → `grep '"kind":"ack"'` 得到 **0 条**（一整天真实抓取一条都没有） |
+| 链路核实 | client 半从 v3.38 起就在发 `{type:'ack', captureId, status}`（`lib/client.js` 两处）；协议里有 `ClientAckEvent`；宿主 `recordAck` **确实**写审计（`kind:"ack"` + `status`，字段表注释写的正是 "ack: inserted \| dismissed \| failed"）—— 但 `onClientFrame` 只认 `hello`/`request-pending`/`intent`，**没有 `ack` 分支** |
+| 影响 | "页面拿到抓取后干了什么"（插入成功/失败/被 ✕ 撤销）事后无法回答 —— 而这正是审计存在的意义 |
+| 修法 | `onClientFrame` 收下 `ack`（先 `validateAs('ClientAckEvent')`，通过再 `state.recordAck(frame)`）；`probe:look-left` 新增两条断言（11 → **13**）：走真实 WS 发 ack → **读审计文件**确认 `kind:"ack"` + `status:"inserted"` 落盘 |
+| 咬合与两处踩坑 | ①去掉 handler ⇒ 红 ✓；②第一版断言**不咬**：captureId 写死、审计文件是追加的，上一轮条目替本轮作答（去掉 handler 仍绿）⇒ 改成每次运行唯一 id（与前面 look-left 草稿那次同一个教训）；③探针第一版给 ack 帧多带 `protocolVersion`，而 `ClientAckEvent` 是**闭集且不含该字段** ⇒ 帧被校验拒绝（反过来证明校验在拦） |
+
+**另外两处真机事实**（顺手记下，免得以后误判）：
+
+- 「写操作」是**运行期**开关，`dsh web` 每次重启回到"关"（面板如实显示、能力集 5）——安全默认，不是 bug；
+- 本会话审批策略是 `never`，所以 B5（审批弹窗的批准/拒绝）在本会话跑不了：写操作被插件**当场拒绝并说明是策略**
+  （修之前的版本会把这件事说成"用户拒绝了"，而没有人被问过）。要跑那两个分支需换一个策略为 `ask` 的会话。
+
+### 12. 用户决定：这台部署改成"写操作不走审批缝"（并修掉一个优先级错误）
+
+**用户的决定**（人工验收过程中）：本体会话的审批策略是 `never`（弹窗根本弹不出来），于是写操作只会被拒绝、没法用。
+他把部署改成**无审批**形态：`~/.dsh/profiles/web/cordis.patch.yml` 的插件条目加
+
+```yaml
+      config:
+        approvalForWriteOps: false      # 写操作只由面板「写操作」开关把关
+```
+
+（备份：`cordis.patch.yml.bak-before-approval-off`；回滚 = 删掉这两行 + 重启 `dsh web`。）
+
+**为满足这个配置，先修掉一个优先级错误**：v3.41 §5 里那条 `policy === 'never' → deny` 排在
+`!approvalRequired()` **之前**，于是"操作者明确关掉了审批"反而被会话策略挡下 —— 操作者说不用问，
+插件却替他拒绝。现在顺序是：
+
+```
+写工具 + 开关关着           → deny（开关是最后一道闸）
+approvalForWriteOps=false   → 放行（mode 报 off，面板文案「审批已在配置里关闭」）
+会话策略 never              → deny（如实说明是策略，不甩锅给用户）
+无审批服务                   → 放行（mode 报 switch-only）
+其余                        → ask
+```
+
+**回归**：`tests/unit/write-gate.test.mjs` 第 8 节（新增 4 条，共 **37 断言**）——
+"`approvalForWriteOps=false` + 会话策略 `never` ⇒ 写操作**放行**、mode=`off`"、
+以及"开关仍然关着时无论审批怎么配都 deny"（否则"无审批部署"会退化成"无闸门"）。
+
+**由此留下的未验项（如实记录）**：审批弹窗的**交互**（真的弹出来 + 批准/拒绝两个分支）在本机仍未验证 ——
+只有换回 `ask`（把那段 config 删掉重启）才能验。unit 层覆盖的是判定逻辑，不是弹窗本身。
+
+## v3.40 — 2026-09-12
+
+**触发**：把 v3.39 里"审核 + 验真"产出的缺陷清单按 P0 → P1 → P2 修下去。用户同时拍板两件事：**接受 G1 实测 2.1–2.7 秒**（目标由 1.5s 下调为 2.8s）、以及**按上述顺序持续整改**。
+
+### 0. G1 目标按用户决定下调（★目标值变更，留痕）
+
+用户 2026-09-12 决定：**接受实测 2.1–2.7 秒**，G1 目标由 **≤1.5s 改为 ≤2.8s（p50）**。三处文档**同时**改齐，避免同仓库两套结论：
+`详细设计文档.md §1.2`、`docs/11-台账.md §2`、`docs/PROGRESS.md`（并把"预热 iframe 实测"作废）。
+原 1.5s **未达标**的事实保留在案；瓶颈经实测定位在 iframe 内 DSH 应用首屏（握手 2ms / 我方外壳 ~750ms / DSH 应用 ~1.34–2.6s），**不在本插件**。
+
+### 1. P0：安全与正确性（最小改动，各配能咬的回归）
+
+| 项 | 问题 | 修法 | 回归 |
+|---|---|---|---|
+| **A1** | `guard.js#sameOriginOk`：**Origin 缺失即放行**，而导航/`<img>` 这类请求也不发 Origin ⇒ 任意网页可 `GET /ag/pending`（消费式 `drain()`）清空待投递队列 | 严格照设计 §5.4 F4 那句话：Origin 存在必须等于本服务 authority；**缺失**时要求 `Sec-Fetch-Site: same-origin` **且**带 `dsh-auth-` cookie | `tests/unit/guard-client.test.mjs`（19 断言；旧代码下 4 条变红） |
+| **A2** | `dsh-session.js#ensureReady`：取票据失败时**静默回退**把长期配对密钥拼进 iframe URL（与同文件注释、设计 T9 都矛盾） | 重试一次；仍失败则 **fail-closed**：不返回 URL，给可诊断错误（复用已有 `E_UNPAIRED`，不新增协议码） | `tests/unit/embed-url.test.mjs`（12 断言，钉"任何返回字段都不含密钥"） |
+| **A3** | `panel.js#initWriteOps`：初始化用 `POST {allowBrowserWriteOps:false}` 去"读"状态 ⇒ **每次开面板把写开关静默关掉**（审计日志有实证） | 新增 **`GET /ag/control`**（只读）；面板初始化改 GET，只有用户拨动开关才 POST | 旧契约由 `test:unit` 的 write-gate/control 相关断言 + 真实环境验证（下次重启后 `delivered`/`control` 记录应只在用户操作时出现） |
+| **A4** | `agent-channel.js`：`capture-request` 校验失败只 `log` 后 `return`，不回 `capture-result` ⇒ 违背设计 §5.2「必须无条件回包」 | 失败也回 `capture-result(ok:false, E_PAYLOAD)` | 由 probe:look-left 系列覆盖（下轮重跑） |
+| **B1** | `hub.pushClientPrimary` 把"`send()` 没抛"当送达（`ws` 只在 CONNECTING 抛，其余非 OPEN 走 `sendAfterClose` 静默丢弃）；`deliveredTo` 回的是**计数伪装成 id**（`client:1`） | 发送前查 `readyState === OPEN`；首选半收不下就**回落其他页面半**；**返回真实 client id（或 null）**，`deliveredTo` 用它 | `tests/unit/capture-routing.test.mjs`（20 断言，新增"返回的 id 必须是已连接的 client id"） |
+| **B2a** | `sniffOnce` 的重新武装排在类型早退之前 ⇒ session id 抖成 `undefined` 时又可能重复抓取 | 类型检查前置 | 同上（client-attach 的 episode 断言） |
+| **B2b** | 意图 episode 是**页面级闭包**，而常态有两个页面半嗅**同一份共享草稿** ⇒ 同一句「看左边」可能被抓两次 | **宿主侧按 `sessionId+draft` 5 秒窗去重** | 待下轮探针/实机验证（页面级去重无法覆盖跨半，只有宿主能收敛） |
+| **B3** | 投递失败降级入队时**丢 owner** ⇒ 将来补投会把 `sessionMode:'current'` 插进错误页面半的会话 | owner 先取出，入队时带 `ownerClientId` | 由 capture-routing 的 owner 路径覆盖 |
+
+### 2. P0-C：让探针能红（针对"假绿"，单一真源）
+
+新增 `tests/lib/probe-result.mjs`：**断言 / 观测分离，且只有布尔 `true` 算通过**；非布尔值进"观测"桶、永不计通过（旧规则 `filter(v === false)` 会把记成 `null` 的对象静默算过）。
+
+- 已接线：`tests/m2/capture-probe.mjs`、`tests/m0b/chip-probe.mjs` —— 两者此前**既不算失败集、又无条件 `process.exit(0)`**（结构上不可能变红），现在以 `finish()` 收尾并如实设退出码。
+- 同时修掉 `capture-probe` 的恒真断言：`[].every(...)`（胶囊一个都没生成时反而变绿）改为**两条非空集断言**（`dockMounted === true` + 观察到的胶囊必须来自插槽），并把它从"硬断言"降级为观测的那条也标注清楚。
+- **新增门禁**（`consistency-check.mjs`，规则 19 → **20**）：`decorative-assertion` 禁止 `record(…, true)` 这类**装饰性断言** —— 实测 `tests/m3/debugger-probe.mjs` 里就有一条（还被我此前当成"14 条断言"之一引用过），已删除。实测该门禁会咬。
+- 另修我自己造的静默失败：`scripts/probe-all.mjs` 收尾重建 `dist` 失败时**只 `console.error` 而不影响退出码** ⇒ 现计入退出码。
+
+### 3. P0-C 续 + 第一次"能红的"探针重跑（★本轮最重要的证据）
+
+**探针全部接到新判定**：`attach` / `gate` / `agent-turn` / `autostart` 改用 `createResults`（`capture`/`chip` 此前已接）；`native-headed` 本来**零断言**，改为显式 `recorder.finish()` 如实打印「断言 0 条」（不假装它测过什么）；`perf` 的判定改造留在 P1。**16 个单测文件**的失败谓词同步收紧为 `v !== true`（原来只认字面 `false` ⇒ 记成 `null`/对象的断言静默通过）。
+
+**然后重跑 `probe:all` + `probe:chip`，结果（如实，含暴红）**：
+
+```
+❌ 2/8 个探针失败：probe:look-left、probe:capture
+✅ chip-probe：全部通过（断言 3 条，观测 12 条）
+```
+
+两条失败**都是真信息**，而且都指向"以前被静默掩盖"的东西：
+
+1. **`capture-probe` 红了 2 条 v3.38 的过期断言**（`noHijack_shellNotSwitched` / `noHijack_draftNotPrefilled`）。v3.39 按用户决定恢复设计行为（切到新会话 + 预填）后，这两条断言就过期了 —— 但该探针当时**没有失败集且无条件 `exit(0)`**，所以它一直"绿"。这正是"结构上不可能变红"掩盖缺陷的活样本；已改为断言新契约（`switched=true` / `inserted=true`）。
+2. **`probe:look-left` 红了 2 条** —— 因为我在 P0 引入的**宿主侧意图去重太钝**：它把"同一个页面半先后两次意图"也吞掉了。已收窄为**只在"另一个页面半发来同一 `sessionId+draft`"时折叠**（那才是重复投递的真因）。修完两片单独重跑：`probe:look-left` ✅、`probe:capture` ✅。
+
+> 教训（值得留档）：**收紧判定之后第一次重跑就会暴红**，而它抓到的两处都不是"新引入的 bug"，而是**被旧的假绿掩盖的旧问题**。这就是把"能红"排在所有 P1/P2 之前的原因。
+
+### 4. P1（本轮完成的子集）
+
+| 项 | 问题 | 修法 | 回归 |
+|---|---|---|---|
+| `hub.js` 心跳 | 用**原始文本子串** `includes('"pong"')` 判 pong ⇒ 任何 payload 含该字面量的帧在 `JSON.parse`/`settle()` 之前被丢，调用只能以 `E_TIMEOUT` 收场 | 先 parse，再判 `frame.type === 'pong'` | 由既有 loopback WS 单测（agent-selection / capture-routing）覆盖 |
+| `agent-hello` 死帧 | 协议有定义、扩展在发、**host 无 handler**（与 `request-pending` 同类） | `onAgentFrame` 收下并记录扩展版本/panel（诊断"陈旧构建"正需要它） | 同上 |
+| `onAgentConnect` 日志谎报 | `drainIntents()` 消费整队却只投最后一条，日志却打 `replayed N`，被丢的 N-1 条无任何痕迹 | 日志改 `replayed 1/N` + 丢弃数；并写入审计 `kind:"intent-replay"` | 由 probe:look-left（补发路径）覆盖 |
+| `retention.js#TEMP_FILE` | `/\.tmp$/u` 无前缀约束 ⇒ **用户在捕获目录里的 `notes.tmp` 老于 24h 就被删**，与本文件注释"绝不碰用户文件"直接矛盾 | 收紧为 `^\d{4}-\d{2}-\d{2}-\d{4}-.*\.md\.tmp$`（`store.js` 真正写的形态） | `retention.test.mjs` 新增第 5 节（21 断言；旧正则下"用户 .tmp 被保留"变红） |
+| `approval.js` 三处 | ①`next` 缺失时**无差别 allow**（写操作静默变无限制）②`mode` 是创建期 `const` 快照，却回传面板当"会问你"③`dispose` 从未被调用（热重载泄漏监听器） | ①写工具 **fail-closed**、读工具照旧放行；②`get mode()` 每次重算；③用 `ctx.effect` 注册 | `write-gate.test.mjs` 扩到 23 断言（含"写工具缺 next 必须 deny"与"mode 随审批服务卸载而变"） |
+| `check-dist-config` 独立基准 | 只断言 `source == dist` ⇒ 探针崩在"改写了 dev-config 未还原"时两边**一致地错**，门禁必然绿（正是它自称要防的事故） | 增加独立基准：源码端口必须等于**真实配对文件** `~/.dsh/dsh-web-companion.json` 的端口；无该文件时**明说基准缺失**而不是假装检查过 | 实测：把 dev-config 改成 3099 并一致重建 dist，门禁 **exit 1** 且给出修法 |
+| `audit.js` 静默死亡 | 一次 IO 异常即 `enabled = false` **永久**停写、无复活路径，且系统内外都不可观测（调用方全忽略返回值、`/ag/ping` 不暴露） | 不再拉闸：每次 append 都真的重试、计数、首次失败大声记一次；新增 `status()` 并经 **`/ag/whoami`** 暴露（诊断路由，不牵动协议 schema） | `audit-log.test.mjs` 扩到 26 断言，含"★第二次是真的重试（failed=2）而不是短路" |
+| `applyAttach` 无幂等 | 同一 `captureId` 被重复投递（重连/重试/发送方出 bug）会**重复插同一段 `@文件`** | 进函数先查 `state.chips.has(captureId)`，重复即忽略并返回 false | `client-attach.test.mjs` 新增第 6 节（29 断言；去掉守卫后 3 条变红） |
+| `persistScreenshot` id6 | `Math.random().toString(16).slice(2,8)` 可能**不足 6 位**（如 0.5 → `"0.8"`）⇒ 同一分钟的截图可能被 rename 静默覆盖 | 改用 `randomBytes(3).toString('hex')`（恒 6 位） | 由 E2E-13 工具契约断言（截图落盘资产）间接覆盖 |
+| `capture-probe` 复合观测 | `emptySelection` / `retention` 等把对象交给 `record()` ⇒ 旧过滤器只认字面 `false`，里面任何一项为 false **都不会变红** | 拆成逐条布尔断言（5 条新增），原对象降级为 `observe()` 保留可读性 | 探针自证（下次重跑可见断言数上升） |
+
+### 5. 本轮验证
+
+`npm run check` 全绿（exit 0）：**20 条反模式规则 / 222 文件、17 个单测文件**、`dist-config: OK（port=3080，且与真实配对文件一致）`。
+`probe:all` 8 个探针 6 ✅ / 2 ❌（**都是我该修的**：v3.38 过期断言 + 我引入的过钝去重；均已修，单跑复验 ✅）；`probe:chip` ✅。
+
+> **另一处"我自己的假绿"**：新加的独立基准一开始把 `homedir is not defined` 这类**检查自身的 bug** 也吞成"本机没有配对文件、跳过基准"——门禁静默退化。已改成显式区分「文件不存在」与「检查坏了（直接抛）」。
+
+**未做（下一步，P1 剩余）**：`mode:'screenshot'` 零像素仍 `ok:true`、积压抓取补投路径、`perf` 判定、`CHIP_LABEL_MAX` 注释纠正；然后 P2（协议 `error.code` 收紧、ROUTE 表单一来源、常量漂移、`whoami`/`ping` 口径、`pimoa-review` 驱动）。
+
+### 6. 第三轮：抽取质量 + 门禁自身收紧 + 全套复核
+
+**抽取质量（`extension/src/content/extract.fn.js`）**：
+
+| 项 | 问题 | 修法 |
+|---|---|---|
+| `stripTrailingMeta` | `digitRatio > 0.15 \|\| /^[^。.!?]{0,80}$/u.test(value)` —— 右边那支几乎恒真，**数字判据被完全架空**，而注释却声称"只在以数字为主时才删"（注释与代码相反） | 删掉从未起作用的数字判据；阈值 80 → **40**（80 字符能装下一整句英文说明，那不是标签） |
+| `clean()` | 零宽集合缺 **U+2066–U+2069**（Bidi isolate）；**U+2028/U+2029** 被当零宽**删除**，而它们是换行 ⇒ 会把两段粘成一段 | 补进 isolate；行/段分隔符改为替换成 `\n` |
+| `stripPlaceholderAnchors#isBareAnchor` | 用字符串 `startsWith` 比 `location.href`：带 query 时**漏判**占位锚点；`location.href` 恰为目标时又**误删**有效同页锚 | 改成比较"去掉 fragment/query 后的文档地址"，两端一致才算本页 |
+
+**门禁自身（两处"假绿"）**：
+
+- `consistency-check.mjs` 的 `allowIf` 豁免：**试过**改成"只看命中处前后 40 字符"的距离窗口 —— 结果**误伤设计文档里正当的引用**（那类句子本就更长），说明距离启发式不可靠，**已回退**。改为**不改变判定、但把豁免逐条打印**（本次 18 处）：弱点可见，而不是静默。这条"试过错法再回退"的过程也一并留痕。
+- `material-guard.mjs`：内容嗅探原先只匹配**裸关键词**，于是**守卫自己的源码与它的单测**（含正则字面量与伪造夹具）也被自己拦住 ⇒ 那两个文件进不了任何审查材料。改为要求"关键词后面真的跟着 ≥120 字符 base64"（PEM 头 + 正文，或私钥字段带长值），并把测试夹具改成真实长度。19 断言，含"★守卫自己的源码不被自己拦住"。
+
+**探针恢复**：`look-left-e2e-probe.mjs` 恢复 `dev-config` 时**同时重建 dist**（此前只还原源文件 ⇒ `extension/dist/` 留着测试端口 + 测试密钥构建的产物，而 dist 正是用户 Chrome 加载的目录）。核对：所有会改写 `dev-config` 的 6 个探针现在都重建 dist。
+
+**★全套复核（收紧判定之后）**：
+
+```
+npm run check                                            → exit 0（20 条规则 / 223 文件 / 17 单测文件 / dist-config OK）
+npm run probe:all                                        → exit 0，8/8 全绿
+npm run probe:chip                                       → exit 0
+```
+
+这意味着：**这一轮的全绿是在"探针真的会红"的判定下取得的**（此前同一批绿是结构上不可能红的）。
+**未做（下一步）**：P1 其余项（审计可观测与复活、`check-dist-config` 独立基准、`extract.fn.js` 抽取质量、`applyAttach` 幂等与截图零像素仍 ok、`persistScreenshot` id6、探针端口/路径集中、把 `capture-probe` 的复合"观测"升级为真断言、`perf` 判定）→ 然后 P2。
+
+---
+
+## v3.39 — 2026-09-12
+
+**触发**：用户实测后指出两件事 —— ①「按设计点击插件应该开一个新会话，但现在是在当前会话里 attach」；②我在 v3.38 里"顺带查出"的两个重复缺陷要一起修。
+
+### 0. ★推翻 v3.38 的一个决定（留痕，不粉饰）
+
+v3.38 我把「按钮/右键抓取」改成 **不抢界面 + 不预填**（用户当时在选项里选了这一条）。**本版按用户决策恢复设计行为**：
+
+| | v3.38（被推翻） | v3.39（当前） |
+|---|---|---|
+| `sessionMode: 'new'`（面板按钮 / 右键菜单） | 新建会话，**不切走、不预填**，胶囊给「引用」/「去该会话」 | **新建会话 + `sessions.open()` 切过去 + 把 `@文件` 写进那个会话的草稿**（= `attachSessionMode` 的设计含义） |
+| `sessionMode: 'current'`（「看左边」） | 引用进当前草稿 | 不变 |
+
+**为什么推翻**：用户最初的报告（"点「新会话」输入框自带 attach 文档"）**不是"切换"本身的错**，而是它被两个重复缺陷放大成了随机事件 —— 一次抓取被投给两个页面半（各建一个会话）、一次「看左边」触发两次抓取。把重复修掉之后，"按了按钮就切到新会话"是确定且符合预期的行为。v3.38 加的 `offered` /「引用」/「去该会话」机制因此整块删除，不留悬空代码。
+
+### 1. 修：一次抓取只投给一个页面半（真缺陷，用户实测暴露）
+
+**现场**：`/ag/ping` 报 `connectedClients: 2`（主 GUI 标签页 + 侧边栏 iframe 里那份 DSH GUI）。`/ag/attach` 用的是 `hub.push()` —— **广播**，两份页面各自 `applyAttach()`：
+
+```
+审计 05:45:05.821  trigger=button  sessionMode=new  delivered=2
+会话 05:45:05.846 / .849   ← 一次抓取，两个会话（相隔 3ms）
+审计 05:46:18.597  trigger=manual  sessionMode=new  delivered=2
+会话 05:46:18.619 / .622   ← 同上
+```
+
+这也**解释了用户最初报的 22:23 现象**（而我第一次把因果讲错了：那两个会话相隔 5ms，我说成"一个是你点的、一个是插件建的"，实际**两个都是插件建的** —— 一次抓取 × 两个页面半）。附带证据：那份 22:23 文件的 front-matter 逐字写着 `trigger: button`，而全仓只有面板两个按钮会发 `button`（右键菜单当时是坏的，意图路径写的是 `look_left`）。
+
+**修法**：
+
+- `hub.pushClientPrimary(event, preferredId)` —— 只投**一个**页面半；`push()` 的广播语义保留（心跳/状态类事件仍要广播）。
+- 选择顺序：**①谁要的给谁**（「看左边」意图的发起页面）→ ②被嵌入的那份（侧边栏，抓取就是从那儿发起的）→ ③focused → visible → 最近连接。
+- 配套接线（"接线"最容易错的地方，**端到端打通**）：client 半的 `hello` 新增 `embedded / visible / focused` 页面事实（并在 focus/blur/visibilitychange 时重发）；host 记住 `intent → requestId → (扩展的 capture-result 带 captureId) → captureId → clientId`，attach 落地时按 id 送回发起它的那个页面。断开的收件人自动回落到规则选出的页面，**不因 preferred 失效而丢抓取**。
+
+### 2. 修：一次「看左边」只抓一次（真缺陷）
+
+**现场**：`05:45:52.999` 与 `05:45:53.784` 两次 `look_left` 抓取，相隔 **785ms**（正好是嗅探器 800ms 的轮询周期），用户输入框里因此堆了**两个** `@网页捕获/…md`（内容完全相同，上下文成本翻倍）。
+
+**根因**：意图嗅探的旧守卫是"草稿与上次发送的不同"。而第一次抓取完成后插件**会改写草稿**（追加 `@文件`）—— 草稿变了、且仍以「看左边」开头 ⇒ 785ms 后又触发一次。同一个坑在用户**打字过程中**也会踩到。
+
+**修法**：改成 **episode 武装/解除** —— 命中关键词时触发一次并解除武装，直到关键词从草稿里消失（用户清掉）或换了会话才重新武装。
+
+### 3. 修：发布产物里被烤进了测试端口（真事故，用户侧整段时间连不上）
+
+**现场**：用户报"面板连不上"。查下来 `extension/dist/src/sw/index.js` 与 `panel.js` 里是 `port: 3099`（测试实例端口），而源码 `dev-config.js` 是 3080。**根因是我自己的操作**：探针为指向测试实例会临时改写 `dev-config.js`，而与此同时后台在跑 `npm run check`（含 `build:ext`）—— 构建把**测试端口**烤进了 `dist/`，而 `dist/` 正是用户 Chrome 加载的目录。表现是 `/ag/agent` 连不上、`E_EXT_OFFLINE`，而看源码完全看不出问题。
+
+**修法（两道防线）**：
+
+- `scripts/check-dist-config.mjs`（`npm run check:dist`，已并入 `check`）：**产物里烤的端口/密钥必须等于源码 `dev-config.js`**，不一致直接红并打印典型原因。已实测：正常 `exit 0`，把源码端口改成 3081 后 `exit 1`。
+- `probe:all` 收尾自动重建 `dist` 并自证，跑完探针不需要记得额外做什么。
+
+**顺带暴露的测试隔离问题（未修，记录）**：探针固定用 3099，而一份"指向测试端口 + 测试密钥"的扩展会真的连上测试实例并**替它应答工具调用** —— 实测 `probe:agent-turn` 因此读到用户的真实页面（apexnc）而不是夹具页，红了两次。这不是产品缺陷，但说明**探针实例没有和外来扩展隔离**（随机端口/独立密钥可解）。
+
+### 4. 测试
+
+| 文件 | 断言 | 钉住什么 |
+|---|---|---|
+| `tests/unit/capture-routing.test.mjs`（新） | 20 | 真 hub + 真 loopback WS：`push()` 广播、`pushClientPrimary()` **只投一个**、指定收件人覆盖默认规则、无页面时返回 0、只有主标签页时不丢、收件人已断开时回落、事实更新后规则跟着变 |
+| `tests/unit/client-attach.test.mjs`（重写） | 26 | 设计契约（`new` → 建会话 + 切过去 + 写进**那个**会话的草稿；`current` → 写当前草稿）+ **意图 episode 只触发一次** + 页面事实上报 |
+| `tests/unit/rotate.test.mjs`（新） | 11 | 原生 host 日志轮转（此前它是这条链路上**唯一无上限**的日志文件） |
+
+`npm run check` 全绿（exit 0）：19 条反模式规则 / 202 文件、**13 个单测文件**、`dist-config: OK（port=3080）`、体积 130.8KB。
+
+> 诚实记录：这轮我自己写测试时先写错了两处（一条期望值抄错、一条 WebSocket 桩从不触发 `open` 导致 hello 断言形同虚设），另有两条因为快照时机太早而假红 —— 都已修正，见 §5 的"未做/待验"。
+
+### 5. 未做 / 待验（如实）
+
+- **真 Chrome 探针本轮未跑**（用户要求"先不测试，先做 review"）；`probe:all` 与 `probe:chip` 需下一轮补跑。
+- 测试隔离（随机端口）未做，见 §3。
+- 台账 §5 的第 11、12 项（积压抓取投不出去、审批 `never` 下写操作被自动拒绝）仍未修。
+
+### 6. ★安全事件：扩展签名私钥被当审核材料外发给模型厂商
+
+**发生了什么**：我派 PiMoa 做对抗性 review 时，分片命令里带了 `scripts/`，于是
+`scripts/.dev-extension-key.json` 被 `scripts/pimoa-review.mjs` **逐字读入**当材料发出；`moa_verify`
+会把材料送给模型厂商 —— 报告里逐字记着 `models=deepseek/deepseek-v4-flash,minimax/MiniMax-M3`。**已外传。**
+
+**泄漏物**（逐字核对，非推测）：
+
+| 片 | 混入的敏感文件 | 泄漏物 | 落点 |
+|---|---|---|---|
+| 片1（桥接） | `scripts/.dev-extension-key.json` | **扩展签名私钥**：`publicKeyDer`(392) + `privateKeyPem`(1704，RSA-2048，可解析)；`publicKeyDer` 与 `extension/manifest.json` 的 `"key"` **逐字相同**，推导出的扩展 ID 正是 `idpgkobbblmpmnonlndopijgfmehfmig` | 已外发给模型厂商 |
+| 片2a（扩展） | `extension/src/lib/dev-config.js` | **真实桥接配对密钥**（32 字节，`/ag/*` 的唯一门禁；实测该文件里的 key 与 `~/.dsh/dsh-web-companion.json` 逐字相同） | 已外发；**并被模型逐字回显进本机 spool** `/Users/mac/.pimoa/spool/20260912T061716-…md`（`docs/reviews/*` 产物里**不含**密钥，已 grep 逐字确认 0 命中） |
+
+> ⚠️ **更正**：本文件早先版本写的是"配对密钥不在那份材料里"—— 那是**只看了桥接片**得出的错结论。片 2a 的 context 是
+> `find extension/src dsh-plugin/lib …`，`dev-config.js` 正在其中，所以**配对密钥确实泄了**。原判断已作废。
+
+**爆炸半径（决定"要不要紧张"的关键事实）**：`/ag/*` 只监听回环（`127.0.0.1:3080`，实测 `lsof`）。拿到密钥的人必须**已经能在这台机器上执行代码或访问回环**才能用它 —— 远程攻击者用不上；网页也读不到（CORS + key/Origin 双校验）。且两个凭据各管一半：扩展签名密钥能造"同 ID 的扩展"，但过不了 `/ag/*` 的 key 校验；配对密钥能调 `/ag/*`，但拿不到它的人是远程的。
+
+**已做的卫生处置**：`/Users/mac/.pimoa/spool` → `700`，目录内含明文密钥的文件 → `600`（此前是 `644`，同机其他用户可读）。**没有删除**该 spool（保留证据），只是收紧权限。
+
+**根因**：设计 §9/T2 早把"密钥文件误外发"列为本机高频事故模式，但**只防了 git**，没防"喂给外部模型"这条等价出口；
+驱动脚本对 context 没有任何过滤。
+
+**处置（已做）**：`scripts/material-guard.mjs` + `pimoa-review.mjs` **上网之前**调用 ——
+路径黑名单（`.dev-extension-key.json`/`dsh-web-companion.json`/`dev-config.js`/`.credentials.yaml`/`.devhome/`/`*.pem`/`*.key`/`id_rsa`）
+**加**内容嗅探（PEM 私钥头、`privateKeyPem` 字段名；路径改名也拦得住）；命中即 `exit 2` 并列名，
+**故意不留强制放行开关**。实测 `--context scripts/.dev-extension-key.json` → `exit 2` 且无任何产物；
+`tests/unit/material-guard.test.mjs`（16 断言）覆盖真实路径 / 伪装路径 / 干净文件不误报。
+
+**用户决定（2026-09-12）：不轮换这对扩展密钥。** 理由：泄漏物不含配对密钥（真正的门禁没泄），而轮换会改扩展 ID，
+牵动 native host 的 `allowed_origins` 与重新配对 —— 相对收益不值这个代价，且这不是当前的核心问题。
+**记录在此，以免后人以为是遗漏。**
+
+### 7. 审核与验真（PiMoa，本轮只做了审核与验真，未改代码）
+
+- 对抗性 review **桥接片成功**：`docs/reviews/pimoa-code-adversarial-bridge.md`（quorum 2/2，206.7s，3 BLOCKER / 6 MAJOR / 8 MINOR）。
+- **逐条独立验真**：`docs/reviews/pimoa-verification-2026-09-12.md` —— 17 条中 **15 条真 / 2 条部分真 / 0 条误读**。
+  两条经源码确认的硬结论：①`node_modules/ws/lib/websocket.js` 的 `send()` **只在 CONNECTING 时抛**，其余非 OPEN 走
+  `sendAfterClose(ws,data,cb)`，没传回调即静默丢弃 ⇒ `pushClientPrimary` 会把半死 socket 记成 `delivered=1`；
+  ②`consistency-check.mjs:211` 的豁免按**整行**判定 ⇒ 门禁自身可被话术绕过；③`check-dist-config.mjs` 只断言 `source==dist`、
+  无独立基准 ⇒ 对"探针崩在改写 dev-config 未还原"这类事故恒真。
+- **我额外核出一条 MAJOR**（PiMoa 只擦到边）：`extension/src/sw/ops/index.js:266`/`:290` 只用 `debuggerAvailable()`
+  （= `typeof chrome.debugger?.attach === 'function'`）判断、**不查「浏览器控制」开关** ⇒ 模型调
+  `browser_screenshot{fullPage:true}` 或 `browser_ax` 会在用户没开开关时 attach 调试器并弹不可消除的「正在调试」横幅 ——
+  与 ADR-12/T8「运行期 opt-in、默认不 attach」**以及该工具自己描述里写的"整页需要「浏览器控制」开关"直接矛盾**。
+- **缺口（未完成）**：常规 code review 两片**零产出**；对抗性 review 的**扩展/测试片**因材料预算（424541 > 360000 字符）整片失败
+  ⇒ 「看左边只抓一次」「测试有无假绿」两条**仍未被外部审过**。已派子代理改小分量重跑。
+- 待修清单（P0 三条 / P1 五条 / P2 六条）见验真文档 §4。
+
+---
+
+## v3.38 — 2026-09-12（已被 v3.39 部分推翻，见上）
+
+**触发**：用户报了一个现象 —— **在 DSH GUI 里点「新会话」，输入框自带一份网页 attach 文档**（`@网页捕获/…md`），他说自己没开侧边栏、也没点扩展。查下去牵出四个真问题，本版全修，并补上"以后能定案"的审计。
+
+### 0. 用户报的现象：根因在 client 半，不在扩展
+
+会话库里的证据（`~/.dsh/sessions/--Users-mac-ai_tools-dsh~0020project--/`）：2026-09-11T02:23:36.**922**Z 与 **.927**Z **相隔 5ms 创建了两个会话** —— 5ms 不可能是两次人手点击，而全仓唯一程序化建会话的地方就是 client 半的 `openFreshSession()`。其中 `session-4dc031af` 的首条用户消息逐字以注入的 `@网页捕获/2026-09-11-2223-plant-the-peak-…md` 开头，并跑完了一轮 18 步对话。
+
+链路（逐字）：
+
+1. `dsh-plugin/src/host/routes/attach.js:65` — `sessionMode = trigger === 'look_left' ? 'current' : (config.attachSessionMode ?? 'new')`
+2. `dsh-plugin/src/host/index.js` — `attachSessionMode` 默认 `'new'`
+3. `dsh-plugin/lib/client.js` — `applyAttach()` 对 `'new'` 调 `openFreshSession()`
+4. **旧 `openFreshSession()` 里有 `sessions.open(sessionId)`**（抢走界面）+ **`applyAttach()` 无条件 `shell.setDraft(fileRef)`**（预填输入框）
+
+⇒ 任何**非「看左边」**触发的抓取（面板按钮 / 右键菜单）都会**新建会话 + 把界面切过去 + 预填 `@文件`**。用户点「新会话」时看到的那份附件，就是插件在他点完 5ms 后创建并切过去的那个会话。
+
+**修法**（两半契约从此分开，`tests/unit/client-attach.test.mjs` 钉住）：
+
+| `sessionMode` | 谁触发 | 新建会话 | 抢界面 | 预填草稿 | 状态 |
+|---|---|---|---|---|---|
+| `current` | 输入框写「看左边」 | 否 | 否 | **是**（用户就是在这个会话里打的那句话） | `inserted` |
+| `new` | 面板按钮 / 右键菜单 | 是 | **否**（旧行为：是） | **否**（旧行为：是） | **`offered`** |
+
+`offered` 的兑现方式：胶囊上多一个 **「引用」** 按钮（点了才切到该会话并插入 `@文件`）；若目标会话不是当前会话，当前会话的胶囊区会显示一条 **「去该会话」** 条目 —— 不加这条，"不抢界面"会静默退化成"抓取丢了"（插槽是 session 作用域的）。ack 也随之改变：**offered 不立即 ack**，用户点「引用」→ `inserted`，点 ✕ → `dismissed`，所以审计里"没人理的抓取"如实显示为没人理，而不是假的 `inserted`。
+
+### 1. 右键菜单抓取从来就是坏的（`trigger` 不在枚举里）
+
+`extension/src/sw/menu.js` 一直发 `trigger: 'contextmenu'`，而 `AttachRequest.trigger` 的枚举是 `look_left | button | shortcut | manual` —— 这个值**不在枚举里**，于是每次右键抓取都在 host 的 `validateAs('AttachRequest')` 被 **400/E_PAYLOAD** 挡掉，一个文件都不会落盘。菜单看起来接好了，实际是哑的。
+
+修：改用枚举内的 **`manual`**（用户手势触发、既不是面板按钮也不是快捷键）。新增 `tests/unit/menu-trigger.test.mjs`（7 断言）把**扩展发出的值直接喂给同一个生成校验器**；已实测把旧值放回去该测试立刻变红并打印 `not in enum [...] at $.trigger`。
+
+> 台账 §3 曾把"右键菜单"记为已有 —— 错的，探针从未测过这条路。
+
+### 2. 审计日志（设计 §9 承诺过，此前零实现）
+
+设计与台账都写了"桥接插件记录 `ts, origin, route, status, bytes, duration, captureId`（无 key/正文）"、"扩展记录 capture/tool"。实测：**两半都没有**。这正是上面那个 5ms 事件查不到底的原因（插件队列只在内存，进程一重启就没了；当时那个实例已经没了）。
+
+新增：
+
+| 位置 | 产物 | 关键字段 |
+|---|---|---|
+| 插件 | `<DSH_HOME>/logs/web-companion-audit.jsonl`（轮转，512KB / 保留 1200 行） | `trigger`、`sessionMode`、`delivered`、`captureId`、`status`、`chars` |
+| 扩展 | `chrome.storage.local['ag-audit']` 环形缓冲（200 条），`chrome.runtime.sendMessage({kind:'audit'})` 读 | `trigger`、`mode`、`domain`（**仅主机名**）、`code`、`ms` |
+
+隐私是**结构性**的，不靠约定：两半都走 **allow-list**，不在名单上的键永远进不了文件/存储（`url`、正文、选区、密钥即使被传进来也没用），并有单测把 `LEAK-*` 值钉死。扩展侧 `domain` 只到主机名 —— 整条 URL 会把搜索词、文档 id、query 里的 token 一起带进去。写不进去时**自我禁用并报告，绝不弄坏抓取**。
+
+单测：`tests/unit/audit-log.test.mjs`（23 断言）+ `tests/unit/audit-fields.test.mjs`（11 断言）。
+
+### 3. 改名：设计早就宣布废弃，manifest 一直没改
+
+`extension/manifest.json` 里逐字还是 `"name": "Antigravity Web Companion"` + `"default_title": "Antigravity Companion"`，`panel.html` 的标题同样是旧的，而设计 §6.1 早已写「旧名全部废弃、扩展名统一 `DSH Web Companion`」。改为用户指定的 **`DeepSeek 浏览器插件`**（manifest name / action.default_title / panel 标题）。
+
+**扩展 ID 不变**：ID 由 `manifest.key`（钉死的公钥）决定，实测改名后探针仍报 `extension id=idpgkobbblmpmnonlndopijgfmehfmig`，所以 native host 的 `allowed_origins`、配对密钥、`chrome.storage` 全不受影响。顺带把 `host/paths.js` 里遗留的 `antigravity-bridge.log` 改成 `dsh-web-companion-bridge.log`。
+
+### 4. 新增单测：直接跑那个手写 bundle
+
+`tests/unit/client-attach.test.mjs`（25 断言）用假 `ctx` 直接加载 `dsh-plugin/lib/client.js`（桩掉 `window.__ModuleLoader__` / `WebSocket` / `document` / `location` / 定时器），断言：
+
+- `sessionMode: 'new'` → 建了会话，但 **`sessions.open()` 0 次、`setDraft()` 0 次**，状态 `offered`，不 ack；
+- `sessionMode: 'current'` → 照旧写进当前草稿并 ack `inserted`；
+- 「引用」→ 切到该会话 + 插入 + ack；✕ → 不动草稿 + ack `dismissed`。
+
+> 为什么必须补这层：`client.js` 是**手写产物** —— `dsh-plugin/package.json` 的 `build:client` 指向一个**并不存在的 `build.mjs`**（`src/client/` 目录也没有）。此前只有真 Chrome 探针能碰它，而探针跑的是**白盒 hook**，这正是真实链路缺陷能躲过全绿的原因。
+
+### 5. 已知但本版未修（如实列出）
+
+| # | 问题 | 证据 |
+|---|---|---|
+| a | **积压抓取永远投不出去**：`attach.js:84` 在无客户端时 `store.enqueue()`（响应如实写 `deliveredTo: []`），但 client 半发的 `request-pending` **在 host 侧没有 handler**（`grep request-pending dsh-plugin/src` 零命中），而唯一能 `drain()` 的 `GET /ag/pending` **全仓无调用者** | 设计 §5.1/§5.2 与此不符 |
+| b | **审批策略 `never` 会让写操作"自动拒绝 + 甩锅给用户"**：插件 `approval.js` 的 `mode` 只看 `ctx.get('approval')` **存不存在**、不看策略；真实部署 3080 现在仍回 `approvalMode: "ask"`；而 DSH 侧 `dsh-user-approval/lib/invariant.js` 的 `decide()` 在 `never` 下直接 `return "rejected"`，`serviceAsk` 把它变成 `the user rejected tool "browser_click"` | `approval.js:31-51`、`dsh-tools/lib/index.js:3315-3348` |
+| c | G1 仍未达标，且**不是常量**：台账记 2.09s，2026-09-12 实测 p50 **2743ms**（瓶颈仍是 iframe 内 DSH 应用启动） | `docs/reviews/perf-g1-g2.json` |
+| d | 三份文档的提交数与设计图谱数字过期（台账 40 / HANDOFF 41 / PROGRESS 32+`v3.30`，实际 **43**；设计 §13.1 写 20 文件 246 节点，实际 89 文件 / 4206 边） | 已在本版一并订正 |
+
+---
+
+## v3.37 — 2026-09-11
 
 **触发**：补完 E2E-7 的最后一格 —— 让**真实模型**调用 `browser_*`。结果顺带挖出两个真缺陷。
 

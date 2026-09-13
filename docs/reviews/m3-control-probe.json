@@ -1,19 +1,21 @@
 {
   "probe": "m3/control",
   "port": "3099",
-  "at": "2026-09-12T04:27:09.433Z",
+  "at": "2026-09-13T02:01:52.602Z",
   "results": {
     "「写操作」开关在面板上可见": true,
     "初始为只读（5 个工具）": true,
     "开关点击走通（面板探针确认 writeOps=true）": true,
     "插件即时注册写工具（8 个，无重启）": true,
-    "面板探针同步拿到新能力集": true,
+    "面板探针同步拿到新能力集（含 browser_type）": true,
+    "面板能力集与插件侧一致（同为 5 个只读 + 3 个写）": true,
     "可以再关回去": true,
     "关闭后写工具从注册表消失（不是\"注册后拒绝\"）": true,
     "无 key → 403": true,
     "非法 body → 400（schema 校验）": true,
     "两次非法请求都没改变状态": true
   },
+  "observations": {},
   "before": [
     "browser_read",
     "browser_tabs",

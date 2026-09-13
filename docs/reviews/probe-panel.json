@@ -1,24 +1,30 @@
 {
   "probe": "m1-panel",
-  "dshPort": "3080",
+  "dshPort": "3099",
   "extensionId": "idpgkobbblmpmnonlndopijgfmehfmig",
   "results": {
     "panelStatus": "up",
     "panelStatusText": "DSH 已连接",
-    "frameSrc": "http://127.0.0.1:3080/ag/enter?ticket=2l4MW8yVkE90GO-mnOuubuygSJq6fBHM",
+    "frameSrc": "http://127.0.0.1:3099/ag/enter?ticket=NvqSWhB3eyK9kArvk5FWxJ8Mglx1UMLn",
     "frameSrcUsesTicket": true,
     "frameSrcLeaksKey": false,
     "notice": "正在连接本地 DSH…",
     "iframe": {
-      "href": "http://127.0.0.1:3080/",
+      "href": "http://127.0.0.1:3099/",
       "title": "DeepSeek Harness",
-      "nodes": 265,
+      "nodes": 225,
       "composer": true,
       "unauthorized": false,
-      "bodyText": "探索未至之境 预览版 dsh project 标准模式 描述你想要构建的内容… / 调用指令 @ 文件或对话 DeepSeek Flash High 详情 点击消息流中的工具行查看详情"
+      "bodyText": "探索未至之境 预览版 选择工作区 标准模式 选择一个工作区开始"
     },
+    "插件真实状态确为「写操作开」（否则这节测不出东西）": true,
+    "开关行可见（说明那次读没有异常退出）": true,
+    "★面板显示的勾选态 == 插件真实状态（403 那种\"读不到就退回 off\"会在这里露馅）": true,
+    "状态文案仍归连接状态管（没有互相覆盖）": true,
+    "收尾：把写开关关回去（不留副作用）": true,
     "dshHttp": {
-      "200 /": 1
+      "200 /": 1,
+      "200 /ag/control": 1
     },
     "consoleErrors": [],
     "screenshot": "/Users/mac/ai_tools/dsh project/网页插件/docs/reviews/probe-panel.png"

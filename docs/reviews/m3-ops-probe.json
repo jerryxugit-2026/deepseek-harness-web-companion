@@ -1,7 +1,7 @@
 {
   "probe": "m3/ops",
   "fixturePort": 3995,
-  "at": "2026-09-12T04:26:21.723Z",
+  "at": "2026-09-13T02:01:04.927Z",
   "results": {
     "browser_tabs 列出夹具页": true,
     "browser_tabs 不把扩展自身页面当普通标签": true,
@@ -32,8 +32,18 @@
     "导航后标题更新": true,
     "browser_wait(selector) 等到动态元素": true,
     "等不到 → E_TIMEOUT（可诊断）": true,
+    "★真实数据下 browser_read 的返回值通过自己声明的 output schema": true,
+    "★真实数据下 browser_tabs 的返回值通过自己声明的 output schema": true,
+    "★真实数据下 browser_wait 的返回值通过自己声明的 output schema": true,
+    "★真实数据下 browser_screenshot 的返回值通过自己声明的 output schema": true,
+    "★真实数据下 browser_ax 的返回值通过自己声明的 output schema": true,
+    "★真实数据下 browser_click 的返回值通过自己声明的 output schema": true,
+    "★真实数据下 browser_type 的返回值通过自己声明的 output schema": true,
+    "★真实数据下 browser_navigate 的返回值通过自己声明的 output schema": true,
+    "nodeId 的真实类型是字符串（CDP AXNode.nodeId）": true,
     "关闭开关返回释放情况": true
   },
+  "observations": {},
   "sample": {
     "read": {
       "title": "M3 ops 夹具",

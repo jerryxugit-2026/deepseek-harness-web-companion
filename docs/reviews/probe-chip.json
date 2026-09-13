@@ -1,14 +1,18 @@
 {
   "probe": "m0b-chip",
   "dshPort": "3099",
-  "captureId": "M0B-CHIP-mtxt4prd",
+  "captureId": "M0B-CHIP-mtyj9jib",
   "workspace": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a",
   "results": {
     "clientConnected": true,
+    "composerActive": true,
+    "draftContainsFileRef": true
+  },
+  "observations": {
     "uiClicks": [
       [
         "选择工作区",
-        false
+        true
       ],
       [
         "m0a-workspace",
@@ -19,33 +23,32 @@
         true
       ]
     ],
-    "composerActive": true,
     "attachStatus": 200,
     "attachDeliveredTo": [
-      "client:2"
+      "client:fa37"
     ],
     "chipCount": 1,
     "chip": {
       "host": "slot",
-      "captureId": "M0B-CHIP-mtxt4prd",
+      "captureId": "M0B-CHIP-mtyj9jib",
       "status": "inserted",
       "mode": "selection+page",
       "label": "📄 网页: M0B 胶囊探针页"
     },
     "lastAttach": {
-      "captureId": "M0B-CHIP-mtxt4prd",
+      "captureId": "M0B-CHIP-mtyj9jib",
       "inserted": true,
+      "status": "inserted",
       "detail": "",
-      "fileRef": "@网页捕获/2026-09-11-2310-m0b-胶囊探针页-xt4prd.md",
-      "sessionId": "session-92449dfc-fac1-4c8f-ba86-ec1bf8e8f285",
+      "fileRef": "@网页捕获/2026-09-12-1121-m0b-胶囊探针页-yj9jib.md",
+      "sessionId": "session-e0c0cc54-0585-41c8-a293-cac1e58b0104",
       "sessionMode": "current",
       "switched": false
     },
-    "draftContainsFileRef": true,
-    "draftText": "@网页捕获/2026-09-11-2310-m0b-胶囊探针页-xt4prd.md",
+    "draftText": "@网页捕获/2026-09-12-1121-m0b-胶囊探针页-yj9jib.md",
     "acksAfterInsert": [
       {
-        "captureId": "M0B-CHIP-mtxt4prd",
+        "captureId": "M0B-CHIP-mtyj9jib",
         "status": "inserted"
       }
     ],
@@ -53,11 +56,11 @@
     "draftAfterDismiss": "\n",
     "acksTotal": [
       {
-        "captureId": "M0B-CHIP-mtxt4prd",
+        "captureId": "M0B-CHIP-mtyj9jib",
         "status": "inserted"
       },
       {
-        "captureId": "M0B-CHIP-mtxt4prd",
+        "captureId": "M0B-CHIP-mtyj9jib",
         "status": "dismissed"
       }
     ],

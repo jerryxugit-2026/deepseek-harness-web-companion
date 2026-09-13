@@ -1,7 +1,7 @@
 {
   "probe": "m2/look-left",
   "port": "3099",
-  "at": "2026-09-12T04:25:06.657Z",
+  "at": "2026-09-13T01:59:12.363Z",
   "results": {
     "面板关闭时意图入队并在连接后补发": true,
     "补发的请求 reason=queued / mode=page": true,
@@ -13,6 +13,9 @@
     "错误 key 的 /ag/agent 被拒（403）": true,
     "抓取仍可落盘（POST /ag/attach 200）": true,
     "抓取推送到达 client 通道（未被 intent 队列吞掉）": true,
-    "推送 mode=page 且带 fileRef": true
-  }
+    "推送 mode=page 且带 fileRef": true,
+    "★宿主收下页面的回执并写进审计（kind=ack）": true,
+    "★回执里的 status 如实落盘（inserted）": true
+  },
+  "observations": {}
 }

@@ -42,9 +42,9 @@
       "path": "docs/01-protocol.md",
       "title": "01 · 协议契约（Protocol）",
       "version": null,
-      "lines": 229,
+      "lines": 246,
       "sections": 8,
-      "codeRefs": 6,
+      "codeRefs": 8,
       "docRefs": 1
     },
     {
@@ -114,7 +114,7 @@
       "path": "docs/09-manual-checklist.md",
       "title": "人工验收清单（有头 Chrome）",
       "version": null,
-      "lines": 48,
+      "lines": 58,
       "sections": 7,
       "codeRefs": 0,
       "docRefs": 0
@@ -132,17 +132,26 @@
       "path": "docs/11-台账.md",
       "title": "项目台账（对照《详细设计文档》）",
       "version": "v3.1",
-      "lines": 197,
+      "lines": 234,
       "sections": 12,
-      "codeRefs": 8,
+      "codeRefs": 10,
+      "docRefs": 0
+    },
+    {
+      "path": "docs/12-实机验收-测试方案.md",
+      "title": "实机验收测试方案（v3.38 · 2026-09-12）",
+      "version": null,
+      "lines": 188,
+      "sections": 7,
+      "codeRefs": 6,
       "docRefs": 0
     },
     {
       "path": "docs/CHANGELOG.md",
       "title": "变更记录（CHANGELOG）",
       "version": "v3.0",
-      "lines": 1086,
-      "sections": 41,
+      "lines": 1675,
+      "sections": 45,
       "codeRefs": 0,
       "docRefs": 1
     },
@@ -150,27 +159,27 @@
       "path": "docs/DOC-GRAPH.md",
       "title": "文档与代码图谱（DOC-GRAPH）",
       "version": null,
-      "lines": 303,
+      "lines": 321,
       "sections": 6,
-      "codeRefs": 196,
+      "codeRefs": 197,
       "docRefs": 0
     },
     {
       "path": "docs/HANDOFF.md",
       "title": "交接提示词（新会话从这里开始）",
-      "version": null,
-      "lines": 188,
-      "sections": 7,
-      "codeRefs": 1,
+      "version": "v3.41，两者**不是同一个号**）",
+      "lines": 337,
+      "sections": 10,
+      "codeRefs": 20,
       "docRefs": 0
     },
     {
       "path": "docs/PROGRESS.md",
       "title": "进度与续跑规则（durable memory）",
       "version": null,
-      "lines": 50,
-      "sections": 6,
-      "codeRefs": 0,
+      "lines": 97,
+      "sections": 8,
+      "codeRefs": 4,
       "docRefs": 0
     },
     {
@@ -210,6 +219,15 @@
       "docRefs": 0
     },
     {
+      "path": "docs/reviews/manual-acceptance-2026-09-12.md",
+      "title": "人工验收记录 — 2026-09-12（真机，用户本人操作）",
+      "version": null,
+      "lines": 217,
+      "sections": 11,
+      "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
       "path": "docs/reviews/pimoa-adversarial-v3.0.md",
       "title": "PiMoa 对抗性审核结果",
       "version": null,
@@ -242,6 +260,123 @@
       "version": null,
       "lines": 73,
       "sections": 5,
+      "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
+      "path": "docs/reviews/pimoa-code-adversarial-2a-extension.md",
+      "title": "PiMoa 对抗性审核结果",
+      "version": null,
+      "lines": 78,
+      "sections": 4,
+      "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
+      "path": "docs/reviews/pimoa-code-adversarial-2b-tests.md",
+      "title": "PiMoa 对抗性审核结果",
+      "version": null,
+      "lines": 70,
+      "sections": 4,
+      "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
+      "path": "docs/reviews/pimoa-code-adversarial-2c-probes.md",
+      "title": "PiMoa 对抗性审核结果",
+      "version": null,
+      "lines": 66,
+      "sections": 1,
+      "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
+      "path": "docs/reviews/pimoa-code-adversarial-bridge.md",
+      "title": "PiMoa 对抗性审核结果",
+      "version": null,
+      "lines": 74,
+      "sections": 5,
+      "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
+      "path": "docs/reviews/pimoa-code-adversarial-extension.md",
+      "title": "PiMoa 对抗性审核结果",
+      "version": null,
+      "lines": 14,
+      "sections": 1,
+      "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
+      "path": "docs/reviews/pimoa-code-adversarial-index.md",
+      "title": "PiMoa 对抗性审查 — 驱动索引与转述（非 PiMoa 原始裁决）",
+      "version": null,
+      "lines": 168,
+      "sections": 9,
+      "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
+      "path": "docs/reviews/pimoa-code-review-1-bridge.md",
+      "title": "PiMoa 对抗性审核结果",
+      "version": null,
+      "lines": 67,
+      "sections": 4,
+      "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
+      "path": "docs/reviews/pimoa-code-review-2-extension.md",
+      "title": "PiMoa 对抗性审核结果",
+      "version": null,
+      "lines": 63,
+      "sections": 1,
+      "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
+      "path": "docs/reviews/pimoa-code-review-3-tests.md",
+      "title": "PiMoa 对抗性审核结果",
+      "version": null,
+      "lines": 52,
+      "sections": 4,
+      "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
+      "path": "docs/reviews/pimoa-code-review-4a-probes-m0m1.md",
+      "title": "PiMoa 对抗性审核结果",
+      "version": null,
+      "lines": 90,
+      "sections": 4,
+      "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
+      "path": "docs/reviews/pimoa-code-review-4c-probes-m2.md",
+      "title": "PiMoa 对抗性审核结果",
+      "version": null,
+      "lines": 55,
+      "sections": 5,
+      "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
+      "path": "docs/reviews/pimoa-code-review-4d-probes-m3.md",
+      "title": "PiMoa 对抗性审核结果",
+      "version": null,
+      "lines": 52,
+      "sections": 4,
+      "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
+      "path": "docs/reviews/pimoa-verification-2026-09-12.md",
+      "title": "PiMoa 审核结论·独立验真（2026-09-12）",
+      "version": null,
+      "lines": 115,
+      "sections": 10,
       "codeRefs": 0,
       "docRefs": 0
     },
@@ -300,6 +435,24 @@
       "docRefs": 0
     },
     {
+      "path": "scripts/review-prompts/code-adversarial.md",
+      "title": "Prompt：对抗性代码审查（假定\"已修好/已验证\"都是假的）",
+      "version": null,
+      "lines": 42,
+      "sections": 6,
+      "codeRefs": 5,
+      "docRefs": 0
+    },
+    {
+      "path": "scripts/review-prompts/code-review.md",
+      "title": "Prompt：全量代码审查（接线 / 假绿 / 硬编码优先）",
+      "version": null,
+      "lines": 52,
+      "sections": 4,
+      "codeRefs": 2,
+      "docRefs": 0
+    },
+    {
       "path": "scripts/review-prompts/design-adversarial.md",
       "title": "scripts/review-prompts/design-adversarial.md",
       "version": null,
@@ -314,27 +467,30 @@
       "version": "v3.37",
       "lines": 930,
       "sections": 16,
-      "codeRefs": 43,
+      "codeRefs": 44,
       "docRefs": 4
     }
   ],
   "code": {
-    "indexedFiles": 159,
+    "indexedFiles": 187,
     "areas": {
       "extension": [
         "docs/01-protocol.md",
         "docs/06-test-plan.md",
-        "docs/11-台账.md",
         "docs/DOC-GRAPH.md",
+        "docs/HANDOFF.md",
         "详细设计文档.md"
       ],
       "dsh-plugin": [
         "docs/01-protocol.md",
         "docs/DOC-GRAPH.md",
+        "docs/HANDOFF.md",
+        "scripts/review-prompts/code-adversarial.md",
         "详细设计文档.md"
       ],
       "native-host": [
-        "docs/01-protocol.md"
+        "docs/01-protocol.md",
+        "docs/HANDOFF.md"
       ],
       "protocol": [
         "docs/01-protocol.md",
@@ -346,7 +502,11 @@
         "docs/05-native-host.md",
         "docs/06-test-plan.md",
         "docs/07-implementation-plan.md",
+        "docs/11-台账.md",
         "docs/DOC-GRAPH.md",
+        "docs/HANDOFF.md",
+        "scripts/review-prompts/code-adversarial.md",
+        "scripts/review-prompts/code-review.md",
         "scripts/review-prompts/design-adversarial.md",
         "详细设计文档.md"
       ],
@@ -903,10 +1063,6 @@
       },
       {
         "doc": "docs/11-台账.md",
-        "ref": ".../look-left-e2e-probe.json"
-      },
-      {
-        "doc": "docs/11-台账.md",
         "ref": ".../m3-agent-turn-probe.json"
       },
       {
@@ -924,6 +1080,10 @@
       {
         "doc": "docs/11-台账.md",
         "ref": "hub.ts"
+      },
+      {
+        "doc": "docs/11-台账.md",
+        "ref": "uninstall.mjs"
       },
       {
         "doc": "docs/DOC-GRAPH.md",
@@ -1004,6 +1164,10 @@
       {
         "doc": "docs/DOC-GRAPH.md",
         "ref": ".../packages/client/web/src/seed.ts"
+      },
+      {
+        "doc": "docs/DOC-GRAPH.md",
+        "ref": ".../protocol/codegen.mjs"
       },
       {
         "doc": "docs/DOC-GRAPH.md",
@@ -1588,6 +1752,14 @@
       {
         "doc": "docs/DOC-GRAPH.md",
         "ref": "wait.js"
+      },
+      {
+        "doc": "docs/HANDOFF.md",
+        "ref": "uninstall.mjs"
+      },
+      {
+        "doc": "docs/PROGRESS.md",
+        "ref": "uninstall.mjs"
       },
       {
         "doc": "详细设计文档.md",

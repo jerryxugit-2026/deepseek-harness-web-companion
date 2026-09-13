@@ -1,14 +1,14 @@
 # 文档与代码图谱（DOC-GRAPH）
 
 > **自动生成，请勿手改**：`node scripts/doc-graph.mjs`（校验：`node scripts/doc-graph.mjs --check`）
-> 生成时间：2026-09-12T04:58:40.288Z
+> 生成时间：2026-09-13T02:38:02.458Z
 >
 > **更新时机（随项目进展）**：
 > 1. 任一 `*.md` 或代码文件增删改后 → `npm run graph:sync`（代码图谱增量重建）+ `npm run graph:docs`（本文件重生成）；
 > 2. 每个里程碑（M1–M4）收尾必须执行一次，并把 `--check` 纳入交付前检查；
 > 3. `--check` 发现 broken-doc-link / missing-code-ref 时以非零码退出，作为质量门。
 
-## 1. 文档清单（35 份 / 159 个代码与配置文件）
+## 1. 文档清单（52 份 / 187 个代码与配置文件）
 
 | 文档 | 标题 | 版本 | 行数 | 二级标题数 | 代码引用数 |
 |---|---|---|---|---|---|
@@ -16,7 +16,7 @@
 | `FINDINGS.md` | dsh-chrome 可行性验证结果（FINDINGS） | — | 81 | 7 | 0 |
 | `PRD_需求定义说明书.md` | DeepSeek Harness Web Companion (DSH 浏览器智能侧伴侣) | v3.0.0 | 138 | 8 | 0 |
 | `README.md` | DSH Web Companion（Antigravity Web Companion） | — | 111 | 9 | 0 |
-| `docs/01-protocol.md` | 01 · 协议契约（Protocol） | — | 229 | 8 | 6 |
+| `docs/01-protocol.md` | 01 · 协议契约（Protocol） | — | 246 | 8 | 8 |
 | `docs/02-extension.md` | 02 · Chrome 扩展设计（`extension/`） | — | 296 | 8 | 39 |
 | `docs/03-bridge-plugin.md` | 03 · DSH 桥接插件（host 半）设计：`dsh-plugin/` | — | 375 | 10 | 20 |
 | `docs/04-client-plugin.md` | 04 · DSH 客户端插件设计（`dsh-plugin/src/client/`） | — | 169 | 8 | 12 |
@@ -24,39 +24,56 @@
 | `docs/06-test-plan.md` | 06 · 测试方案（单测矩阵 + E2E） | — | 128 | 8 | 36 |
 | `docs/07-implementation-plan.md` | 07 · 实现计划（任务分解与完成判据） | — | 87 | 7 | 39 |
 | `docs/08-security.md` | 08 · 安全与威胁模型 | — | 73 | 6 | 1 |
-| `docs/09-manual-checklist.md` | 人工验收清单（有头 Chrome） | — | 48 | 7 | 0 |
+| `docs/09-manual-checklist.md` | 人工验收清单（有头 Chrome） | — | 58 | 7 | 0 |
 | `docs/10-automation.md` | 自动化分层：哪些能无人值守，哪些必须有人（M4-3） | — | 70 | 7 | 0 |
-| `docs/11-台账.md` | 项目台账（对照《详细设计文档》） | v3.1 | 197 | 12 | 8 |
-| `docs/CHANGELOG.md` | 变更记录（CHANGELOG） | v3.0 | 1086 | 41 | 0 |
-| `docs/DOC-GRAPH.md` | 文档与代码图谱（DOC-GRAPH） | — | 303 | 6 | 196 |
-| `docs/HANDOFF.md` | 交接提示词（新会话从这里开始） | — | 188 | 7 | 1 |
-| `docs/PROGRESS.md` | 进度与续跑规则（durable memory） | — | 50 | 6 | 0 |
+| `docs/11-台账.md` | 项目台账（对照《详细设计文档》） | v3.1 | 234 | 12 | 10 |
+| `docs/12-实机验收-测试方案.md` | 实机验收测试方案（v3.38 · 2026-09-12） | — | 188 | 7 | 6 |
+| `docs/CHANGELOG.md` | 变更记录（CHANGELOG） | v3.0 | 1675 | 45 | 0 |
+| `docs/DOC-GRAPH.md` | 文档与代码图谱（DOC-GRAPH） | — | 321 | 6 | 197 |
+| `docs/HANDOFF.md` | 交接提示词（新会话从这里开始） | v3.41，两者**不是同一个号**） | 337 | 10 | 20 |
+| `docs/PROGRESS.md` | 进度与续跑规则（durable memory） | — | 97 | 8 | 4 |
 | `docs/REVIEW-v3.0.md` | 详细设计 v3.0 评审报告（Review of v3.0 → 修正为 v3.1） | v3.0 | 68 | 5 | 0 |
 | `docs/research/01-dsh-plugin-authoring.md` | 01 — Writing, building, installing and testing a THIRD-PARTY DSH plugin (host half + browser/client half) | — | 1137 | 18 | 0 |
 | `docs/research/02-dsh-client-composer-attach.md` | 02 — DSH Web GUI 客户端插件「插入 composer 内容 + 附件 + 上下文 chip」seam 调研 | — | 1446 | 22 | 0 |
 | `docs/research/03-chrome-extension-constraints.md` | 03 — Chrome (Manifest V3) platform constraints & APIs for the side-panel + local-app extension | — | 591 | 11 | 0 |
+| `docs/reviews/manual-acceptance-2026-09-12.md` | 人工验收记录 — 2026-09-12（真机，用户本人操作） | — | 217 | 11 | 0 |
 | `docs/reviews/pimoa-adversarial-v3.0.md` | PiMoa 对抗性审核结果 | — | 71 | 4 | 0 |
 | `docs/reviews/pimoa-adversarial-v3.1.md` | PiMoa 对抗性审核结果 | — | 93 | 5 | 0 |
 | `docs/reviews/pimoa-adversarial-v3.2.md` | PiMoa 对抗性审核结果 | v3.3 | 81 | 5 | 0 |
 | `docs/reviews/pimoa-adversarial-v3.3.md` | PiMoa 对抗性审核结果 | — | 73 | 5 | 0 |
+| `docs/reviews/pimoa-code-adversarial-2a-extension.md` | PiMoa 对抗性审核结果 | — | 78 | 4 | 0 |
+| `docs/reviews/pimoa-code-adversarial-2b-tests.md` | PiMoa 对抗性审核结果 | — | 70 | 4 | 0 |
+| `docs/reviews/pimoa-code-adversarial-2c-probes.md` | PiMoa 对抗性审核结果 | — | 66 | 1 | 0 |
+| `docs/reviews/pimoa-code-adversarial-bridge.md` | PiMoa 对抗性审核结果 | — | 74 | 5 | 0 |
+| `docs/reviews/pimoa-code-adversarial-extension.md` | PiMoa 对抗性审核结果 | — | 14 | 1 | 0 |
+| `docs/reviews/pimoa-code-adversarial-index.md` | PiMoa 对抗性审查 — 驱动索引与转述（非 PiMoa 原始裁决） | — | 168 | 9 | 0 |
+| `docs/reviews/pimoa-code-review-1-bridge.md` | PiMoa 对抗性审核结果 | — | 67 | 4 | 0 |
+| `docs/reviews/pimoa-code-review-2-extension.md` | PiMoa 对抗性审核结果 | — | 63 | 1 | 0 |
+| `docs/reviews/pimoa-code-review-3-tests.md` | PiMoa 对抗性审核结果 | — | 52 | 4 | 0 |
+| `docs/reviews/pimoa-code-review-4a-probes-m0m1.md` | PiMoa 对抗性审核结果 | — | 90 | 4 | 0 |
+| `docs/reviews/pimoa-code-review-4c-probes-m2.md` | PiMoa 对抗性审核结果 | — | 55 | 5 | 0 |
+| `docs/reviews/pimoa-code-review-4d-probes-m3.md` | PiMoa 对抗性审核结果 | — | 52 | 4 | 0 |
+| `docs/reviews/pimoa-verification-2026-09-12.md` | PiMoa 审核结论·独立验真（2026-09-12） | — | 115 | 10 | 0 |
 | `docs/reviews/probe-autostart-manual-verification.md` | M2 · 自动拉起（H4①）实测验证 —— 用户真实 Chrome | — | 26 | 4 | 0 |
 | `docs/reviews/probe-chip.md` | M0b 探针报告 · E2E-0 完整闭环（probe-chip） | — | 42 | 6 | 0 |
 | `docs/reviews/probe-composer.md` | M0a 探针报告 · composer / client 插件契约（probe-composer） | — | 46 | 3 | 0 |
 | `docs/reviews/probe-cookie-matrix.md` | M0a 探针报告 · Cookie 矩阵（probe-cookie-matrix） | — | 49 | 5 | 0 |
 | `docs/reviews/probe-keepalive.md` | M0a 探针报告 · 空闲 WebSocket 保活（probe-keepalive / Q8） | — | 29 | 4 | 0 |
 | `docs/reviews/probe-permission.md` | M0a 探针报告 · 权限实验（probe-permission） | — | 35 | 5 | 0 |
+| `scripts/review-prompts/code-adversarial.md` | Prompt：对抗性代码审查（假定"已修好/已验证"都是假的） | — | 42 | 6 | 5 |
+| `scripts/review-prompts/code-review.md` | Prompt：全量代码审查（接线 / 假绿 / 硬编码优先） | — | 52 | 4 | 2 |
 | `scripts/review-prompts/design-adversarial.md` | scripts/review-prompts/design-adversarial.md | — | 27 | 4 | 0 |
-| `详细设计文档.md` | DSH Web Companion · 详细设计规范说明书 | v3.37 | 930 | 16 | 43 |
+| `详细设计文档.md` | DSH Web Companion · 详细设计规范说明书 | v3.37 | 930 | 16 | 44 |
 
 ## 2. 文档 ↔ 代码 覆盖矩阵
 
 | 代码区 | 职责 | 描述它的文档 |
 |---|---|---|
-| `extension/` | Chrome MV3 扩展（side panel / service worker / content script） | `docs/01-protocol.md` `docs/06-test-plan.md` `docs/11-台账.md` `docs/DOC-GRAPH.md` `详细设计文档.md` |
-| `dsh-plugin/` | DSH 进程内插件（host 桥接 + client composer 注入） | `docs/01-protocol.md` `docs/DOC-GRAPH.md` `详细设计文档.md` |
-| `native-host/` | native messaging 宿主（拉起 dsh web，M2） | `docs/01-protocol.md` |
+| `extension/` | Chrome MV3 扩展（side panel / service worker / content script） | `docs/01-protocol.md` `docs/06-test-plan.md` `docs/DOC-GRAPH.md` `docs/HANDOFF.md` `详细设计文档.md` |
+| `dsh-plugin/` | DSH 进程内插件（host 桥接 + client composer 注入） | `docs/01-protocol.md` `docs/DOC-GRAPH.md` `docs/HANDOFF.md` `scripts/review-prompts/code-adversarial.md` `详细设计文档.md` |
+| `native-host/` | native messaging 宿主（拉起 dsh web，M2） | `docs/01-protocol.md` `docs/HANDOFF.md` |
 | `protocol/` | 单源消息 schema + codegen | `docs/01-protocol.md` `docs/06-test-plan.md` `docs/DOC-GRAPH.md` `详细设计文档.md` |
-| `scripts/` | 安装 / 配对 / 工具脚本 | `docs/05-native-host.md` `docs/06-test-plan.md` `docs/07-implementation-plan.md` `docs/DOC-GRAPH.md` `scripts/review-prompts/design-adversarial.md` `详细设计文档.md` |
+| `scripts/` | 安装 / 配对 / 工具脚本 | `docs/05-native-host.md` `docs/06-test-plan.md` `docs/07-implementation-plan.md` `docs/11-台账.md` `docs/DOC-GRAPH.md` `docs/HANDOFF.md` `scripts/review-prompts/code-adversarial.md` `scripts/review-prompts/code-review.md` `scripts/review-prompts/design-adversarial.md` `详细设计文档.md` |
 | `tests/e2e/` | E2E harness 与用例 | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
 | `spike/` | 可行性实验（回归基线） | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` `详细设计文档.md` |
 
@@ -114,7 +131,7 @@ flowchart LR
 | `.../dsh-session.test.js` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
 | `.../extract.test.js` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
 | `.../hub.test.ts` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
-| `.../look-left-e2e-probe.json` | `docs/11-台账.md` `docs/DOC-GRAPH.md` |
+| `.../look-left-e2e-probe.json` | `docs/DOC-GRAPH.md` |
 | `.../m3-agent-turn-probe.json` | `docs/11-台账.md` `docs/DOC-GRAPH.md` |
 | `.../m3-control-probe.json` | `docs/11-台账.md` `docs/DOC-GRAPH.md` |
 | `.../m3-debugger-probe.json` | `docs/11-台账.md` `docs/DOC-GRAPH.md` |
@@ -123,6 +140,7 @@ flowchart LR
 | `.../packages/client/tsdown.client.ts` | `docs/DOC-GRAPH.md` |
 | `.../packages/client/web/src/platform.ts` | `docs/DOC-GRAPH.md` |
 | `.../packages/client/web/src/seed.ts` | `docs/DOC-GRAPH.md` |
+| `.../protocol/codegen.mjs` | `docs/DOC-GRAPH.md` |
 | `.../state.test.js` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
 | `.../store.test.ts` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
 | `.../tool-bridge.test.ts` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
@@ -263,7 +281,7 @@ flowchart LR
 | `tsdown.config.ts` | `docs/DOC-GRAPH.md` |
 | `type.js` | `docs/02-extension.md` `docs/DOC-GRAPH.md` |
 | `ui-slots/src/index.ts` | `docs/DOC-GRAPH.md` |
-| `uninstall.mjs` | `docs/06-test-plan.md` `docs/DOC-GRAPH.md` |
+| `uninstall.mjs` | `docs/06-test-plan.md` `docs/11-台账.md` `docs/DOC-GRAPH.md` `docs/HANDOFF.md` `docs/PROGRESS.md` |
 | `vitest.config.ts` | `docs/DOC-GRAPH.md` |
 | `vitest.e2e.config.ts` | `docs/DOC-GRAPH.md` |
 | `vitest.shared.ts` | `docs/DOC-GRAPH.md` |

@@ -16,11 +16,21 @@
 
 ## B. 「正在调试」横幅与浏览器控制开关
 
-4. 面板勾选「浏览器控制」→ 目标标签页顶部应出现**不可消除**的调试横幅（Chrome 的行为）；面板状态栏提示"已开启…"。
-5. 让模型调用一次写操作（或手动触发 `browser_click`）：应弹出 **DSH 审批请求**（本机部署 `approvalMode: "ask"`）。
+4. 面板勾选「浏览器控制」→ 面板状态栏提示"已开启…"。
+   - **横幅是"每次调用时短暂出现"，不是常驻**（2026-09-12 人工验收实测，见 `docs/reviews/manual-acceptance-2026-09-12.md` B4）：
+     开关只是**许可**，真正的 attach 发生在每次浏览器操作里（`ops/debugger.js#withDebugger`：attach → 执行 → `finally` 里 detach），
+     所以「正在调试此浏览器」横幅只在一次调用进行中可见（整页截图约 1 秒、AX 树约 0.1 秒），之后自动消失。
+   - 想亲眼看到：让模型连发几次整页截图，盯着目标标签页顶部。
+5. 让模型调用一次写操作（或手动触发 `browser_click`）：应弹出 **DSH 审批请求**。
+   - **前置**：`/ag/control` 要么回 `approvalMode: "ask"`（会真的弹提示），要么回 `policy-never`（本会话审批提示被关掉）。
+     后者**不会**有弹窗，写操作会被插件当场拒绝，理由写的是"审批策略是 never"（v3.41 起如此；以前它会说"用户拒绝了"，而没有人被问过）。
    - 批准 → 页面真的变化；拒绝 → 工具返回 `denied` 且**页面不变**。
-6. 取消勾选「浏览器控制」→ 横幅消失（插件会 `detachAll`）。
-7. 打开 DevTools 再点「浏览器控制」→ 期望 attach 失败并报 `Another debugger is already attached…`（可诊断，不是静默）。
+6. 取消勾选「浏览器控制」→ 再让模型调一次 `browser_ax`/整页截图：应被**拒绝**（`E_NO_PERMISSION`，提示先打开开关），且不会有任何 attach（插件在关开关时 `detachAll` 兜底释放残留占用）。
+7. ~~打开 DevTools 再点「浏览器控制」→ 期望 attach 失败~~ **这条期望已作废（2026-09-12 实测）**：
+   真机 Chrome 150 上，DevTools 打开着时本扩展 `chrome.debugger.attach` **照样成功**（连测两次，`browser_ax` 都返回了 999 节点的树）。
+   多调试器并存是新版 Chrome 的行为。`E_TARGET_BUSY` 的真实触发是**另一个扩展**占着该目标
+   （以及同一扩展重复 attach —— 后者由 `probe:m3-debugger` 的 `secondAttach` 记录在案：Chrome 原文 `Another debugger is already attached to the tab with id: …`）。
+   要验这条得装第二个用 debugger 的扩展，本清单不再要求。
 
 ## C. 「看左边」的自然使用
 
