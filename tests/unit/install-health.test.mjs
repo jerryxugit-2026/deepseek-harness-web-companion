@@ -82,9 +82,10 @@ console.log('\n4. distOk=null（没跑检查）时不许假装通过')
   const items = evaluateHealth({ ...FACTS_OK, distOk: null })
   const dist = byId(items, 'dist-port')
   record('ok=false（没验就是没验）', dist.ok === false)
-  record('★ 标为 soft（不因"没检查"而把安装判死）', dist.soft === true)
+  // ★ 2026-09-13 改：dist-port 由 soft 改**硬**判据（缺脚本＝安装残缺），退回 soft ⇒ 下面两条红
+  record('★ 标为硬判据（不因"没检查"而放过）', dist.soft === false)
   record('detail 说"未检查"', dist.detail.includes('未检查'))
-  record('总判定不受它影响', overallOk(items) === true)
+  record('★ 总判定因它**不通过**（退回 soft ⇒ 这里红）', overallOk(items) === false)
 }
 
 console.log('\n5. 拿不到 connectedClients 时如实说拿不到（不是"通"也不是"不通"）')
