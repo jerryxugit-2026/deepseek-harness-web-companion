@@ -29,6 +29,32 @@ import { dirname, join } from 'node:path'
 export const PLUGIN_RUNTIME_DEPS = ['@deepseek-ai/dsh-tools', '@deepseek-ai/dsh-credentials', 'ws']
 
 /**
+ * 哪些插件依赖**允许**回落到下载。
+ *
+ *   · `ws` 是普通 npm 包：插件只是拿它起 WS 服务，**没有**"必须与 DSH 同一实例"的约束，缺了可以下载；
+ *   · 两个 `@deepseek-ai/*` 是 **DSH 自己的子包**：插件跑在 DSH 进程**内**，必须绑同一份
+ *     （版本一致 + 同一模块实例）。缺了只能**硬失败** —— 绝不能下载第二份：
+ *     npm 上 `@deepseek-ai/dsh-tools` 的 `latest` 实测是 `0.0.1-rc.1` 那个 stub。
+ */
+export const DOWNLOADABLE_PLUGIN_DEPS = ['ws']
+
+/**
+ * 把计划里"不可用"的依赖分成两类：**可以下载的** 与 **必须硬失败的**。
+ *
+ * 纯函数：安装器的两个分支都读它，不再各写一份 `if`。这条知识（"哪些包必须与 DSH 同源"）
+ * 只该有一处 —— 上一版只在 `describePluginLinks()` 里写了一句"（需要单独下载）"，
+ * 而安装器**压根没实现下载**：缺包时只 `warn` 一句就继续，要等第 6.5 步导入自检才
+ * 以"模块找不到"失败（而那时已经写了一堆文件）。2026-09-13 补上兜底并抽出这个判据。
+ */
+export function classifyMissingPluginDeps(plan) {
+  const missing = plan.filter((item) => !item.available).map((item) => item.name)
+  return {
+    downloadable: missing.filter((name) => DOWNLOADABLE_PLUGIN_DEPS.includes(name)),
+    fatal: missing.filter((name) => !DOWNLOADABLE_PLUGIN_DEPS.includes(name)),
+  }
+}
+
+/**
  * 从 `dsh` 可执行文件出发，向上找到 `@deepseek-ai/dsh` 这个包的根目录。
  *
  * 为什么要跟着符号链接走：本机 `dsh` 是两层软链

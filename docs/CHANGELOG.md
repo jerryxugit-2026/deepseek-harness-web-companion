@@ -5,6 +5,57 @@
 
 ---
 
+## v3.46 — 2026-09-13（插件依赖「链不上」时的兜底）
+
+**触发**：台账 §5 第 16 项，用户 2026-09-13 批准「这个可以做」。
+
+### 1. 缺陷：缺包时只 warn，等第 6.5 步才炸
+
+`bootstrap/install.mjs` 第 3 步原来只做一件事：
+
+```js
+const missing = plan.filter((i) => !i.available)
+if (missing.length > 0) w.warn(`DSH 里缺 … 安装可能不完整。`)
+```
+
+警告完就继续 ⇒ 一路把安装目录写完，**到第 6.5 步导入自检**才以 `ERR_MODULE_NOT_FOUND` 失败。
+而 `describePluginLinks()` 里早就写着"（需要单独下载）"—— 说明当初有这个意图，但下载**从未实现**
+（`npmInstallTargets()` 全仓只有它自己的单测在调用）。
+
+### 2. 修法：分两路，判据抽成纯函数
+
+`bootstrap/lib/dsh-root.mjs` 新增 `DOWNLOADABLE_PLUGIN_DEPS = ['ws']` 与
+`classifyMissingPluginDeps(plan)` → `{ downloadable, fatal }`：
+
+| 缺哪个 | 处置 | 为什么 |
+|---|---|---|
+| `ws` | **下载**到 `<安装目录>/.plugin-deps/`，再链进 `dsh-plugin/node_modules` | 普通 npm 包，插件只是拿它起 WS，没有"必须与 DSH 同一实例"的要求 |
+| `@deepseek-ai/dsh-tools` / `-credentials` | **硬失败（exit 3）**，指名道姓 + 给修法 | 插件跑在 DSH 进程**内**，必须与 DSH 同一模块实例；npm 上 `dsh-tools` 的 latest 是 `0.0.1-rc.1` 的 stub —— 下载第二份等于用一个跑不起来的副本顶掉它 |
+
+两个接线要点（做反了会**静默失效**）：
+
+- **下载必须在 `applyPluginLinks()` 之后** —— 它开头就 `rm -rf node_modules`，反过来做会把刚下载的删掉。
+- **不能在 `dsh-plugin/` 里直接 `npm install ws`** —— npm 会按 `dsh-plugin/package.json` 把整棵树 reify，
+  连带装出第二份 `@deepseek-ai/dsh-tools`。所以先装进**安装目录内的暂存区**（不是 /tmp：重跑/升级不重复下载），再建链接。
+
+dry-run 时**只警告不硬失败**（这样用户还能看完整计划）；第 276 行的 dry-run 提前退出保证了写路径不可达。
+
+### 3. 证据
+
+- 单测 `tests/unit/dsh-root.test.mjs` 25 → **30 条断言**。**咬合验证**：把 `DOWNLOADABLE_PLUGIN_DEPS`
+  放宽成三个包全可下载 ⇒ **3 条红**（两条"必须 fatal" + 一条"可下载集合恰好是 ws"），还原即绿。
+- **端到端（假 DSH，全部在 /tmp，用完即删）**：
+  - 缺两个 `@deepseek-ai/*` ⇒ 第 3 步**当场 exit 3**，输出指名 `缺 @deepseek-ai/dsh-tools、@deepseek-ai/dsh-credentials` 并说明不下载的理由，**没有**写用户的 DSH 挂载。
+  - 只缺 `ws` ⇒ 走下载：实测下载到 `/tmp/wc-install-test/.plugin-deps/node_modules/ws`，并链成
+    `dsh-plugin/node_modules/ws -> …/.plugin-deps/node_modules/ws`；链接建立在 `applyPluginLinks` **之后**，所以**存活**。
+
+### 4. 台账 §5 第 17 项（抓取目录数量上限 `maxFiles`）：**决定不做**
+
+用户 2026-09-13 明确指示不做。理由（原话）：「抓取 1000 遍, 可能吗? 就算抓了又怎么样,
+过了 24 小时不就删除了吗?」—— 保留策略已有 24h 时间上限把增长封住，再加数量上限属于 overdesign。
+
+---
+
 ## v3.45 — 2026-09-13（抓取残留粘连 + 引导程序让用户选目录）
 
 **触发**：用户复查上一轮修复，问三件事 —— ①「抓取的标签清晰了吗？还有空行吗？」

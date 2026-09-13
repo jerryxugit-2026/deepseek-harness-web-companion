@@ -40,7 +40,7 @@ import {
   parsePort,
   resolveLayout,
 } from './lib/layout.mjs'
-import { applyPluginLinks, describePluginLinks, findDshRoot, planPluginLinks } from './lib/dsh-root.mjs'
+import { applyPluginLinks, classifyMissingPluginDeps, describePluginLinks, findDshRoot, planPluginLinks } from './lib/dsh-root.mjs'
 import { extensionIdFromKey } from './lib/extension-id.mjs'
 import { checkChrome, checkDirectory, checkDshCli, checkMount, checkNode, checkPort, renderChecks, summarize } from './lib/checks.mjs'
 import { dirStatus, dshVersion as readDshVersion, pingPlugin, portListening, readPairingKey, which } from './lib/probe.mjs'
@@ -173,6 +173,43 @@ const must = (res, what) => {
   process.exit(3)
 }
 
+/**
+ * 把"DSH 里没有、但允许下载"的插件依赖装到**安装目录内的暂存区**，再链进 `dsh-plugin/node_modules`。
+ *
+ * 为什么不直接 `npm install --prefix <安装目录>/dsh-plugin ws`：npm 会按
+ * `dsh-plugin/package.json` 把**整棵树** reify ⇒ 连带装出**第二份** `@deepseek-ai/dsh-tools`，
+ * 而那个包在 npm 上的 `latest` 是 `0.0.1-rc.1` 的 stub（见第 3 步上面的注释）——
+ * 等于用一个跑不起来的副本顶掉"必须与 DSH 同源"的那一条。
+ *
+ * 暂存区放在**安装目录里**（不是 /tmp）：重跑与升级时已有就不重复下载。
+ * ⚠️ 调用点必须在 `applyPluginLinks()` **之后** —— 它开头就 `rm -rf node_modules`。
+ * 本函数只在 apply 路径上可达（dry-run 在第 276 行就退出了），所以不需要 `DRY_RUN` 分支。
+ */
+async function linkDownloadablePluginDeps(names) {
+  const stage = join(layout.installDir, '.plugin-deps')
+  const staged = (name) => join(stage, 'node_modules', name)
+  const needing = names.filter((name) => !existsSync(staged(name)))
+
+  if (needing.length > 0) {
+    w.detail(`暂存区：${stage}`)
+    if (!(await w.confirm(`DSH 里没有 ${needing.join('、')} —— 现在下载到暂存区？`))) return
+    must(
+      run('npm', ['install', '--no-audit', '--no-fund', '--no-save', '--prefix', stage, ...needing]),
+      `下载 ${needing.join('、')}`,
+    )
+  } else {
+    w.detail(`复用暂存区里已有的 ${names.join('、')}（不重复下载）`)
+  }
+
+  for (const name of names) {
+    const linkPath = join(layout.pluginDir, 'node_modules', name)
+    w.detail(`链接 ${staged(name)} → ${linkPath}`)
+    mkdirSync(dirname(linkPath), { recursive: true })   // 带 scope 的包要先建 @scope/ 目录
+    rmSync(linkPath, { recursive: true, force: true })
+    symlinkSync(staged(name), linkPath, 'dir')
+  }
+}
+
 /* ─────────────────────── 探测事实 → 体检 ─────────────────────── */
 
 let dshPath = which('dsh')
@@ -257,7 +294,7 @@ w.info(' 将要写入 / 改动的东西')
 w.info(`   ① 创建安装目录      ${layout.installDir}`)
 w.info(`   ② 复制源码          ${String(installPayload().length)} 项（不含 node_modules、不含 dist —— 发行包保持轻）`)
 w.info(`   ③ 准备 DSH          ${dshPath === null ? `**缺** ⇒ 将安装 @deepseek-ai/dsh@${targetDshVersion}（钉版本，不用 latest）` : `已装，跳过（${dshPath}）`}`)
-w.info(`      接上插件依赖      ${layout.pluginDir}/node_modules → 你的 DSH（不下载，版本自动一致）`)
+w.info(`      接上插件依赖      ${layout.pluginDir}/node_modules → 你的 DSH（优先链接、版本自动一致；DSH 里真缺了才下载 ws）`)
 w.info(`   ④ 准备 esbuild      ${join(layout.installDir, 'extension')}（只有它要下载，约 11MB）`)
 w.info(`   ⑤ 生成配对钥匙      ${layout.pairingFile}（幂等：已存在则复用，不轮换）`)
 w.info(`   ⑥ 构建扩展产物      ${layout.extensionDist}（端口=${String(port)}）`)
@@ -375,13 +412,26 @@ step(3, '准备 DSH 与插件依赖（DSH 缺了才装；插件依赖链接过�
     w.detail(`DSH 安装根：${dshRoot}`)
     w.detail('插件跑在 DSH 进程里，所以直接用它自己那份子包 —— 版本永远一致、不用下载：')
     for (const line of describePluginLinks(plan)) w.detail(`  ${line}`)
-    const missing = plan.filter((i) => !i.available)
-    if (missing.length > 0) {
-      w.warn(`DSH 里缺 ${missing.map((m) => m.name).join('、')} —— 这三个包正常随 DSH 一起来，安装可能不完整。`)
+    /*
+     * DSH 里缺包时的兜底（2026-09-13）。
+     *
+     * 此前这里只 `warn` 一句就继续 ⇒ 要等第 6.5 步导入自检才以"模块找不到"失败，而那时
+     * 已经写了一堆文件。现在按"这个包能不能下载"分两路，判据在
+     * `classifyMissingPluginDeps()`（纯函数 + 单测）：能下载的（`ws`）下载到暂存区，
+     * 必须与 DSH 同源的（两个 `@deepseek-ai/*`）**当场停下**（dry-run 时只警告，见下）。
+     */
+    const gaps = classifyMissingPluginDeps(plan)
+    if (gaps.fatal.length > 0) {
+      w.warn(`DSH 里缺 ${gaps.fatal.join('、')} —— 这三个包正常随 DSH 一起来。`)
+      w.warn('它们是 DSH 自己的子包，插件必须与 DSH 用同一份；下载第二份会变成两个模块实例，所以这里不下载。')
+      w.warn('先把 DSH 装好（例如重装 `@deepseek-ai/dsh`）再重跑本程序。')
+      must({ status: 1 }, `插件依赖检查（缺 ${gaps.fatal.join('、')}）`)
     }
     if (await w.confirm('建立这些链接？')) {
       const made = applyPluginLinks({ pluginDir: layout.pluginDir, plan })
       w.info(`   ✅ 链接了 ${String(made.length)} 个包`)
+      // ★ 必须在 applyPluginLinks 之后：它开头就 rm -rf node_modules，先下载会被删掉
+      if (gaps.downloadable.length > 0) await linkDownloadablePluginDeps(gaps.downloadable)
     }
   }
 }

@@ -177,8 +177,8 @@
       "path": "docs/CHANGELOG.md",
       "title": "变更记录（CHANGELOG）",
       "version": "v3.0",
-      "lines": 2586,
-      "sections": 49,
+      "lines": 2637,
+      "sections": 50,
       "codeRefs": 0,
       "docRefs": 1
     },
@@ -480,6 +480,33 @@
       "docRefs": 0
     },
     {
+      "path": "scripts/review-prompts/wizard-1-orchestration.md",
+      "title": "Prompt：安装/升级向导（片 1／共 3）—— 编排、幂等、假 dry-run、失败语义",
+      "version": null,
+      "lines": 76,
+      "sections": 5,
+      "codeRefs": 4,
+      "docRefs": 0
+    },
+    {
+      "path": "scripts/review-prompts/wizard-2-wiring.md",
+      "title": "Prompt：安装/升级向导（片 2／共 3）—— 环境探测、路径规划与\"接线\"",
+      "version": null,
+      "lines": 82,
+      "sections": 5,
+      "codeRefs": 14,
+      "docRefs": 0
+    },
+    {
+      "path": "scripts/review-prompts/wizard-3-interaction.md",
+      "title": "Prompt：安装/升级向导（片 3／共 3）—— 交互、预检与\"健康判定\"（假绿重灾区）",
+      "version": null,
+      "lines": 66,
+      "sections": 4,
+      "codeRefs": 5,
+      "docRefs": 0
+    },
+    {
       "path": "详细设计文档.md",
       "title": "DSH Web Companion · 详细设计规范说明书",
       "version": "v3.37",
@@ -522,6 +549,9 @@
         "scripts/review-prompts/code-adversarial.md",
         "scripts/review-prompts/code-review.md",
         "scripts/review-prompts/design-adversarial.md",
+        "scripts/review-prompts/wizard-1-orchestration.md",
+        "scripts/review-prompts/wizard-2-wiring.md",
+        "scripts/review-prompts/wizard-3-interaction.md",
         "详细设计文档.md"
       ],
       "tests/e2e": [
