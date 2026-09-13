@@ -89,7 +89,7 @@ export async function captureScreenshot() {
   const base64 = dataUrl.replace(/^data:image\/png;base64,/u, '')
   const bytes = Math.round((base64.length * 3) / 4)
   if (bytes > MAX_SCREENSHOT_BYTES) {
-    return { dropped: true, reason: `screenshot ${String(Math.round(bytes / 1024))}KB exceeds ${String(MAX_SCREENSHOT_BYTES / 1024 / 1024)}MB` }
+    return { dropped: true, code: 'E_TOO_LARGE', reason: `screenshot ${String(Math.round(bytes / 1024))}KB exceeds ${String(MAX_SCREENSHOT_BYTES / 1024 / 1024)}MB` }
   }
   return { mime: 'image/png', base64, width: 0, height: 0, bytes }
 }
@@ -130,8 +130,37 @@ export async function buildCapture(request) {
       body.media = { screenshot: shot }
     } catch (error) {
       // permission or focus problems are expected; the text still ships
-      body.media = { screenshot: { mime: 'image/png', base64: '', width: 0, height: 0, dropped: true, dropReason: String(error?.message ?? error).slice(0, 120) } }
+      body.media = { screenshot: { mime: 'image/png', base64: '', width: 0, height: 0, dropped: true, code: error?.code ?? 'E_NO_PERMISSION', dropReason: String(error?.message ?? error).slice(0, 120) } }
     }
   }
   return { body, tab: { id: tab.id, url: tab.url, title: tab.title }, meta: captured.meta }
+}
+
+/**
+ * Whether the picture the caller asked for actually made it into the body.
+ *
+ * `mode: 'screenshot'` asks for exactly one thing. Before v3.41 a failed
+ * `captureVisibleTab` (no `<all_urls>` permission, tab not focused) was recorded
+ * as `dropped: true` in the body while the caller still got `ok: true` — the text
+ * shipped, the panel said 「已附加」, and nothing anywhere said the (only) requested
+ * artefact was missing. This function is that missing verdict; `sw/index.js` turns
+ * a non-null result into a failure answer, so the reason reaches the panel and the
+ * audit trail instead of being a field nobody reads.
+ *
+ * @param {{ media?: { screenshot?: Record<string, unknown> } }} body one `/ag/attach` body
+ * @returns {{ code: string, message: string } | null} null when the image is really there
+ */
+export function shotProblem(body) {
+  const shot = body?.media?.screenshot
+  if (shot === undefined || shot === null) {
+    return { code: 'E_TARGET', message: '截图没成功：扩展没有取到任何图像（正文已照常投递）。' }
+  }
+  if (shot.dropped === true) {
+    const why = String(shot.dropReason ?? shot.reason ?? '未说明原因').slice(0, 120)
+    return { code: String(shot.code ?? 'E_TARGET'), message: `截图没成功，正文已照常投递：${why}` }
+  }
+  if (typeof shot.base64 !== 'string' || shot.base64.length === 0) {
+    return { code: 'E_TARGET', message: '截图没成功：图像是空的（正文已照常投递）。' }
+  }
+  return null
 }

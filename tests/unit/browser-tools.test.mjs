@@ -60,7 +60,10 @@ const READ_REPLIES = {
   browser_read: { ok: true, value: { url: 'https://example.com/', title: '示例', markdown: '# 标题\n正文', chars: 9, truncated: false } },
   browser_tabs: { ok: true, value: { count: 1, tabs: [{ id: 7, title: '示例', url: 'https://example.com/', active: true }] } },
   browser_wait: { ok: true, value: { waited: 'selector', elapsedMs: 120, selector: '#late' } },
-  browser_ax: { ok: true, value: { total: 42, truncated: true, nodes: [{ role: 'button', name: '点我', nodeId: 11 }] } },
+  // nodeId 用**字符串**：CDP 的 Accessibility.AXNode.nodeId 是字符串（DOM.Node.nodeId 才是数字）。
+  // 这个夹具原来写成数字 11，于是「schema 声明成 num」这个真缺陷被夹具本身盖住了 —— 真机上
+  // 调 browser_ax 只会得到 "invalid output"，永远拿不到树。
+  browser_ax: { ok: true, value: { tabId: 7, url: 'https://example.com/', title: '示例', total: 42, truncated: true, nodes: [{ role: 'button', name: '点我', nodeId: '11' }] } },
   browser_screenshot: { ok: true, value: { mime: 'image/png', bytes: 2048, fullPage: true, trusted: true, base64: Buffer.from('fake-png-bytes').toString('base64') } },
 }
 const WRITE_REPLIES = {
@@ -71,7 +74,8 @@ const WRITE_REPLIES = {
 
 console.log('1. 只读模式（allowBrowserWriteOps=false）')
 const readOnlyHub = makeHub(READ_REPLIES)
-const readOnly = buildBrowserTools({ hub: readOnlyHub, config: { allowBrowserWriteOps: false, attachDir: '网页捕获', retentionHours: 24 }, resolveWorkspace: () => '/tmp/ws' })
+const toolWs = mkdtempSync(join(tmpdir(), 'browser-tools-ws-'))
+const readOnly = buildBrowserTools({ hub: readOnlyHub, config: { allowBrowserWriteOps: false, attachDir: '网页捕获', retentionHours: 24 }, resolveWorkspace: () => toolWs, log: () => {} })
 const names = readOnly.map((t) => t.name)
 record('注册了 5 个只读工具', names.length === 5)
 record('写工具完全不在注册表里（不是"注册后拒绝"）', !names.includes('browser_click') && !names.includes('browser_type') && !names.includes('browser_navigate'))
@@ -79,7 +83,10 @@ record('只读工具集合与设计一致', ['browser_ax', 'browser_read', 'brow
 
 console.log('\n2. 声明的 output schema 必须接受实现真正返回的值')
 const byName = Object.fromEntries(readOnly.map((t) => [t.name, t]))
-for (const name of ['browser_read', 'browser_tabs', 'browser_wait', 'browser_ax']) {
+// screenshot 原来被跳过（它要落盘）—— 于是 `browser_screenshot` 的 execute 里那句
+// `randomBytes(...)`（v3.40 只加了用法、没加 import）在真机上直接 ReferenceError，
+// 而两个门禁都看不见。现在给它一个临时工作区，把 execute 也跑起来。
+for (const name of ['browser_read', 'browser_tabs', 'browser_wait', 'browser_screenshot', 'browser_ax']) {
   const value = await byName[name].execute(name === 'browser_read' ? { tabId: 7 } : {}, {})
   const violations = violationsOf(byName[name].output.schema, value)
   record(`${name} 返回成功值（不是错误分支）`, value?.code === undefined)
@@ -149,6 +156,7 @@ const noWorkspaceResult = await noWorkspace.find((t) => t.name === 'browser_scre
 record('没有工作区 → E_NO_WORKSPACE', noWorkspaceResult.code === 'E_NO_WORKSPACE')
 
 rmSync(root, { recursive: true, force: true })
-const failed = Object.entries(results).filter(([, v]) => v === false).map(([k]) => k)
+// 只有布尔 true 算通过：任何没记上的都算失败（原来记成 null/对象会静默通过）
+const failed = Object.entries(results).filter(([, v]) => v !== true).map(([k]) => k)
 console.log(`\n${failed.length === 0 ? '✅ 全部通过' : `❌ 失败 ${String(failed.length)} 项：${failed.join('、')}`}（${String(Object.keys(results).length)} 条断言）`)
 process.exitCode = failed.length === 0 ? 0 : 1

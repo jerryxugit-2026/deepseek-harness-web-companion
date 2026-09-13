@@ -1,5 +1,5 @@
 /**
- * Antigravity Web Companion — DSH host bridge plugin (M1 scope).
+ * DSH Web Companion — DSH host bridge plugin (M1 scope).
  *
  * Loaded into the `web` profile as a plugin row. Responsibilities at M1:
  *   1. register `/ag/ping` (liveness + pairing state) and `/ag/enter` (mint a
@@ -15,6 +15,7 @@
  */
 import { CHANNEL, PROTOCOL_VERSION, ROUTE, validateAs } from '../shared/protocol.generated.js'
 import { companionPath, dshHome } from './paths.js'
+import { auditPath } from './paths.js'
 import { loadCompanionKey } from './key-store.js'
 import { createGuard } from './guard.js'
 import { pingRoute } from './routes/ping.js'
@@ -24,11 +25,14 @@ import { registerWsProbe } from './routes/ws-probe.js'
 import { registerWsEcho } from './routes/ws-echo.js'
 import { probePageRoute } from './routes/probe-page.js'
 import { ackRoute, attachRoute, pendingRoute } from './routes/attach.js'
+import { isPaired } from './key-store.js'
+import { createPendingDelivery } from './pending.js'
 import { ticketRoute } from './routes/ticket.js'
 import { controlRoute } from './routes/control.js'
 import { createWriteGate } from './approval.js'
 import { createTicketStore } from './tickets.js'
 import { createStore } from './store.js'
+import { createAuditLog } from './audit.js'
 import { createHub } from './hub.js'
 import { registerBrowserTools } from './tools.js'
 
@@ -63,43 +67,108 @@ export function apply(ctx, config = {}) {
     log: (line) => ctx.logger?.info?.(`[dsh-web-companion-bridge] ${line}`),
     intentEnabled: config.intentEnabled ?? true,
     intentCaptureMode: config.intentCaptureMode ?? 'page',
+    // Metadata-only audit trail (docs: audit.js). On by default: it is the artifact
+    // that makes "what fired this capture?" answerable after the fact, and it holds
+    // no page content, no URL and no key.
+    auditLog: config.auditLog !== false,
+    auditFile: config.auditFile ?? auditPath(),
+    auditMaxBytes: config.auditMaxBytes ?? 512 * 1024,
   }
 
   const connLogger = (line) => ctx.logger?.info?.(`[dsh-web-companion-bridge] ${line}`)
   const recent = { captures: [], acks: [] }
   const store = createStore(resolved)
+  const audit = resolved.auditLog
+    ? createAuditLog({ file: resolved.auditFile, maxBytes: resolved.auditMaxBytes, log: connLogger })
+    : { file: null, enabled: false, append: () => false, read: () => [] }
+  if (audit.enabled) connLogger(`audit trail: ${String(audit.file)}`)
   const tickets = createTicketStore({ ttlMs: config.ticketTtlMs ?? 30000 })
   /** Last workspace a connected DSH page announced — the default capture target. */
   const clientFacts = { workspace: undefined, sessionId: undefined }
+  /** What the extension last announced about itself (`agent-hello`) — diagnostics only. */
+  let agentFacts = { version: undefined, panel: undefined, at: 0 }
   const hub = createHub({
     log: (line) => ctx.logger?.info?.(`[dsh-web-companion-bridge] ${line}`),
-    onClientFrame: (frame) => {
+    onClientFrame: (frame, entry) => {
       if (frame?.type === 'hello') {
         if (typeof frame.workspace === 'string' && frame.workspace !== '') clientFacts.workspace = frame.workspace
         if (typeof frame.sessionId === 'string') clientFacts.sessionId = frame.sessionId
-        ctx.logger?.info?.(`[dsh-web-companion-bridge] client hello session=${String(frame.sessionId ?? '?').slice(0, 14)} workspace=${String(clientFacts.workspace ?? '(none)').slice(-28)}`)
+        ctx.logger?.info?.(`[dsh-web-companion-bridge] client hello session=${String(frame.sessionId ?? '?').slice(0, 14)} workspace=${String(clientFacts.workspace ?? '(none)').slice(-28)} embedded=${String(frame.embedded ?? '?')} visible=${String(frame.visible ?? '?')} focused=${String(frame.focused ?? '?')}`)
+        return
+      }
+      // The page half asks for whatever it missed while it was not open (design §4.2).
+      if (frame?.type === 'request-pending') { deliverPending(entry); return }
+      // What the page half DID with the capture it received (`ClientAckEvent`, design §4.2).
+      //
+      // The client half has been sending this since v3.38 and the host had **no handler** — the same
+      // class of gap as `request-pending` / `agent-hello`: a frame with a producer and no consumer.
+      // The cost is durable evidence: `recordAck` writes the audit line (`kind:"ack"`, `status`) and the
+      // audit's own field list documents `status` for exactly this, yet a whole day of real captures left
+      // **0** ack entries (measured 2026-09-12) — so "did the reference actually land in the composer?"
+      // was unanswerable after the fact.
+      if (frame?.type === 'ack') {
+        const validated = validateAs('ClientAckEvent', frame)
+        if (validated.ok) state.recordAck(frame)
+        else ctx.logger?.warn?.(`[dsh-web-companion-bridge] ack rejected: ${validated.error.message}`)
         return
       }
       // 「看左边」: the DSH page sniffs the composer and asks us to fetch the page.
-      if (frame?.type === 'intent') relayIntent(frame)
+      if (frame?.type === 'intent') relayIntent(frame, entry)
     },
     // The panel was closed when the intent arrived → deliver it now.
     onAgentConnect: () => {
       const queued = store.drainIntents()
       if (queued.length === 0) return
-      const delivered = hub.pushAgent({ ...queued[queued.length - 1], reason: 'queued' })
-      ctx.logger?.info?.(`[dsh-web-companion-bridge] replayed ${String(queued.length)} queued intent(s) → ${String(delivered)} agent socket(s)`)
+      const last = queued[queued.length - 1]
+      const delivered = hub.pushAgent({ ...last, reason: 'queued' })
+      // Only the LAST intent is replayed (design §5.2 deliberately avoids replaying a backlog of
+      // stale captures). The old line claimed `replayed ${queued.length}` — a log that lied about
+      // behaviour, with the dropped ones leaving no trace at all.
+      ctx.logger?.info?.(
+        `[dsh-web-companion-bridge] replayed 1/${String(queued.length)} queued intent(s) → ${String(delivered)} agent socket(s)` +
+        (queued.length > 1 ? ` (dropped ${String(queued.length - 1)} stale)` : ''),
+      )
+      audit.append({ kind: 'intent-replay', requestId: last.requestId, delivered })
     },
     onAgentFrame: (frame) => {
+      // `agent-hello` had a producer (the panel sends it on every (re)connect) and no handler —
+      // the same class of gap as `request-pending`. It is the only place the extension's build
+      // version reaches the host, which is exactly what diagnosing a *stale build* needs, so
+      // record it instead of dropping it on the floor.
+      if (frame?.type === 'agent-hello') {
+        agentFacts = { version: frame.extensionVersion, panel: frame.panel, at: Date.now() }
+        ctx.logger?.info?.(`[dsh-web-companion-bridge] agent hello ext=${String(frame.extensionVersion ?? '?')} panel=${String(frame.panel ?? '?')}`)
+        return
+      }
       if (frame?.type !== 'capture-result') return
       const validated = validateAs('CaptureResultEvent', frame)
       if (!validated.ok) {
         ctx.logger?.warn?.(`[dsh-web-companion-bridge] capture-result rejected: ${validated.error.message}`)
         return
       }
+      // The extension answers the intent's capture with BOTH ids, which is the only
+      // place the two are correlated: remember who asked, so the attach can go home.
+      if (validated.ok === true && typeof frame.captureId === 'string') {
+        linkCaptureToIntent(frame.captureId, frame.requestId)
+      }
       state.recordCaptureResult(frame)
     },
   })
+
+  /**
+   * Hand the capture backlog to the page half that just asked for it.
+   *
+   * The client half sends `{type:'request-pending'}` on **every** (re)connect (design §4.2),
+   * and the host had no handler for that frame: a capture taken while no DSH page was open
+   * landed on disk, was queued by `attachRoute` (`deliveredTo: []`), and then sat in the
+   * queue forever. `GET /ag/pending` existed but nothing ever called it — the backlog was
+   * **write-only**, and the only symptom was a capture the user never saw.
+   *
+   * The delivery rules (owner binding, re-queue when nobody can take the frame) live in
+   * `host/pending.js`: the failure branch is the one that decides whether a capture survives
+   * or is silently dropped, and it is unreachable from the probes.
+   */
+  const deliverPending = createPendingDelivery({ hub, store, audit, log: connLogger })
 
   /**
    * Turn a client 「看左边」intent into a capture request for the extension.
@@ -109,7 +178,55 @@ export function apply(ctx, config = {}) {
    * connected, so the intent is not lost — it is replayed by `onAgentConnect`.
    */
   let intentSeq = 0
-  const relayIntent = (frame) => {
+
+  /**
+   * Last intent we relayed, for host-side de-duplication.
+   *
+   * The client half's episode logic is **per page** (a closure inside each React app), and a
+   * user normally has two page halves sniffing the *same* shared composer draft — so both
+   * can fire an intent for one 「看左边」 and produce two captures. The host sees both
+   * requests and is the only place that can collapse them, so it does: same session + same
+   * draft within a short window ⇒ one relay.
+   */
+  let lastIntent = { key: '', at: 0 }
+  const INTENT_DEDUPE_MS = 5000
+
+  /**
+   * Which page half asked for which capture.
+   *
+   * Two page halves are normal — the DSH GUI in a normal tab **and** the DSH GUI embedded
+   * in the side panel's iframe — and a capture must not be handed to the wrong one:
+   * `sessionMode: 'current'` inserts into "the current session" *as that page half sees
+   * it*. So the origin is tracked end to end: intent → requestId →
+   * (the extension's `capture-result` carries both ids) → captureId → attach.
+   */
+  const intentOwners = new Map()   // requestId → { clientId, at }
+  const captureOwners = new Map()  // captureId → { clientId, at }
+  const OWNER_TTL_MS = 5 * 60 * 1000
+  const pruneOwners = () => {
+    const cutoff = Date.now() - OWNER_TTL_MS
+    for (const [key, value] of intentOwners) { if (value.at < cutoff) intentOwners.delete(key) }
+    for (const [key, value] of captureOwners) { if (value.at < cutoff) captureOwners.delete(key) }
+  }
+  const rememberIntentOwner = (requestId, entry) => {
+    pruneOwners()
+    if (typeof entry?.id === 'string') intentOwners.set(requestId, { clientId: entry.id, at: Date.now() })
+  }
+  const linkCaptureToIntent = (captureId, requestId) => {
+    const owner = typeof requestId === 'string' ? intentOwners.get(requestId) : undefined
+    if (owner === undefined) return
+    intentOwners.delete(requestId)
+    captureOwners.set(captureId, { clientId: owner.clientId, at: Date.now() })
+  }
+  /** Read-and-forget: the owner is only needed for the one attach that follows. */
+  const takeCaptureOwner = (captureId) => {
+    const owner = captureOwners.get(captureId)
+    if (owner === undefined) return undefined
+    captureOwners.delete(captureId)
+    return owner.clientId
+  }
+
+  const relayIntent = (frame, entry) => {
     if (resolved.intentEnabled !== true) {
       ctx.logger?.info?.('[dsh-web-companion-bridge] intent ignored (intentEnabled=false)')
       return
@@ -119,6 +236,21 @@ export function apply(ctx, config = {}) {
       ctx.logger?.warn?.(`[dsh-web-companion-bridge] intent rejected: ${validated.error.message}`)
       return
     }
+    // Collapse the same 「看左边」 arriving from TWO page halves (see lastIntent).
+    const clientId = typeof entry?.id === 'string' ? entry.id : undefined
+    const intentKey = `${String(frame.sessionId ?? '')}\u0000${String(frame.draft ?? '')}`
+    const intentAt = Date.now()
+    if (
+      intentKey === lastIntent.key &&
+      clientId !== undefined &&
+      lastIntent.clientId !== undefined &&
+      clientId !== lastIntent.clientId &&          // ← 必须来自**另一个**页面半才算重复
+      intentAt - lastIntent.at < INTENT_DEDUPE_MS
+    ) {
+      ctx.logger?.info?.('[dsh-web-companion-bridge] intent de-duplicated (same session+draft from another page half)')
+      return
+    }
+    lastIntent = { key: intentKey, clientId, at: intentAt }
     intentSeq += 1
     const event = {
       type: 'capture-request',
@@ -130,6 +262,7 @@ export function apply(ctx, config = {}) {
       ...(frame.draft === undefined ? {} : { draft: frame.draft }),
       at: Date.now(),
     }
+    rememberIntentOwner(event.requestId, entry)
     if (hub.agentCount > 0) {
       ctx.logger?.info?.(`[dsh-web-companion-bridge] intent → extension ${event.requestId} (${String(hub.pushAgent(event))} socket(s))`)
       return
@@ -195,6 +328,7 @@ export function apply(ctx, config = {}) {
     connectedAgents: () => hub.agentCount,
     queuedIntents: () => store.intentCount,
     recordCaptureResult: (frame) => {
+      audit.append({ kind: 'capture-result', requestId: frame.requestId, captureId: frame.captureId, ok: frame.ok === true, errorCode: frame.error?.code })
       ctx.logger?.info?.(
         `[dsh-web-companion-bridge] capture-result ${frame.requestId} ok=${String(frame.ok)}` +
         (frame.fileRef === undefined ? '' : ` → ${frame.fileRef}`) +
@@ -202,14 +336,30 @@ export function apply(ctx, config = {}) {
       )
     },
     clientWorkspace: () => clientFacts.workspace,
-    recordCapture: (event, delivered) => {
+    recordCapture: (event, delivered, trigger) => {
       recent.captures.push({ captureId: event.captureId, fileRef: event.fileRef, delivered, at: Date.now() })
       if (recent.captures.length > 50) recent.captures.shift()
-      ctx.logger?.info?.(`[dsh-web-companion-bridge] capture ${event.captureId} → ${event.fileRef} (delivered=${String(delivered)})`)
+      // `trigger` + `sessionMode` are the two fields that answer "why did a session
+      // appear?": trigger is what the extension saw, sessionMode is what we decided.
+      audit.append({
+        kind: 'attach',
+        captureId: event.captureId,
+        trigger,
+        sessionMode: event.sessionMode,
+        mode: event.mode,
+        delivered,
+        chars: event.summary?.chars,
+        truncated: event.summary?.truncated,
+        hasSelection: event.summary?.hasSelection,
+      })
+      ctx.logger?.info?.(
+        `[dsh-web-companion-bridge] capture ${event.captureId} trigger=${String(trigger ?? '?')} sessionMode=${String(event.sessionMode ?? '?')} → ${event.fileRef} (delivered=${String(delivered)})`,
+      )
     },
     recordAck: (payload) => {
       recent.acks.push({ ...payload, at: Date.now() })
       if (recent.acks.length > 50) recent.acks.shift()
+      audit.append({ kind: 'ack', captureId: payload.captureId, status: payload.status })
       ctx.logger?.info?.(`[dsh-web-companion-bridge] ack ${payload.captureId} = ${payload.status}`)
     },
     recent,
@@ -219,11 +369,19 @@ export function apply(ctx, config = {}) {
     dshHome: dshHome(),
     port: () => ctx.webServer?.port,
     capabilities: () => browserTools,
+    /** Audit health for `/ag/whoami` — "the audit died quietly" must be observable. */
+    auditStatus: () => audit.status(),
+    /** Read-only accessors for `GET /ag/control` — a read must not mutate (see control.js). */
+    writeOps: () => runtime.allowBrowserWriteOps === true,
+    approvalMode: () => writeGate.mode,
     /** Flip a runtime switch, re-registering the tool set so the change is structural. */
     applyControl: (patch) => {
       connLogger(`control: allowBrowserWriteOps ${String(runtime.allowBrowserWriteOps)} → ${String(patch.allowBrowserWriteOps)}`)
       runtime.allowBrowserWriteOps = patch.allowBrowserWriteOps === true
       applyTools()
+      // A silent capability flip is exactly the kind of thing an audit trail is for.
+      // 这里装的是「哪道闸在把关」，不是错误码 —— 塞进 errorCode 会把诊断读歪。
+      audit.append({ kind: 'control', tool: 'allowBrowserWriteOps', ok: runtime.allowBrowserWriteOps, status: writeGate.mode })
       return { allowBrowserWriteOps: runtime.allowBrowserWriteOps, capabilities: browserTools, approvalMode: writeGate.mode }
     },
   }
@@ -239,7 +397,7 @@ export function apply(ctx, config = {}) {
       await refresh()
       ctx.logger?.info?.(
         `[dsh-web-companion-bridge] ${PLUGIN_VERSION} on port ${String(state.port() ?? '?')}; ` +
-        `paired=${String(pairing.key !== undefined && pairing.extensionOrigins.length > 0)} ` +
+        `paired=${String(isPaired(pairing))} ` +
         `origins=${String(pairing.extensionOrigins.length)} source=${resolved.keyFile}` +
         (pairing.error === undefined ? '' : ` error=${pairing.error}`),
       )
@@ -270,10 +428,10 @@ export function apply(ctx, config = {}) {
 
   ctx.effect(
     () => ctx.webServer.registerUpgrade({
-      path: ROUTE.whoami.replace('/whoami', '/wsecho'),
+      path: ROUTE.wsEcho,
       handler: registerWsEcho(),
     }),
-    'dsh-web-companion-bridge: WS /ag/wsecho',
+    `dsh-web-companion-bridge: WS ${ROUTE.wsEcho}`,
   )
 
   // --- context channel: captures land on disk, then get pushed ---
@@ -311,6 +469,8 @@ export function apply(ctx, config = {}) {
         hub,
         config: resolved,
         resolveWorkspace: () => clientFacts.workspace ?? resolved.defaultWorkspace,
+        // Hand the attach back to the page half that asked for it (when one did).
+        resolveOwner: (captureId) => takeCaptureOwner(captureId),
       })),
     }),
     `dsh-web-companion-bridge: POST ${ROUTE.attach}`,
@@ -380,10 +540,10 @@ export function apply(ctx, config = {}) {
 
   ctx.effect(
     () => ctx.webServer.registerUpgrade({
-      path: ROUTE.whoami.replace('/whoami', '/wsprobe'),
+      path: ROUTE.wsProbe,
       handler: registerWsProbe({ state }),
     }),
-    'dsh-web-companion-bridge: WS /ag/wsprobe',
+    `dsh-web-companion-bridge: WS ${ROUTE.wsProbe}`,
   )
 
   ctx.effect(

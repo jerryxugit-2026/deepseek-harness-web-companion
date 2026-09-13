@@ -17,6 +17,7 @@ import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } fr
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { WebSocket } from 'ws'
+import { createResults } from '../lib/probe-result.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(HERE, '..', '..')
@@ -96,11 +97,8 @@ const evaluate = async (expression, timeoutMs = 15000) => {
   if (result.exceptionDetails !== undefined) return { error: String(result.exceptionDetails.exception?.description ?? result.exceptionDetails.text).slice(0, 300) }
   return result.result.value
 }
-const results = {}
-const record = (name, value) => {
-  results[name] = value
-  console.log(`  ${value === true ? '✅' : value === false ? '❌' : '·'} ${name}: ${(JSON.stringify(value) ?? String(value)).slice(0, 200)}`)
-}
+// 断言/观测分离，且只有布尔 true 算通过 —— 见 ../lib/probe-result.mjs 的由来。
+const { record, observe, results, observations, finish } = createResults({ label: 'm3/control' })
 const capabilities = () => fetch(`${ORIGIN}/ag/ping`).then((r) => r.json()).then((d) => d.capabilities ?? []).catch(() => [])
 
 console.log(`探测 ${ORIGIN}（dev 实例）\n`)
@@ -131,7 +129,9 @@ const enabled = await evaluate(`(async () => {
 record('开关点击走通（面板探针确认 writeOps=true）', enabled === 'enabled')
 const afterOn = await capabilities()
 record('插件即时注册写工具（8 个，无重启）', afterOn.length === 8 && afterOn.includes('browser_click') && afterOn.includes('browser_navigate'))
-record('面板探针同步拿到新能力集', Array.isArray((await evaluate('JSON.stringify(globalThis.__AG_PANEL__?.capabilities ?? [])')).constructor === String ? JSON.parse(await evaluate('JSON.stringify(globalThis.__AG_PANEL__?.capabilities ?? [])')) : []) && (JSON.parse(await evaluate('JSON.stringify(globalThis.__AG_PANEL__?.capabilities ?? [])'))).includes('browser_type'))
+const panelCaps = JSON.parse(await evaluate('JSON.stringify(globalThis.__AG_PANEL__?.capabilities ?? [])'))
+record('面板探针同步拿到新能力集（含 browser_type）', Array.isArray(panelCaps) && panelCaps.includes('browser_type'))
+record('面板能力集与插件侧一致（同为 5 个只读 + 3 个写）', panelCaps.length === afterOn.length && afterOn.every((name) => panelCaps.includes(name)))
 
 const disabled = await evaluate(`(async () => {
   const box = document.getElementById('wo-toggle')
@@ -155,8 +155,6 @@ record('非法 body → 400（schema 校验）', badBody.status === 400)
 const final = await capabilities()
 record('两次非法请求都没改变状态', final.length === 5)
 
-const failed = Object.entries(results).filter(([, v]) => v === false).map(([k]) => k)
-writeFileSync(resolve(OUT_DIR, 'm3-control-probe.json'), `${JSON.stringify({ probe: 'm3/control', port: DSH_PORT, at: new Date().toISOString(), results, before, afterOn, afterOff }, null, 2)}\n`)
-console.log(`\n${failed.length === 0 ? '✅ 全部通过' : `❌ 失败 ${String(failed.length)} 项：${failed.join('、')}`}（报告 → docs/reviews/m3-control-probe.json）`)
+writeFileSync(resolve(OUT_DIR, 'm3-control-probe.json'), `${JSON.stringify({ probe: 'm3/control', port: DSH_PORT, at: new Date().toISOString(), results, observations, before, afterOn, afterOff }, null, 2)}\n`)
 cleanup()
-process.exitCode = failed.length === 0 ? 0 : 1
+finish('m3-control-probe.json')

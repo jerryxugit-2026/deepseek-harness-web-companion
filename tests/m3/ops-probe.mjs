@@ -23,10 +23,21 @@
  */
 import { createServer } from 'node:http'
 import { execFileSync } from 'node:child_process'
-import { cpSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { WebSocket } from 'ws'
+import { createResults } from '../lib/probe-result.mjs'
+import { createRequire } from 'node:module'
+import { buildBrowserTools } from '../../dsh-plugin/src/host/tools.js'
+
+/**
+ * 引擎自己的 JSON-Schema 校验器（就是它给出那句 "must match exactly one oneOf branch"）。
+ * 用它而不是自己写一套：本事故之所以漏网，正是因为"工具层声明"和"op 层真值"从没在同一个地方比过。
+ */
+const requireFromPlugin = createRequire(new URL('../../dsh-plugin/src/host/tools.js', import.meta.url))
+const { validateJsonSchemaValue } = requireFromPlugin('@deepseek-ai/dsh-tools')
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(HERE, '..', '..')
@@ -148,11 +159,8 @@ const op = async (tool, params = {}, allowWrite) => {
   try { return JSON.parse(raw) } catch { return { transport: raw } }
 }
 
-const results = {}
-const record = (name, value) => {
-  results[name] = value
-  console.log(`  ${value === true ? '✅' : value === false ? '❌' : '·'} ${name}: ${(JSON.stringify(value) ?? String(value)).slice(0, 260)}`)
-}
+// 断言/观测分离，且只有布尔 true 算通过 —— 见 ../lib/probe-result.mjs 的由来。
+const { record, observe, results, observations, finish } = createResults({ label: 'm3/ops' })
 
 console.log('\n1. 只读工具（无需 debugger）')
 const tabs = await op('browser_tabs', {})
@@ -210,6 +218,7 @@ console.log('\n5. ax / screenshot / wait / navigate')
 const ax = await op('browser_ax', { tabId, maxNodes: 200 })
 record('browser_ax 拿到无障碍节点', (ax.value?.nodes ?? []).length > 5)
 record('browser_ax 含 button/heading 角色', (ax.value?.nodes ?? []).some((n) => n.role === 'button') && (ax.value?.nodes ?? []).some((n) => n.role === 'heading'))
+
 const shot = await op('browser_screenshot', { tabId, fullPage: true })
 record('browser_screenshot 整页 PNG 有内容', shot.ok === true && (shot.value?.bytes ?? 0) > 1000)
 record('截图声明 fullPage 与 trusted', shot.value?.fullPage === true && shot.value?.trusted === true)
@@ -225,14 +234,56 @@ record('browser_wait(selector) 等到动态元素', waitedSel.ok === true && wai
 const waitTimeout = await op('browser_wait', { tabId, selector: '#never', timeoutMs: 600 }, false)
 record('等不到 → E_TIMEOUT（可诊断）', waitTimeout.ok === false && waitTimeout.error?.code === 'E_TIMEOUT')
 
-console.log('\n6. 写操作门禁的运行时开关（/ag/control，F2 形态：key + 扩展 Origin）')
+/*
+ * ★ 用**真实 CDP 值**驱动工具层，再拿工具真正返回的东西去撞它自己声明的 output schema。
+ *
+ * 2026-09-12 真机事故：`Accessibility.AXNode.nodeId` 是**字符串**，而 `browser_ax` 的 output schema
+ * 声明成 `num` ⇒ 引擎校验失败，模型收到的是 `invalid output`，**永远拿不到无障碍树**（开着
+ * 「浏览器控制」也一样）。它漏网的原因正是分层测试各自的盲区：op 探针只看 op 的返回值，
+ * 单测只喂**手搓夹具**（nodeId 恰好写成数字）。
+ *
+ * 注意要驱动 `tool.execute()` 而不是直接拿 op 值比：有些工具会**变换**返回值
+ * （`browser_screenshot` 就是：op 返回 base64/tabId/notes，工具把它落盘后换成 filePath/fileRef），
+ * 拿 op 值去撞工具 schema 会误报。引擎校验的也正是 `execute()` 的返回值。
+ */
+const opValues = {
+  browser_read: read.value,
+  browser_tabs: tabs.value,
+  browser_wait: waited.value,
+  browser_screenshot: shot.value,
+  browser_ax: ax.value,
+  browser_click: clicked.value,
+  browser_type: typed.value,
+  browser_navigate: navigated.value,
+}
+const toolSpecs = Object.fromEntries(buildBrowserTools({
+  // 桩 hub：把刚才**真实**跑出来的 op 值原样交给工具层
+  hub: { callAgent: async ({ tool }) => ({ ok: true, value: opValues[tool] ?? {} }) },
+  config: { allowBrowserWriteOps: true, attachDir: '网页捕获', retentionHours: 24 },
+  // 落盘目标：用探针自己的临时目录（persistScreenshot 会真写一个 PNG）
+  resolveWorkspace: () => mkdtempSync(join(tmpdir(), 'ops-probe-tool-')),
+  log: () => {},
+}).map((tool) => [tool.name, tool]))
+// 参数只为过工具层的**入参**校验（值仍由桩 hub 提供真实的 op 结果）
+const toolArgs = { browser_type: { text: 'x' }, browser_navigate: { url: 'https://example.com/' } }
+for (const name of Object.keys(opValues)) {
+  const tool = toolSpecs[name]
+  const returned = await tool.execute(toolArgs[name] ?? {}, {})
+  const violations = validateJsonSchemaValue(tool.output.schema, returned)
+  record(`★真实数据下 ${name} 的返回值通过自己声明的 output schema`, violations.length === 0)
+  if (violations.length > 0) console.log(`     ${name} 违规:`, JSON.stringify(violations).slice(0, 240))
+}
+record('nodeId 的真实类型是字符串（CDP AXNode.nodeId）', typeof ax.value?.nodes?.[0]?.nodeId === 'string')
+
+// 这里原来有一个**只有标题、没有任何断言**的「6. 写操作门禁的运行时开关」小节 ——
+// 打印一行小节名就什么都不做，读报告的人会以为这一段测过了。
+// 运行时开关（/ag/control 的 F2 形态、能力集 5↔8 无重启）由 `npm run probe:m3-control` 覆盖，
+// 本节已删除；本节真正要的那一点（扩展侧复核 allowBrowserWriteOps → E_READONLY）在上面第 2 节。
 
 console.log('\n7. 关闭开关会释放调试器')
 const disable = await evaluate(panel.sessionId, `(async () => JSON.stringify(await chrome.runtime.sendMessage({ kind: 'browser-control', enabled: false })))()`)
 record('关闭开关返回释放情况', typeof disable === 'string' && disable.includes('browserControl'))
 
-const failed = Object.entries(results).filter(([, v]) => v === false).map(([k]) => k)
-writeFileSync(resolve(OUT_DIR, 'm3-ops-probe.json'), `${JSON.stringify({ probe: 'm3/ops', fixturePort: FIXTURE_PORT, at: new Date().toISOString(), results, sample: { read: { title: read.value?.title, chars: read.value?.chars }, axNodes: (ax.value?.nodes ?? []).length, screenshotBytes: shot.value?.bytes } }, null, 2)}\n`)
-console.log(`\n${failed.length === 0 ? '✅ 全部通过' : `❌ 失败 ${String(failed.length)} 项：${failed.join('、')}`}（报告 → docs/reviews/m3-ops-probe.json）`)
+writeFileSync(resolve(OUT_DIR, 'm3-ops-probe.json'), `${JSON.stringify({ probe: 'm3/ops', fixturePort: FIXTURE_PORT, at: new Date().toISOString(), results, observations, sample: { read: { title: read.value?.title, chars: read.value?.chars }, axNodes: (ax.value?.nodes ?? []).length, screenshotBytes: shot.value?.bytes } }, null, 2)}\n`)
 cleanup()
-process.exitCode = failed.length === 0 ? 0 : 1
+finish('m3-ops-probe.json')

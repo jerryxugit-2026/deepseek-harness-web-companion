@@ -223,11 +223,11 @@ async function initWriteOps() {
   const reply = await ask({ kind: 'state' }).catch(() => null)
   let enabled = false
   try {
-    const response = await fetch(`${controlUrl()}?key=${encodeURIComponent(pairingKey())}`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ allowBrowserWriteOps: false }),
-    })
+    // A READ, not a write. This used to POST `{ allowBrowserWriteOps: false }` — merely
+    // opening the panel therefore **turned the write switch off**, while the code below
+    // read the response as if it were the current value (measured 2026-09-12: the audit
+    // trail shows a panel-driven flip on every panel open). `GET /ag/control` is the read.
+    const response = await fetch(`${controlUrl()}?key=${encodeURIComponent(pairingKey())}`, { method: 'GET' })
     const payload = await response.json().catch(() => null)
     enabled = payload?.allowBrowserWriteOps === true
     probe.capabilities = payload?.capabilities ?? []
@@ -254,11 +254,18 @@ async function initWriteOps() {
         probe.capabilities = payload.capabilities ?? []
         els.woToggle.checked = probe.writeOps
         probe.approvalMode = payload.approvalMode
+        // 注意这里拿到的是**与具体会话无关**的默认口径（`/ag/control` 没有会话上下文）：
+        // 单个会话可以被设成 `never`，那时写操作会被当场拒绝而不会弹提示（v3.41 实测：本会话就是 never，
+        // 工具返回的是「审批策略是 never」而不是「用户拒绝了」）。所以措辞里点明是默认策略。
         const gate = payload.approvalMode === 'ask'
-          ? '每次点击/输入都会先向你请求批准'
+          ? '每次点击/输入都会先请求批准（按默认策略；某会话若被设为 never，会被当场拒绝）'
           : payload.approvalMode === 'switch-only'
             ? '本部署无审批服务：仅由这个开关把关'
-            : '审批已在配置里关闭'
+            : payload.approvalMode === 'policy-never'
+              // 服务在、策略 never：引擎会在问任何人之前就拒绝。这里以前显示"会先向你请求批准"，
+              // 而实际每次都被自动拒（台账 §5-12）。
+              ? '审批策略是 never：不会弹提示，写操作会被直接拒绝（先把策略改回 ask）'
+              : '审批已在配置里关闭'
         els.status.textContent = probe.writeOps
           ? `写操作已开启：模型可见 ${String((payload.capabilities ?? []).length)} 个浏览器工具（${gate}）`
           : '写操作已关闭：模型只剩只读工具'

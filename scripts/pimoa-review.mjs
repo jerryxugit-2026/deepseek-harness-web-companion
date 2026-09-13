@@ -22,6 +22,9 @@
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { describeOffenders, findSecretFiles } from './material-guard.mjs'
+import { bodyOf, describeReceipt, receiptOf, summaryLine } from './pimoa-result.mjs'
+import { request } from 'node:http'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(HERE, '..')
@@ -53,18 +56,59 @@ if (CONTEXT_FILES.length === 0) throw new Error('--context requires at least one
 
 const read = (path) => readFileSync(resolve(ROOT, path), 'utf8')
 
-/** One JSON-RPC POST; the HTTP transport answers with an SSE stream. */
-async function rpc(body, sessionId) {
-  const headers = { 'content-type': 'application/json', accept: 'application/json, text/event-stream' }
-  if (sessionId !== undefined) headers['mcp-session-id'] = sessionId
-  const response = await fetch(URL, { method: 'POST', headers, body: JSON.stringify(body) })
-  const text = await response.text()
-  const messages = text
-    .split('\n')
-    .filter((line) => line.startsWith('data: '))
-    .map((line) => { try { return JSON.parse(line.slice(6)) } catch { return undefined } })
-    .filter((value) => value !== undefined)
-  return { sessionId: response.headers.get('mcp-session-id') ?? sessionId, status: response.status, messages, raw: text }
+/*
+ * 上网之前先过材料卫生守卫。
+ *
+ * 真事故（2026-09-12）：这个脚本把 `--context` 的文件逐字读进来当材料，而 `moa_verify` 会把
+ * 材料送给模型厂商。我的分片命令里带了 `scripts/`，于是 `scripts/.dev-extension-key.json`
+ * （RSA-2048 私钥；其 publicKeyDer 与 manifest.key 逐字相同、推导出的扩展 ID 就是本扩展的 ID）
+ * 被外发。守卫在**任何网络请求之前**中止，并故意不提供强制放行开关。
+ */
+const offenders = findSecretFiles(CONTEXT_FILES, read)
+if (offenders.length > 0) {
+  console.error(describeOffenders(offenders))
+  process.exit(2)
+}
+
+/**
+ * One JSON-RPC POST; the HTTP transport answers with an SSE stream.
+ *
+ * Uses `node:http` rather than `fetch` **on purpose**: undici (what `fetch` is in Node) applies a
+ * hard 300s body timeout, and a `moa_verify` call over a real document set takes minutes — the
+ * successful runs measured 189–309s, i.e. right at that wall, and anything slower died as
+ * `TypeError: fetch failed` after the vendor had already been paid. `node:http` has no such
+ * default, so `--timeout-ms` is the only clock in play.
+ */
+function rpc(body, sessionId) {
+  return new Promise((resolve, reject) => {
+    const payload = JSON.stringify(body)
+    const headers = {
+      'content-type': 'application/json',
+      accept: 'application/json, text/event-stream',
+      'content-length': Buffer.byteLength(payload),
+    }
+    if (sessionId !== undefined) headers['mcp-session-id'] = sessionId
+    const call = request({ host: '127.0.0.1', port: PORT, path: '/mcp', method: 'POST', headers }, (response) => {
+      let text = ''
+      response.setEncoding('utf8')
+      response.on('data', (chunk) => { text += chunk })
+      response.on('end', () => {
+        const messages = text
+          .split('\n')
+          .filter((line) => line.startsWith('data: '))
+          .map((line) => { try { return JSON.parse(line.slice(6)) } catch { return undefined } })
+          .filter((value) => value !== undefined)
+        resolve({ sessionId: response.headers['mcp-session-id'] ?? sessionId, status: response.statusCode, messages, raw: text })
+      })
+    })
+    // 静默上限（socket 无数据）：审核期间服务端可能长时间不发字节，所以这里用 --timeout-ms 而不是
+    // 一个写死的短超时；超时后给出原因，而不是让进程悬着。
+    call.setTimeout(TIMEOUT_MS, () => {
+      call.destroy(Object.assign(new Error(`PiMoa 在 ${String(TIMEOUT_MS)}ms 内没有任何响应（可用 --timeout-ms 调大）`), { code: 'E_TIMEOUT' }))
+    })
+    call.on('error', reject)
+    call.end(payload)
+  })
 }
 
 const contextBody = CONTEXT_FILES
@@ -95,20 +139,13 @@ if (result.error !== undefined) {
   throw new Error(`tool error: ${JSON.stringify(result.error).slice(0, 400)}`)
 }
 
-/** MCP tool results carry content blocks; PiMoa also returns structured JSON in text. */
+/** MCP tool results carry content blocks; the answer is Markdown with a fenced JSON receipt. */
 const blocks = result.result?.content ?? []
 const textOut = blocks.filter((b) => b.type === 'text').map((b) => b.text).join('\n\n')
 
-let structured
-for (const block of blocks) {
-  if (block.type !== 'text') continue
-  try {
-    const parsed = JSON.parse(block.text)
-    if (parsed !== null && typeof parsed === 'object') { structured = parsed; break }
-  } catch { /* not JSON, keep as text */ }
-}
-
-const verdict = structured?.status ?? structured?.result?.status ?? 'unknown'
+const receipt = receiptOf(textOut)
+const info = describeReceipt(receipt)
+const bodyText = bodyOf(textOut, receipt)
 const header = [
   '# PiMoa 对抗性审核结果',
   '',
@@ -117,7 +154,8 @@ const header = [
   `- 输入：${CONTEXT_FILES.map((f) => `\`${f}\``).join('、')}`,
   `- prompt：\`${PROMPT_FILE}\``,
   `- 用时：${(elapsed / 1000).toFixed(1)}s`,
-  `- 裁决（status）：**${String(verdict)}**`,
+  `- 结果：${summaryLine(receipt)}`,
+  ...(info.bodySha256 === null ? [] : [`- bodySha256：\`${info.bodySha256}\`（可与正文对账）`]),
   `- 生成时间：${new Date().toISOString()}`,
   '',
   '---',
@@ -125,6 +163,6 @@ const header = [
 ].join('\n')
 
 mkdirSync(dirname(resolve(ROOT, OUT)), { recursive: true })
-writeFileSync(resolve(ROOT, OUT), `${header}${textOut}\n`)
-console.log(`[pimoa] status=${String(verdict)} elapsed=${(elapsed / 1000).toFixed(1)}s → ${OUT}`)
-if (structured?.receipt !== undefined) console.log(`[pimoa] receipt=${JSON.stringify(structured.receipt).slice(0, 400)}`)
+writeFileSync(resolve(ROOT, OUT), `${header}${bodyText}\n`)
+console.log(`[pimoa] quorum=${String(info.quorum)} models=${String(info.models.length)} elapsed=${(elapsed / 1000).toFixed(1)}s → ${OUT}`)
+console.log(`[pimoa] ${summaryLine(receipt)}`)

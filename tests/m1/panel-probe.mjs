@@ -15,10 +15,14 @@
  *
  * Read-only: it only loads pages, it never posts a capture.
  *
- * Usage: node tests/m1/panel-probe.mjs [--port 3080] [--out docs/reviews]
+ * Usage: node tests/m1/panel-probe.mjs [--port 3099] [--out docs/reviews]
+ *
+ * 默认端口是**开发实例**（3099），不是你真在用的那个。这一条以前默认 3080 —— 也就是拿探针
+ * 去戳用户真实实例；探针是只读的（不 post 抓取），但"默认指向用户的实例"本身就不该是默认值：
+ * 真要验真实实例，请显式写 `--port 3080`。
  */
 import { execFileSync } from 'node:child_process'
-import { cpSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -28,10 +32,13 @@ const argOf = (name, fallback) => {
   const at = process.argv.indexOf(`--${name}`)
   return at === -1 ? fallback : process.argv[at + 1]
 }
-const DSH_PORT = argOf('port', '3080')
+// 默认指向开发实例；要验真实实例必须显式 --port 3080（见文件头说明）。
+const DSH_PORT = argOf('port', '3099')
 const CDP_PORT = Number(argOf('cdp-port', '9231'))
 const OUT_DIR = resolve(ROOT, argOf('out', 'docs/reviews'))
 const EXT_DIST = join(ROOT, 'extension', 'dist')
+const DEV_CONFIG = join(ROOT, 'extension', 'src', 'lib', 'dev-config.js')
+const PAIRING = resolve(ROOT, argOf('key-file', '.devhome/dsh-web-companion.json'))
 const EXT_COPY = join(process.env.TMPDIR ?? '/tmp', 'dshwc-ext-dist')
 const PROFILE = join(process.env.TMPDIR ?? '/tmp', 'dshwc-panel-profile')
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
@@ -44,6 +51,51 @@ async function portBusy(port) {
 }
 if (await portBusy(CDP_PORT)) throw new Error(`CDP port ${String(CDP_PORT)} busy — kill the stale Chrome first`)
 
+/*
+ * ── 先把写开关打开：这样才能验出「面板是**读**到状态的，还是永远显示 off」 ────────
+ * 背景（2026-09-12 实测）：v3.40 把面板的「读开关状态」从 POST 改成 GET，而 Chrome 对**扩展文档
+ * 发的简单 GET 不带 Origin** ⇒ 换来的是一次 403，面板 `enabled` 永远是 false（开关看着总是关的）。
+ * 打开真状态再开面板，才能把"读成功"和"读不到、退回默认 false"区分开。
+ */
+const pairingRaw = JSON.parse(readFileSync(PAIRING, 'utf8'))
+const KEY = pairingRaw.key
+const EXT_ORIGIN = pairingRaw.extensionOrigins[0]
+const postControl = async (allow) => {
+  const response = await fetch(`${ORIGIN}/ag/control?key=${encodeURIComponent(KEY)}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', origin: EXT_ORIGIN },
+    body: JSON.stringify({ allowBrowserWriteOps: allow }),
+  })
+  return { status: response.status, body: await response.json().catch(() => null) }
+}
+const preControl = await postControl(true).catch((error) => ({ status: 0, body: String(error) }))
+console.log(`  前置：把写开关置为 on → HTTP ${String(preControl.status)}（${JSON.stringify(preControl.body?.allowBrowserWriteOps ?? preControl.body).slice(0, 60)}）`)
+
+/*
+ * ── 让面板也指向**这一个**实例 ────────────────────────────────────────────────
+ * 2026-09-12 实测的坑：面板 iframe 的地址来自 `extension/src/lib/dev-config.js`（烤进 dist），
+ * 而 `--port` 只影响探针自己的网络过滤 ⇒ 不重写 dev-config 的话，探针会"用 3099 的过滤器看 3080 的
+ * 请求"（实测 `dshHttp: {}` + 一条 403，看着像探针坏了）。所以这里和 capture/look-left-e2e 一样：
+ * 重写 dev-config → 重建 dist → 拷贝给 Chrome；结束时**还原并重建 dist**（dist 正是用户 Chrome
+ * 加载的目录，只还原源文件会留下测试端口的产物）。
+ */
+const DEV_BACKUP = readFileSync(DEV_CONFIG, 'utf8')
+const pairingKey = JSON.parse(readFileSync(PAIRING, 'utf8')).key
+writeFileSync(DEV_CONFIG, `/**
+ * Generated for local runs (probes rewrite this file and restore it).
+ */
+export const DEV_CONFIG = { port: ${String(DSH_PORT)}, key: ${JSON.stringify(pairingKey)} }
+
+export default DEV_CONFIG
+`)
+try { execFileSync(process.execPath, [join(ROOT, 'extension', 'build.mjs')], { stdio: 'ignore' }) } catch { /* ignore */ }
+const restoreDevConfig = () => {
+  try {
+    writeFileSync(DEV_CONFIG, DEV_BACKUP)
+    execFileSync(process.execPath, [join(ROOT, 'extension', 'build.mjs')], { stdio: 'ignore' })
+  } catch { /* best effort：真失败由 npm run check:dist 兜底 */ }
+}
+
 // the extension must be loaded from a path without spaces (loadUnpacked limit)
 rmSync(EXT_COPY, { recursive: true, force: true })
 cpSync(EXT_DIST, EXT_COPY, { recursive: true })
@@ -52,7 +104,7 @@ rmSync(PROFILE, { recursive: true, force: true })
 const chromePid = execFileSync('/usr/bin/env', ['bash', '-c',
   `"${CHROME}" --user-data-dir="${PROFILE}" --remote-debugging-port=${CDP_PORT} --no-first-run --no-default-browser-check --no-sandbox --disable-gpu --headless=new --enable-unsafe-extension-debugging --window-size=420,900 about:blank >/tmp/m1-panel-chrome.log 2>&1 & echo $!`,
 ], { encoding: 'utf8' }).trim()
-const cleanup = () => { try { process.kill(Number(chromePid)) } catch { /* gone */ } }
+const cleanup = () => { try { process.kill(Number(chromePid)) } catch { /* gone */ } restoreDevConfig() }
 process.on('exit', cleanup)
 process.on('uncaughtException', (error) => { console.error('[panel-probe] fatal:', error); cleanup(); process.exit(1) })
 
@@ -170,6 +222,28 @@ for (let i = 0; i < 30; i += 1) {
   await sleep(1000)
 }
 record('iframe', frame)
+
+console.log('4. ★面板**读到**的写开关状态必须等于插件的真实状态')
+const liveControl = await fetch(`${ORIGIN}/ag/control?key=${encodeURIComponent(KEY)}`, { headers: { origin: EXT_ORIGIN } }).then((r) => r.json()).catch(() => null)
+let toggle = null
+for (let i = 0; i < 20; i += 1) {
+  const raw = await evaluate(`JSON.stringify({
+    checked: document.getElementById('wo-toggle')?.checked ?? null,
+    rowVisible: document.getElementById('write-ops')?.hidden === false,
+    statusText: document.getElementById('status-text')?.textContent ?? null,
+  })`, 8000)
+  toggle = typeof raw === 'string' ? JSON.parse(raw) : null
+  if (toggle?.rowVisible === true) break
+  await sleep(500)
+}
+record('插件真实状态确为「写操作开」（否则这节测不出东西）', liveControl?.allowBrowserWriteOps === true)
+record('开关行可见（说明那次读没有异常退出）', toggle?.rowVisible === true)
+record('★面板显示的勾选态 == 插件真实状态（403 那种"读不到就退回 off"会在这里露馅）', toggle?.checked === (liveControl?.allowBrowserWriteOps === true))
+// 注意：**不**断言状态文案。面板的状态行在用户拨动开关前属于**连接状态**（「DSH 已连接」），
+// 只有拨动之后才写「写操作已开启/已关闭」——这是既有行为，不该为了测试去改产品文案。
+record('状态文案仍归连接状态管（没有互相覆盖）', /DSH/u.test(String(toggle?.statusText ?? '')))
+const postBack = await postControl(false)
+record('收尾：把写开关关回去（不留副作用）', postBack.status === 200 && postBack.body?.allowBrowserWriteOps === false)
 
 console.log('3. 网络与错误面')
 const dshRequests = new Map()

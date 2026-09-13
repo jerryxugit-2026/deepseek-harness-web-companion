@@ -70,6 +70,23 @@ const VALIDATOR = `function validateAgainst(schema, value, root, path) {
   if (schema.const !== undefined && value !== schema.const) return fail('expected const ' + JSON.stringify(schema.const))
   if (Array.isArray(schema.enum) && !schema.enum.includes(value)) return fail('not in enum ' + JSON.stringify(schema.enum))
 
+  // Conditional requirement (if/then/else). Needed because a rule can be about a *pair* of
+  // fields — e.g. "a successful capture-result must carry the captureId it refers to" — and
+  // "required" alone is unconditional, which would reject the legitimate failure frames that
+  // carry no id at all; oneOf cannot express it either (it means "any branch passes" here).
+  if (schema.if !== undefined) {
+    const condition = validateAgainst(schema.if, value, root, path)
+    if (condition.ok) {
+      if (schema.then !== undefined) {
+        const result = validateAgainst(schema.then, value, root, path)
+        if (!result.ok) return result
+      }
+    } else if (schema.else !== undefined) {
+      const result = validateAgainst(schema.else, value, root, path)
+      if (!result.ok) return result
+    }
+  }
+
   if (schema.type !== undefined) {
     const types = Array.isArray(schema.type) ? schema.type : [schema.type]
     const actual = value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value
@@ -84,7 +101,10 @@ const VALIDATOR = `function validateAgainst(schema, value, root, path) {
     }
   }
 
-  if (schema.properties !== undefined || schema.additionalProperties === false) {
+  // A bare "required" (no properties, no additionalProperties) is legal JSON Schema and is
+  // exactly what an if/then rule produces — the old guard skipped it and validated NOTHING, so the
+  // rule looked enforced while the invalid frame sailed through (found by the new vector).
+  if (schema.properties !== undefined || schema.required !== undefined || schema.additionalProperties === false) {
     if (value === null || typeof value !== 'object' || Array.isArray(value)) return fail('expected object for properties check')
     const properties = schema.properties ?? {}
     for (const key of schema.required ?? []) {
@@ -148,6 +168,12 @@ export const ROUTE = Object.freeze(${JSON.stringify({
   ack: '/ag/ack',
   control: '/ag/control',
   whoami: '/ag/whoami',
+  // The two measurement channels used to be derived at the registration site with
+  // ROUTE.whoami.replace('/whoami', '/wsecho') — a silent failure waiting to happen: rename
+  // whoami and BOTH handlers would register on the same path (the second shadowing the first)
+  // instead of erroring. They are routes, so they belong in the route table.
+  wsEcho: '/ag/wsecho',
+  wsProbe: '/ag/wsprobe',
   probePage: '/ag/probe-page',
 }, null, 2)})
 

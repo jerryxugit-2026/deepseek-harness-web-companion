@@ -21,6 +21,7 @@ import { execFileSync } from 'node:child_process'
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, utimesSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createResults } from '../lib/probe-result.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(HERE, '..', '..')
@@ -171,12 +172,10 @@ const evaluate = async (sessionId, expression, timeoutMs = 12000) => {
   return result.result.value
 }
 
-const results = {}
-const record = (name, value) => {
-  results[name] = value
-  console.log(`  ${name}: ${(JSON.stringify(value) ?? String(value)).slice(0, 260)}`)
-}
-
+// 断言 / 观测分离，且**只有布尔 true 算通过** —— 规则的单一真源在 tests/lib/probe-result.mjs。
+// 这个探针以前既不算失败集、又无条件 `process.exit(0)`（结构上不可能变红），旧过滤器
+// `v === false` 还会把记成 `null` 的断言静默算过。
+const { record, observe, results, observations, finish } = createResults({ label: 'm2-capture' })
 // 1. fixture page first (it must be the ACTIVE tab for the capture)
 const fixture = await open(`http://127.0.0.1:${String(FIXTURE_PORT)}/`)
 await sleep(800)
@@ -294,7 +293,10 @@ if (typeof selPath === 'string' && existsSync(selPath)) {
     chars: text.length,
   })
 }
-record('emptySelection', await (async () => {
+// 复合判定必须拆成**逐条断言**：以前它们是一个对象传给 record()，而旧过滤器只认字面
+// false ⇒ 里面任何一项为 false 都**不会**让探针变红（记成对象 → 静默通过）。现在 helper 会把
+// 非布尔记录归入"观测"，所以这里显式拆开 —— 观测量仍有，但判定是真判定。
+const emptySelection = await (async () => {
   // 先清掉选区，再请求选区抓取：必须明确失败且**不产生文件**
   await evaluate(fixture.sessionId, '(() => { const s = window.getSelection(); s.removeAllRanges(); return s.toString() })()')
   await browser.send('Target.activateTarget', { targetId: fixture.targetId })
@@ -312,12 +314,19 @@ record('emptySelection', await (async () => {
     // SW 这层只说事实（面向用户的话术在面板 explainError，由单测覆盖）
     swMessageStatesFact: /no text is selected/iu.test(String(parsed?.error?.message ?? '')),
   }
-})())
+})()
+record('空选区被明确拒绝（E_NO_SELECTION）', emptySelection.refusedWithCode)
+record('空选区**不落盘**（旧行为是"静默抓整页"）', emptySelection.noFileWritten)
+record('SW 的话术只说事实（不越权给用户建议）', emptySelection.swMessageStatesFact)
+observe('emptySelection', emptySelection)
 
-record('retention', {
+const retention = {
   stale25hRemoved: !existsSync(stalePath),
   userFileKept: existsSync(userKeepPath),
-})
+}
+record('保留策略：25h 前的本插件抓取文件被清', retention.stale25hRemoved)
+record('保留策略：用户自己的文件被保留', retention.userFileKept)
+observe('retention', retention)
 
 record('placeholderAnchors', (() => {
   const body = typeof pagePathFromReply === 'string' && existsSync(pagePathFromReply) ? readFileSync(pagePathFromReply, 'utf8') : ''
@@ -384,10 +393,14 @@ for (let i = 0; i < 20; i += 1) {
   }
   await sleep(400)
 }
-// 硬断言只有一条：**永远不用 DOM 兜底**（出现了就必须来自插槽）。"此刻有没有胶囊"
-// 是异步的、属于竞态，不该用它判成败 —— 胶囊的出现/撤销/ack 由 probe:chip 覆盖。
-record('chipNeverFallsBackToDom', activeChips.every((entry) => entry.host !== 'dom'))
-record('chipHostObservation', { dockMounted, chipCount: activeChips.length, hosts: activeChips.map((entry) => entry.host) })
+// 硬断言两条，都是"出现了才算"的形态，**空集不给绿**：
+//   - `dockMounted`：插槽胶囊宿主真的挂上了（这是可观察的契约，不是竞态 —— 应用起来就该有）；
+//   - `chipNeverFallsBackToDom`：观察到的胶囊**必须**来自插槽，不许 DOM 兜底。
+// 原来只有第二条，而 `[].every(...)` 对空数组恒真 ⇒ 胶囊一个都没生成时它反而变绿（假绿）。
+// "此刻有没有胶囊"仍是竞态，不进断言，只作观测（出现/撤销/ack 由 probe:chip 覆盖）。
+record('dock 已挂载（胶囊宿主 = DSH 插槽）', dockMounted === true)
+record('观察到的胶囊都来自插槽（空集不算证据，改由 dockMounted 判）', activeChips.every((entry) => entry.host !== 'dom'))
+observe('chipHostObservation', { dockMounted, chipCount: activeChips.length, hosts: activeChips.map((entry) => entry.host) })
 
 const sessionsAfter = await frameEval(`JSON.stringify(globalThis.__AG_CLIENT__?.sessions?.() ?? null)`)
 record('sessionsAfter', typeof sessionsAfter === 'string' ? JSON.parse(sessionsAfter) : sessionsAfter)
@@ -396,10 +409,14 @@ const after = typeof sessionsAfter === 'string' ? JSON.parse(sessionsAfter) : se
 record('newSessionCreated', (after?.count ?? 0) > (before?.count ?? 0))
 record('targetIsFreshSession', typeof chip?.lastAttach?.sessionId === 'string' && !(before?.ids ?? []).includes(chip.lastAttach.sessionId))
 record('sessionMode', chip?.lastAttach?.sessionMode ?? null)
-record('shellSwitched', chip?.lastAttach?.switched ?? null)
+// 2026-09-12 的契约（**v3.39 按用户决定恢复设计行为**）：按钮/右键抓取 = 新建会话 + **切过去**
+// + 把 @文件 写进那个新会话的草稿。v3.38 曾短暂反过来（不切、不预填），那两条断言在 v3.39 后
+// 就过期了 —— 但因为本探针当时**结构上不可能变红**（没有失败集、无条件 exit(0)），它一直静默
+// 通过，直到把判定收紧后才第一次红出来。白盒复核在 tests/unit/client-attach.test.mjs。
+record('按设计切到了新会话（switched=true）', chip?.lastAttach?.switched === true)
+record('新会话草稿里已写入 @文件（inserted=true）', chip?.lastAttach?.inserted === true && chip?.lastAttach?.status === 'inserted')
 
-const report = { probe: 'm2-capture', dshPort: DSH_PORT, workspace: WORKSPACE, extensionId: extId, results }
+const report = { probe: 'm2-capture', dshPort: DSH_PORT, workspace: WORKSPACE, extensionId: extId, results, observations }
 writeFileSync(join(OUT_DIR, 'probe-capture.json'), `${JSON.stringify(report, null, 2)}\n`)
-console.log('\n写入 docs/reviews/probe-capture.json')
 cleanup()
-process.exit(0)
+finish('docs/reviews/probe-capture.json')

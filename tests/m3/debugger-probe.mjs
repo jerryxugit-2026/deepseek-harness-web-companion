@@ -29,6 +29,7 @@ import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { WebSocket } from 'ws'
+import { createResults } from '../lib/probe-result.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(HERE, '..', '..')
@@ -126,11 +127,8 @@ const inSw = async (expression, timeoutMs = 30000) => {
   return result.result.value
 }
 
-const results = {}
-const record = (name, value) => {
-  results[name] = value
-  console.log(`  ${value === true ? '✅' : value === false ? '❌' : '·'} ${name}: ${(JSON.stringify(value) ?? String(value)).slice(0, 240)}`)
-}
+// 断言/观测分离，且只有布尔 true 算通过 —— 见 ../lib/probe-result.mjs 的由来。
+const { record, observe, results, observations, finish } = createResults({ label: 'm3/debugger' })
 
 console.log('\n1. 清单里的声明方式 → API 是否真的存在')
 record('debugger 已在必需 permissions 中', (manifest.permissions ?? []).includes('debugger'))
@@ -140,7 +138,10 @@ record('SW 内 typeof chrome.debugger === "object"', await inSw('typeof chrome.d
 record('permissions.contains({debugger}) === true', await inSw(`chrome.permissions.contains({ permissions: ['debugger'] })`) === true)
 record('permissions.getAll().permissions 含 debugger',
   await inSw(`(async () => (await chrome.permissions.getAll()).permissions.includes('debugger'))()`) === true)
-record('无需用户手势即可 attach（不依赖 permissions.request）', true)
+// 「无需用户手势即可 attach」不能作为"声明式"断言存在：本探针后面整段 attach/detach 生命周期
+// 就是**在没有任何用户手势的情况下真实执行**的，那才是它的证据。这里原来有一句把断言值直接
+// 写成字面量 true 的记录调用 —— 永远为绿、不执行任何探测，属装饰性断言（2026-09-12 由 PiMoa
+// 审核指出、我核实后删除；`npm run check` 新增的门禁禁止这种写法）。
 
 console.log('\n2. M3 需要的三件事：无障碍树 / 可信输入 / 截图')
 const ax = await inSw(`(async () => {
@@ -212,8 +213,6 @@ const life = typeof lifecycle === 'string' ? JSON.parse(lifecycle) : lifecycle
 record('attach 让 attached 计数 +1、detach 后回到原值', life?.during === life?.before + 1 && life?.after === life?.before)
 record('重复 attach 报错（M3 必须自己维护占用状态）', typeof life?.secondAttach === 'string' && life.secondAttach !== 'ok')
 
-const failed = Object.entries(results).filter(([, v]) => v === false).map(([k]) => k)
-writeFileSync(resolve(OUT_DIR, 'm3-debugger-probe.json'), `${JSON.stringify({ probe: 'm3/debugger', fixturePort: FIXTURE_PORT, at: new Date().toISOString(), manifestPermissions: manifest.permissions, optionalPermissions: manifest.optional_permissions ?? null, results, axResult, lifecycle: life }, null, 2)}\n`)
-console.log(`\n${failed.length === 0 ? '✅ 全部通过' : `❌ 失败 ${String(failed.length)} 项：${failed.join('、')}`}（报告 → docs/reviews/m3-debugger-probe.json）`)
+writeFileSync(resolve(OUT_DIR, 'm3-debugger-probe.json'), `${JSON.stringify({ probe: 'm3/debugger', fixturePort: FIXTURE_PORT, at: new Date().toISOString(), manifestPermissions: manifest.permissions, optionalPermissions: manifest.optional_permissions ?? null, results, observations, axResult, lifecycle: life }, null, 2)}\n`)
 cleanup()
-process.exitCode = failed.length === 0 ? 0 : 1
+finish('m3-debugger-probe.json')

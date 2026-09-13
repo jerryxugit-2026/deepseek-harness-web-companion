@@ -88,9 +88,33 @@ if (started !== null) {
   try { process.kill(-started.pid) } catch { try { started.kill() } catch { /* gone */ } }
 }
 
+/*
+ * 收尾：把 `extension/dist/` 重建回"真实配置"。
+ *
+ * 探针为了指向测试实例会**临时改写** `extension/src/lib/dev-config.js`；而不论哪个探针触发
+ * 构建，烤进 `dist/` 的都是"当时生效的配置"。若这一段跑完不重建，`dist/` 就留在测试端口上
+ * —— 而 `dist/` 正是用户 Chrome 加载的目录。2026-09-12 真实事故：用户侧的侧边栏开始往
+ * 3099 拨号，表现为 `E_EXT_OFFLINE`（面板连不上），看源码完全看不出问题。
+ * 这里重建 + 用 `check-dist-config.mjs` 自证，跑完探针的人不需要记得额外做什么。
+ */
+console.log('\n收尾：把 extension/dist 重建回源码 dev-config 的配置…')
+let teardownFailed = false
+try {
+  execFileSync(process.execPath, [join(ROOT, 'extension', 'build.mjs')], { cwd: ROOT, stdio: 'ignore' })
+  execFileSync(process.execPath, [join(ROOT, 'scripts', 'check-dist-config.mjs')], { cwd: ROOT, stdio: 'inherit' })
+} catch (error) {
+  // This used to only `console.error` — so a failed teardown left `extension/dist` pointing at
+  // the *test* port **and still exited 0** (CI green, user's panel broken: the 2026-09-12
+  // incident). A teardown failure is a real failure of this command.
+  teardownFailed = true
+  console.error('✗ dist 收尾失败（dist 可能仍指向测试端口）——请手动跑 npm run build:ext && npm run check:dist')
+  console.error(String(error?.message ?? error))
+}
+
 console.log('汇总')
 const pad = (value, width) => String(value).padEnd(width)
 for (const r of results) console.log(`  ${r.code === 0 ? '✅' : '❌'} ${pad(r.script, 22)} ${pad(`${String(r.seconds)}s`, 6)} ${r.note}`)
 const failed = results.filter((r) => r.code !== 0)
 console.log(`\n${failed.length === 0 ? `✅ 全部通过（${String(results.length)} 个探针）` : `❌ ${String(failed.length)}/${String(results.length)} 个探针失败：${failed.map((r) => r.script).join('、')}`}`)
-process.exit(failed.length === 0 ? 0 : 1)
+if (teardownFailed) console.log('❌ 但收尾（重建 dist）失败 —— 见上方错误，退出码按失败计')
+process.exit(failed.length === 0 && !teardownFailed ? 0 : 1)

@@ -1,0 +1,10 @@
+{
+  "type": "capture-result",
+  "protocolVersion": 1,
+  "requestId": "int-m0probe-1",
+  "ok": true,
+  "captureId": "cap-m0probe-1",
+  "fileRef": "@网页捕获/2026-09-12-1200-example-com-ab12cd.md",
+  "filePath": "/Users/mac/ws/网页捕获/2026-09-12-1200-example-com-ab12cd.md",
+  "at": 1767000000000
+}

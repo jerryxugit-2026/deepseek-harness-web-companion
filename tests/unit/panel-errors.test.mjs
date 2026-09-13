@@ -23,7 +23,7 @@ const CASES = [
   ['E_DSH_DOWN', { code: 'E_DSH_DOWN', message: 'x' }, ['dsh web']],
   ['E_READONLY', { code: 'E_READONLY', message: 'op "browser_click" changes the page' }, ['写操作']],
   ['E_EXT_OFFLINE', { code: 'E_EXT_OFFLINE', message: 'no extension connected' }, ['侧边栏']],
-  ['E_TARGET_BUSY', { code: 'E_TARGET_BUSY', message: 'Another debugger is already attached' }, ['DevTools']],
+  ['E_TARGET_BUSY', { code: 'E_TARGET_BUSY', message: 'Another debugger is already attached' }, ['另一个调试器', '另一个扩展']],
   ['E_TIMEOUT', { code: 'E_TIMEOUT', message: 'no answer within 10000ms' }, ['超时']],
 ]
 for (const [code, error, needles] of CASES) {
@@ -44,6 +44,7 @@ record('未知码原样返回 message', unknown === 'something nobody mapped')
 record('没有 message 时也不崩', explainError({ code: 'E_X' }) === '')
 record('undefined 不崩', explainError(undefined) === '')
 
-const failed = Object.entries(results).filter(([, v]) => v === false).map(([k]) => k)
+// 只有布尔 true 算通过：任何没记上的都算失败（原来记成 null/对象会静默通过）
+const failed = Object.entries(results).filter(([, v]) => v !== true).map(([k]) => k)
 console.log(`\n${failed.length === 0 ? '✅ 全部通过' : `❌ 失败 ${String(failed.length)} 项：${failed.join('、')}`}（${String(Object.keys(results).length)} 条断言）`)
 process.exitCode = failed.length === 0 ? 0 : 1

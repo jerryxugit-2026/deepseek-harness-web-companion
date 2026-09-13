@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Antigravity Web Companion",
+  "name": "DeepSeek 浏览器插件",
   "version": "0.1.0",
   "description": "Chrome side panel that embeds the local DeepSeek Harness agent GUI and attaches the current page to it.",
   "minimum_chrome_version": "116",
@@ -12,7 +12,7 @@
     "default_path": "src/sidepanel/panel.html"
   },
   "action": {
-    "default_title": "Antigravity Companion"
+    "default_title": "DeepSeek 浏览器插件"
   },
   "permissions": [
     "sidePanel",

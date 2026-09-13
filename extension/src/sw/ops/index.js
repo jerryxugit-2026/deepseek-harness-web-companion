@@ -256,24 +256,37 @@ export async function opNavigate(params = {}) {
 /**
  * `browser_screenshot`: viewport or full page.
  *
- * `fullPage` decides the *content*; the runtime switch only decides *how* it is taken
- * (debugger bypasses the 2/s throttle and works on background tabs). Letting the
- * switch imply full-page was the bug this probe caught.
+ * `fullPage` decides the *content*; the runtime switch decides *how* it is taken
+ * (debugger bypasses the 2/s throttle and works on background tabs).
+ *
+ * Both paths need the switch — and that used to be false for `fullPage`, which took the
+ * debugger route on `debuggerAvailable()` alone. `debuggerAvailable()` only asks whether
+ * `chrome.debugger.attach` exists, **not** whether the user turned「浏览器控制」on, so a
+ * plain `browser_screenshot{fullPage:true}` attached the debugger and popped the
+ * unavoidable「正在调试」banner with no consent. That contradicts ADR-12/T8 ("install 期
+ * 必需、运行期 opt-in：默认不 attach") *and* this tool's own description in tools.js
+ * ("整页需要「浏览器控制」开关") — declared contract, unenforced. Verified in
+ * docs/reviews/pimoa-verification-2026-09-12.md §2.
  */
 export async function opScreenshot(params = {}, settings = {}) {
   const tab = await resolveTab(params)
   const wantFullPage = params.fullPage === true
-  if (debuggerAvailable() && (wantFullPage || settings.browserControl === true)) {
+  if (settings.browserControl === true && debuggerAvailable()) {
     const shot = await pageScreenshot(tab.id, { fullPage: wantFullPage })
     return {
       tabId: tab.id,
       url: tab.url,
       ...shot,
       trusted: true,
-      ...(settings.browserControl === true ? { notes: ['浏览器控制已开启：走 debugger（不受 2 次/秒限流、可在后台标签页截图）'] } : {}),
+      notes: ['浏览器控制已开启：走 debugger（不受 2 次/秒限流、可在后台标签页截图）'],
     }
   }
-  if (wantFullPage) throw opError('E_NO_PERMISSION', 'full-page screenshots need chrome.debugger')
+  if (wantFullPage) {
+    throw opError(
+      'E_NO_PERMISSION',
+      '整页截图需要先打开「浏览器控制」开关（它要 attach 调试器，页面上会出现不可消除的「正在调试」横幅）。也可以只用视口截图。',
+    )
+  }
   try {
     const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'png' })
     const base64 = dataUrl.replace(/^data:image\/png;base64,/u, '')
@@ -284,9 +297,16 @@ export async function opScreenshot(params = {}, settings = {}) {
   }
 }
 
-/** `browser_ax`: the accessibility tree — the structured read M3 added debugger for. */
-export async function opAx(params = {}) {
+/**
+ * `browser_ax`: the accessibility tree — the structured read M3 added debugger for.
+ *
+ * Same rule as the full-page screenshot: it needs the debugger, so it needs the switch.
+ */
+export async function opAx(params = {}, settings = {}) {
   const tab = await resolveTab(params)
+  if (settings.browserControl !== true) {
+    throw opError('E_NO_PERMISSION', '无障碍树需要先打开「浏览器控制」开关（它要 attach 调试器，页面上会出现「正在调试」横幅）')
+  }
   if (!debuggerAvailable()) throw opError('E_NO_PERMISSION', 'accessibility tree needs chrome.debugger')
   const tree = await accessibilityTree(tab.id, { maxNodes: Number.isFinite(params.maxNodes) ? params.maxNodes : 400 })
   return { tabId: tab.id, url: tab.url, title: tab.title, ...tree }

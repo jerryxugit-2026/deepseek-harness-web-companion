@@ -17,6 +17,7 @@ import { execFileSync } from 'node:child_process'
 import { cpSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createResults } from '../lib/probe-result.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(HERE, '..', '..')
@@ -111,11 +112,7 @@ const click = async (sessionId, selector) => {
   return true
 }
 
-const results = {}
-const record = (name, value) => {
-  results[name] = value
-  console.log(`  ${name}: ${(JSON.stringify(value) ?? String(value)).slice(0, 240)}`)
-}
+const { record, observe, results, observations, finish } = createResults({ label: 'm2/gate-probe' })
 
 // a page the extension has NO host permission for
 const site = await open(TARGET_URL)
@@ -141,7 +138,7 @@ const shot = join(OUT_DIR, 'probe-gate.png')
 writeFileSync(shot, Buffer.from(data, 'base64'))
 record('screenshot', shot)
 
-writeFileSync(join(OUT_DIR, 'probe-gate.json'), `${JSON.stringify({ probe: 'm2-gate', target: TARGET_URL, results }, null, 2)}\n`)
+writeFileSync(join(OUT_DIR, 'probe-gate.json'), `${JSON.stringify({ probe: 'm2-gate', target: TARGET_URL, results, observations }, null, 2)}\n`)
 console.log('\n写入 docs/reviews/probe-gate.json')
 cleanup()
-process.exit(0)
+finish()

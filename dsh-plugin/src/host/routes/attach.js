@@ -23,10 +23,10 @@ async function readBody(req, limit) {
   return Buffer.concat(chunks).toString('utf8')
 }
 
-export function attachRoute({ state, store, hub, config, resolveWorkspace }) {
+export function attachRoute({ state, store, hub, config, resolveWorkspace, resolveOwner = () => undefined }) {
   return async (req, res) => {
-    const send = (status, payload) => {
-      res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' })
+    const send = (status, payload, extraHeaders = {}) => {
+      res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...extraHeaders })
       res.end(JSON.stringify(payload))
     }
     if (!state.guard().checkFetch(req)) return send(403, { ok: false, error: { code: 'E_AUTH', message: 'forbidden' } })
@@ -36,7 +36,12 @@ export function attachRoute({ state, store, hub, config, resolveWorkspace }) {
       payload = JSON.parse(await readBody(req, config.attachMaxBytes))
     } catch (error) {
       const code = error.code === 'E_TOO_LARGE' ? 'E_TOO_LARGE' : 'E_PAYLOAD'
-      return send(code === 'E_TOO_LARGE' ? 413 : 400, { ok: false, error: { code, message: String(error.message ?? error) } })
+      // We stop reading an oversize body ON PURPOSE (that is the point of the 413), so the
+      // socket still has unread data and Node must destroy it. Saying `keep-alive` and then
+      // closing is a lie the client pays for: undici pooled the socket, reused it for the
+      // next request, and got `ECONNRESET` — reproduced deterministically (2026-09-12) as
+      // "413 then the very next GET /ag/pending fails". Advertise the close instead.
+      return send(code === 'E_TOO_LARGE' ? 413 : 400, { ok: false, error: { code, message: String(error.message ?? error) } }, code === 'E_TOO_LARGE' ? { connection: 'close' } : {})
     }
     const validated = validateAs('AttachRequest', payload)
     if (!validated.ok) return send(400, { ok: false, error: validated.error })
@@ -80,16 +85,30 @@ export function attachRoute({ state, store, hub, config, resolveWorkspace }) {
         bytes: written.bytes,
       },
     }
-    const delivered = hub.push(event)
-    if (delivered === 0) store.enqueue(event)
-    state.recordCapture?.(event, delivered)
+    // Exactly ONE page half receives a capture.
+    //
+    // This used to be `hub.push(event)` — a broadcast — and a user normally has two page
+    // halves connected (the DSH GUI in a tab + the DSH GUI embedded in the side panel's
+    // iframe). Every half applied the attach on its own, so **one capture produced two
+    // sessions, two chips and two draft inserts** (measured 2026-09-12: sessions created
+    // 3ms apart, twice per capture; the original 22:23 report was the same thing at 5ms).
+    // The page half that asked wins; otherwise the hub picks (side panel → focused →
+    // visible → newest).
+    // `resolveOwner` is read-and-forget, so grab the owner first and hand it to the queue when
+    // nobody could take the frame: a queued capture must remember WHICH page half asked for it,
+    // or `sessionMode: 'current'` will later insert into the other page's session.
+    const ownerId = resolveOwner(payload.captureId)
+    const deliveredId = hub.pushClientPrimary(event, ownerId)
+    if (deliveredId === null) store.enqueue({ ...event, ownerClientId: ownerId })
+    state.recordCapture?.(event, deliveredId === null ? 0 : 1, payload.trigger)
 
     return send(200, {
       ok: true,
       captureId: payload.captureId,
       fileRef: written.fileRef,
       filePath: written.filePath,
-      deliveredTo: delivered === 0 ? [] : [`client:${String(delivered)}`],
+      // A real client id (or nothing) — never a count pretending to be one.
+      deliveredTo: deliveredId === null ? [] : [deliveredId],
     })
   }
 }

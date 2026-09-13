@@ -23,9 +23,17 @@
  * implementation fails in CI instead of at the user's first call.
  */
 import { defineTool } from '@deepseek-ai/dsh-tools'
+// v3.40 把截图文件名里的随机后缀改成 randomBytes(3)，却**只加了用法没加这个 import** ⇒
+// `browser_screenshot` 整条工具在真机上直接 ReferenceError（op 层探针只打 op、单测恰好跳过了
+// screenshot 的 execute，两边都没抓到 —— 2026-09-12 由新的「真值驱动工具层」检查抓出）。
+import { randomBytes } from 'node:crypto'
 import { mkdir, rename, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { sweepCaptures } from './retention.js'
+// One implementation of the capture timestamp for the whole host: `stampOf` used to be a second
+// copy of `store.js#stamp`, so a change to the file-name convention could silently apply to only
+// one of the two places that writes capture files. Kept as an alias because callers import it.
+import { stamp as stampOf } from './store.js'
 
 /** Closed shape shared by every tool: the value, or a diagnosable error. */
 const ERROR_SCHEMA = {
@@ -71,11 +79,6 @@ async function persistScreenshot({ workspace, attachDir, base64, mime, stamp, id
   return { filePath, fileRef: `@${attachDir}/assets/${name}` }
 }
 
-/** Local `yyyy-MM-dd-HHmm` stamp, same convention as captures. */
-function stampOf(date = new Date()) {
-  const pad = (n) => String(n).padStart(2, '0')
-  return `${String(date.getFullYear())}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}-${pad(date.getHours())}${pad(date.getMinutes())}`
-}
 
 /**
  * Build the tool definitions (no registration side effects — the unit test drives
@@ -250,7 +253,10 @@ export function buildBrowserTools({ hub, config, resolveWorkspace, log = () => {
         base64: value.base64,
         mime: typeof value.mime === 'string' ? value.mime : 'image/png',
         stamp: stampOf(),
-        id6: Math.random().toString(16).slice(2, 8),
+        // 6 hex chars, always. `Math.random().toString(16).slice(2, 8)` can yield fewer (e.g. 0.5 →
+        // "0.8"), so two screenshots in the same minute could collide and the rename would silently
+        // overwrite the first (review 2026-09-12).
+        id6: randomBytes(3).toString('hex'),
         retentionHours: config.retentionHours ?? 24,
         log,
       })
@@ -290,7 +296,11 @@ export function buildBrowserTools({ hub, config, resolveWorkspace, log = () => {
                 role: { type: 'string', required: true },
                 name: str('可读名称'),
                 value: str('当前值'),
-                nodeId: num('CDP 节点 id'),
+                // CDP 的两个 nodeId 不是一个类型：`Accessibility.AXNode.nodeId` 是**字符串**，
+                // `DOM.Node.nodeId` 才是数字。这里声明成 num 时，真实的无障碍树**整条**都过不了
+                // output schema ⇒ 模型收到的是「invalid output」而不是树（实测 2026-09-12：真机开着
+                // 「浏览器控制」调 browser_ax 直接报 schema 错，而不是返回节点）。
+                nodeId: str('CDP 无障碍节点 id（AXNode.nodeId，字符串）'),
               },
             },
           },

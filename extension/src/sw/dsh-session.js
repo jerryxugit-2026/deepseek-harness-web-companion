@@ -106,8 +106,13 @@ export async function ensureReady() {
       },
     }
   }
-  // Prefer the ticket handshake: the long-lived key never enters the frame URL.
-  const ticket = await requestTicket()
+  // Prefer the ticket handshake: the long-lived key never enters the frame URL (design T9).
+  let ticket = await requestTicket()
+  if (!ticket.ok) {
+    // One retry: a ticket can fail merely because the plugin restarted between probe and request.
+    await new Promise((r) => { setTimeout(r, 400) })
+    ticket = await requestTicket()
+  }
   if (ticket.ok) {
     return {
       ok: true,
@@ -115,9 +120,16 @@ export async function ensureReady() {
       state: { dsh: 'up', port: dshPort(), plugin: info, handshake: 'ticket', ticketExpiresAt: ticket.value.expiresAt, autoStarted: started },
     }
   }
+  // Fail closed. This used to fall back to `enterUrl()` — i.e. the shared pairing key silently
+  // went into the iframe URL, where it lands in browser history, `Referer` and access logs. That
+  // contradicted both the comment above and design T9 ("key 不进网页可达位置"); §7.4's `?token=`
+  // fallback is a *user-initiated* step (paste the URL `dsh web` printed), never an automatic one.
   return {
-    ok: true,
-    url: enterUrl(),
-    state: { dsh: 'up', port: dshPort(), plugin: info, handshake: 'key-fallback', ticketError: ticket.error.code },
+    ok: false,
+    state: { dsh: 'up', port: dshPort(), plugin: info, handshake: 'ticket-failed', ticketError: ticket.error.code },
+    error: {
+      code: 'E_UNPAIRED',
+      message: `取一次性进入票据失败（${String(ticket.error.code)}）：${String(ticket.error.message)}\n\n为不把长期密钥写进 iframe URL，已停止自动进入。请重开侧边栏重试；若持续失败，运行 node scripts/init-key.mjs 后重新加载扩展。`,
+    },
   }
 }

@@ -1,0 +1,11 @@
+{
+  "type": "capture-result",
+  "protocolVersion": 1,
+  "requestId": "int-m0probe-4",
+  "ok": false,
+  "error": {
+    "code": "E_NOPE",
+    "message": "x"
+  },
+  "at": 1767000000000
+}

@@ -61,6 +61,12 @@ const RULES = [
     skip: HISTORY,
   },
   {
+    id: 'decorative-assertion',
+    pattern: /record\([^,)]*,\s*true\s*\)/u,
+    reason: '装饰性断言：断言值直接写成字面量 true ⇒ 永远为绿、不执行任何探测。2026-09-12 实测 debugger-probe 里就有一条，还被当成"14 条断言"之一引用过（PiMoa 审核指出、我核实）。断言必须来自真实探测',
+    skip: HISTORY,
+  },
+  {
     id: 'stale-intent-sniff-location',
     pattern: /intent-sniff/u,
     reason: 'A4/ADR-11：「看左边」嗅探点必须在 DSH client 插件内，扩展端读不到跨域 iframe 的输入框',
@@ -202,19 +208,31 @@ const skipped = (rule, file) =>
   (rule.skip ?? []).some((prefix) => file.startsWith(prefix) || file.includes(prefix))
 
 const hits = []
+/** 按 allowIf 豁免的命中（打印出来，让这个弱点可见而不是静默） */
+const exempted = []
 for (const file of files) {
   const text = readFileSync(join(ROOT, file), 'utf8')
   const lines = text.split('\n')
   for (const rule of RULES) {
     if (skipped(rule, file)) continue
     lines.forEach((line, index) => {
-      if (rule.pattern.test(line) && !(rule.allowIf !== undefined && rule.allowIf.test(line))) hits.push({ rule: rule.id, file, line: index + 1, text: line.trim().slice(0, 120), reason: rule.reason })
+      if (!rule.pattern.test(line)) return
+      // `allowIf` 是**按整行**判的豁免（"旧名已废弃"这类正当引用需要它）。整行豁免本身可被滥用：
+      // 把旧说法写进含"废弃/已改/历史"的句子里就能永久豁免。试过改成"只看命中处附近 40 字符"的
+      // 距离窗口，结果**误伤了设计文档里正当的引用**（那些句子本来就更长）⇒ 说明距离启发式不可靠。
+      // 因此判定不变，但**把豁免计数与位置打出来**：弱点可见，而不是静默（审核 2026-09-12 的意见）。
+      if (rule.allowIf !== undefined && rule.allowIf.test(line)) {
+        exempted.push({ rule: rule.id, file, line: index + 1, text: line.trim().slice(0, 120) })
+        return
+      }
+      hits.push({ rule: rule.id, file, line: index + 1, text: line.trim().slice(0, 120), reason: rule.reason })
     })
   }
 }
 
 if (hits.length === 0) {
-  console.log(`consistency: OK（${String(RULES.length)} 条规则 / ${String(files.length)} 个文件，无废弃说法残留）`)
+  console.log(`consistency: OK（${String(RULES.length)} 条规则 / ${String(files.length)} 个文件，无废弃说法残留；另有 ${String(exempted.length)} 处按 allowIf 豁免，见下）`)
+for (const item of exempted) console.log(`  · 豁免 [${item.rule}] ${item.file}:${String(item.line)}  ${item.text}`)
   process.exit(0)
 }
 

@@ -109,6 +109,7 @@ freshServer.close()
 mute.terminate()
 hub.dispose()
 server.close()
-const failed = Object.entries(results).filter(([, v]) => v === false).map(([k]) => k)
+// 只有布尔 true 算通过：任何没记上的都算失败（原来记成 null/对象会静默通过）
+const failed = Object.entries(results).filter(([, v]) => v !== true).map(([k]) => k)
 console.log(`\n${failed.length === 0 ? '✅ 全部通过' : `❌ 失败 ${failed.length} 项：${failed.join('、')}`}（${String(Object.keys(results).length)} 条断言）`)
 process.exitCode = failed.length === 0 ? 0 : 1

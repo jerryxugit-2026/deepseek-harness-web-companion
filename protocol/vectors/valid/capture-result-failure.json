@@ -1,0 +1,11 @@
+{
+  "type": "capture-result",
+  "protocolVersion": 1,
+  "requestId": "int-m0probe-2",
+  "ok": false,
+  "error": {
+    "code": "E_NO_SELECTION",
+    "message": "no text is selected on the page"
+  },
+  "at": 1767000000000
+}

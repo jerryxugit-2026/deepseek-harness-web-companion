@@ -5,6 +5,7 @@
  * whether DSH is up, whether the bridge plugin is loaded, and whether the
  * pairing file still needs to be provisioned. It discloses no secrets.
  */
+import { isPaired } from '../key-store.js'
 import { validateAs } from '../../shared/protocol.generated.js'
 
 export function pingRoute({ state, protocolVersion }) {
@@ -16,7 +17,7 @@ export function pingRoute({ state, protocolVersion }) {
       plugin: 'dsh-web-companion-bridge',
       pluginVersion: state.pluginVersion,
       keyConfigured: pairing.key !== undefined,
-      paired: pairing.key !== undefined && pairing.extensionOrigins.length > 0,
+      paired: isPaired(pairing),
       trustedOrigins: pairing.extensionOrigins.length,
       pairingSource: pairing.source,
       // always a string|null: the schema is closed, and an omitted optional
@@ -24,8 +25,12 @@ export function pingRoute({ state, protocolVersion }) {
       pairingError: pairing.error ?? null,
       dsh: { home: state.dshHome, port: state.port() },
       capabilities: state.capabilities(),
-      liveTickets: typeof state.liveTickets === 'function' ? state.liveTickets() : undefined,
-      connectedClients: typeof state.connectedClients === 'function' ? state.connectedClients() : undefined,
+      // Omitted when the state cannot answer — NOT set to `undefined`. The schema treats a key that
+      // is present with `undefined` as a type error ("expected number, got undefined"), so the old
+      // form turned a state object without these probes into a 500 E_INTERNAL on the one route that
+      // exists to *explain* the install (caught by tests/unit/pairing-semantics.test.mjs).
+      ...(typeof state.liveTickets === 'function' ? { liveTickets: state.liveTickets() } : {}),
+      ...(typeof state.connectedClients === 'function' ? { connectedClients: state.connectedClients() } : {}),
     }
     // Fail loudly on drift: a payload the schema rejects must never ship.
     const validated = validateAs('PingResponse', payload)

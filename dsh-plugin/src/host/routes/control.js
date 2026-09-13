@@ -1,5 +1,12 @@
 /**
- * `POST /ag/control` — runtime switches owned by the extension side of the pairing.
+ * `GET /ag/control` — read the current switches **without changing them**;
+ * `POST /ag/control` — flip them.
+ *
+ * The GET exists because the panel used to discover the state with a POST carrying
+ * `allowBrowserWriteOps: false` — i.e. **opening the panel silently turned the write
+ * switch off**, while the function's own comment claimed it was reading the value
+ * (measured 2026-09-12: the audit trail recorded a panel-driven flip back to false on
+ * every panel open). A read must not mutate. See docs/CHANGELOG.md v3.39 §8.
  *
  * Why a route instead of a config edit: `allowBrowserWriteOps` decides whether the
  * write tools exist at all, and requiring a YAML edit + a DSH restart for that makes
@@ -13,8 +20,23 @@
  */
 import { validateAs } from '../../shared/protocol.generated.js'
 
+/** The current state, in the shape `ControlResponse` already describes. */
+function currentState(state) {
+  return {
+    ok: true,
+    allowBrowserWriteOps: state.writeOps?.() === true,
+    capabilities: state.capabilities?.() ?? [],
+    ...(typeof state.approvalMode === 'function' ? { approvalMode: state.approvalMode() } : {}),
+  }
+}
+
 export function controlRoute({ state }) {
   return async (req, res) => {
+    if (req.method === 'GET' || req.method === 'HEAD') {
+      const payload = currentState(state)
+      send(res, 200, payload)
+      return
+    }
     const body = await readBody(req)
     if (body.error !== undefined) {
       send(res, 400, { ok: false, error: { code: 'E_PAYLOAD', message: body.error } })

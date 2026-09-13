@@ -50,6 +50,9 @@ export function whoamiRoute({ state }) {
       sessionCookiePresent: cookieName !== null,
       sessionCookieName: cookieName,
       cookieCount: cookie === '' ? 0 : cookie.split(';').length,
+      // 审计健康状态。审计"悄悄死掉"曾在内外部都不可观测（2026-09-12 审核指出）；放在这条
+      // 诊断路由上：它只在同源/带 key 时回答，且**不参与协议 schema**（不牵动 codegen 与向量）。
+      ...(typeof state?.auditStatus === 'function' ? { audit: state.auditStatus() } : {}),
     }))
   }
 }

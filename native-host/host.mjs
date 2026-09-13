@@ -12,15 +12,21 @@ import { appendFileSync, mkdirSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { ensureDsh, probePort, readState } from './launcher.mjs'
+import { rotateIfNeeded } from './rotate.mjs'
 
 const MAX_FRAME = 1024 * 1024 // Chrome's host→browser ceiling
 const dshHome = process.env.DSH_HOME ?? join(homedir(), '.dsh')
 const logFile = process.env.DSH_COMPANION_LOG ?? join(dshHome, 'logs', 'dsh-web-companion-host.log')
+/** Cap for the host log — it is appended to for the life of the install (see rotate.mjs). */
+const LOG_MAX_BYTES = 512 * 1024
+const LOG_KEEP_LINES = 800
 
 function log(line) {
   try {
     mkdirSync(dirname(logFile), { recursive: true })
     appendFileSync(logFile, `${new Date().toISOString()} ${line}\n`)
+    // Cheap (one stat) and keeps the one unbounded file in this project bounded.
+    rotateIfNeeded(logFile, { maxBytes: LOG_MAX_BYTES, keepLines: LOG_KEEP_LINES })
   } catch { /* logging must never break the protocol */ }
 }
 

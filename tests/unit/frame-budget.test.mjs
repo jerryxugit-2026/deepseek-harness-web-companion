@@ -42,6 +42,7 @@ record('字符串原样返回', withinFrameBudget('x') === 'x')
 record('无 base64 的对象不被改动', JSON.stringify(withinFrameBudget({ ok: true, matched: 1 })) === '{"ok":true,"matched":1}')
 record('返回的是拷贝（不污染原对象）', (() => { const src = { base64: 'A'.repeat(10) }; withinFrameBudget(src); return src.bytes === undefined })())
 
-const failed = Object.entries(results).filter(([, v]) => v === false).map(([k]) => k)
+// 只有布尔 true 算通过：任何没记上的都算失败（原来记成 null/对象会静默通过）
+const failed = Object.entries(results).filter(([, v]) => v !== true).map(([k]) => k)
 console.log(`\n${failed.length === 0 ? '✅ 全部通过' : `❌ 失败 ${String(failed.length)} 项：${failed.join('、')}`}（${String(Object.keys(results).length)} 条断言）`)
 process.exitCode = failed.length === 0 ? 0 : 1

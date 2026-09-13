@@ -156,7 +156,9 @@ for (let run = 0; run < 3; run += 1) {
 }
 const hotStats = percentiles(hotRuns.filter((v) => v > 0))
 results.g1HotStartMs = hotStats
-const G1_HOT_TARGET = 1500
+// 目标 2800ms：用户 2026-09-12 决定**接受实测 2.1–2.7s**，把原 1.5s 目标下调（瓶颈在 iframe 内
+// DSH 应用首屏，不在本插件）。三处文档已同步；这里也跟着改，否则探针与文档互相打脸。
+const G1_HOT_TARGET = 2800
 console.log(`   总计 ${JSON.stringify(hotStats)}  目标 p50 ≤ ${String(G1_HOT_TARGET)}ms → ${hotStats.p50 <= G1_HOT_TARGET ? '✅' : '❌'}`)
 results.g1PhasesMs = { panelDoc: percentiles(phases.panelDoc), iframeTarget: percentiles(phases.iframe), composerReady: percentiles(phases.composer) }
 console.log(`   分解：面板文档 ${String(results.g1PhasesMs.panelDoc.p50)}ms → iframe target ${String(results.g1PhasesMs.iframeTarget.p50)}ms → composer ${String(results.g1PhasesMs.composerReady.p50)}ms\n`)
@@ -303,15 +305,42 @@ console.log(`   G2 整页截图（debugger）：${JSON.stringify(shotStats)}  �
 
 /* ── G6：体积 ───────────────────────────────────────────────────────────── */
 const size = JSON.parse(readFileSync(join(OUT_DIR, 'build-size.json'), 'utf8'))
-const totalKb = size.totalBytes === undefined ? size.totalKb ?? null : Math.round(size.totalBytes / 1024)
+// 缺字段时**大声失败**：旧写法 `size.totalKb ?? null` 会让体积读成 0/未知却照旧判绿（假绿）。
+if (size.totalBytes === undefined && size.totalKb === undefined) {
+  throw new Error(`build-size.json 里没有 totalBytes/totalKb（字段：${Object.keys(size).join(',')}）—— G6 不可判，先跑 npm run build:ext`)
+}
+const totalKb = size.totalBytes === undefined ? size.totalKb : Math.round(size.totalBytes / 1024)
 results.g6BundleKb = totalKb
 console.log(`\n3. G6 打包体积：${String(totalKb)} KB  目标 ≤ 1024KB → ${totalKb !== null && totalKb <= 1024 ? '✅' : '❌'}`)
 
 writeFileSync(join(OUT_DIR, 'perf-g1-g2.json'), `${JSON.stringify({
   probe: 'm4/perf', at: new Date().toISOString(), dshPort: DSH_PORT, runs: RUNS,
   caveat: 'headless Chrome, loopback, same machine — 这是基线而非承诺',
-  targets: { g1HotStartMs: 1500, g2LightP50Ms: 300, g2StandardP95Ms: 800, g2ScreenshotP95Ms: 1500, g6BundleKb: 1024 },
+  targets: { g1HotStartMs: 2800, g2LightP50Ms: 300, g2StandardP95Ms: 800, g2ScreenshotP95Ms: 1500, g6BundleKb: 1024 },
   results,
 }, null, 2)}\n`)
 console.log('\n报告 → docs/reviews/perf-g1-g2.json')
+
+// 判定：以前这个探针**从不算失败**（末尾只有 cleanup()），于是 G1/G2/G6 任一超标都只是打印一个 ❌，
+// 退出码仍是 0 —— 门禁里"性能基线"永远绿（审核 2026-09-12 指出）。
+const perfFailures = []
+const G6_LIMIT = 1024   // 消息里也引用这个常量：避免出现「判 1KB 却印 1024KB」的自相矛盾
+
+const p50 = (stats) => (stats === undefined ? undefined : stats.p50)
+const p95 = (stats) => (stats === undefined ? undefined : stats.p95)
+// G1 **不进** perfFailures：设计文档自己写着"这是基线而非承诺"，而 G1 由 iframe 内 DSH 应用首屏
+// 主导（不在本插件），实测在 2.09–2.87s 之间浮动 —— 卡一个硬阈值只会让门禁随机红。它照旧打印
+// 达标/未达标，但退出码只由本插件真正承诺的 G2/G6 决定（用户 2026-09-12 已接受 2.1–2.7s 区间）。
+const g1P50 = p50(results.g1HotStartMs)
+const g1Note = g1P50 === undefined ? 'G1 未测到' : (g1P50 <= G1_HOT_TARGET ? `G1 p50 ${String(g1P50)}ms ✓（≤${String(G1_HOT_TARGET)}ms）` : `G1 p50 ${String(g1P50)}ms 超 ${String(G1_HOT_TARGET)}ms —— 基线指标，不影响退出码（瓶颈在 DSH 首屏）`)
+if (p50(results.g2LightMs) > 300) perfFailures.push(`G2 轻量 p50 ${String(p50(results.g2LightMs))}ms > 300ms`)
+if (p95(results.g2StandardMs) > 800) perfFailures.push(`G2 标准 p95 ${String(p95(results.g2StandardMs))}ms > 800ms`)
+if (p95(results.g2ScreenshotMs) > 1500) perfFailures.push(`G2 整页截图 p95 ${String(p95(results.g2ScreenshotMs))}ms > 1500ms`)
+if (totalKb === null || totalKb === undefined || totalKb > G6_LIMIT) perfFailures.push(`G6 体积 ${String(totalKb)}KB > ${String(G6_LIMIT)}KB`)
+for (const key of ['g2LightFailures', 'g2StandardFailures']) {
+  if (Number(results[key] ?? 0) > 0) perfFailures.push(`${key}=${String(results[key])}（有抓取失败）`)
+}
+console.log(`\n${perfFailures.length === 0 ? '✅ 本插件承诺的指标全部达标（G2/G6）' : `❌ ${String(perfFailures.length)} 项不达标：${perfFailures.join('；')}`}`)
+console.log(`   · ${g1Note}`)
+process.exitCode = perfFailures.length === 0 ? 0 : 1
 cleanup()

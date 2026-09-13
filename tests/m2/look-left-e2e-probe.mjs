@@ -28,6 +28,7 @@ import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, write
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { WebSocket } from 'ws'
+import { createResults } from '../lib/probe-result.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(HERE, '..', '..')
@@ -64,7 +65,15 @@ export const DEV_CONFIG = { port: ${String(port)}, key: ${JSON.stringify(pairing
 export default DEV_CONFIG
 `)
 writeDevConfig(DSH_PORT, key)
-const restoreDevConfig = () => { try { writeFileSync(DEV_CONFIG, DEV_BACKUP) } catch { /* best effort */ } }
+// 恢复 dev-config 时**必须同时重建 dist**：只还原源文件的话，`extension/dist/` 里留着的仍是
+// 用测试端口 + 测试密钥构建出来的产物 —— 而 dist 正是用户 Chrome 加载的目录（2026-09-12 那次
+// 事故就是这形态：面板一直往测试端口拨号、E_EXT_OFFLINE）。capture-probe 早就这么做了，这里补齐。
+const restoreDevConfig = () => {
+  try {
+    writeFileSync(DEV_CONFIG, DEV_BACKUP)
+    execFileSync(process.execPath, [join(ROOT, 'extension', 'build.mjs')], { stdio: 'ignore' })
+  } catch { /* best effort：真失败由 npm run check:dist 兜底抓出来 */ }
+}
 try { execFileSync(process.execPath, [join(ROOT, 'extension', 'build.mjs')], { stdio: 'ignore' }) } catch { /* ignore */ }
 
 const fixtureServer = createServer((_req, res) => {
@@ -153,11 +162,8 @@ const frameSession = async () => {
   return sessionId
 }
 
-const results = {}
-const record = (name, value) => {
-  results[name] = value
-  console.log(`  ${value === true ? '✅' : value === false ? '❌' : '·'} ${name}: ${(JSON.stringify(value) ?? String(value)).slice(0, 240)}`)
-}
+// 断言/观测分离，且只有布尔 true 算通过 —— 见 ../lib/probe-result.mjs 的由来。
+const { record, observe, results, observations, finish } = createResults({ label: 'm2/look-left-e2e' })
 
 // 1. fixture first: it must be the browser's active tab for the capture
 await open(`http://127.0.0.1:${String(FIXTURE_PORT)}/`)
@@ -263,8 +269,6 @@ record(`触发草稿是否保留（观察）: ${JSON.stringify(String(draftAfter
 const chips = await evaluate(frame, 'JSON.stringify(globalThis.__AG_CLIENT__?.chips?.() ?? [])')
 record('屏幕上出现 chip', typeof chips === 'string' && chips.includes('captureId'))
 
-const failed = Object.entries(results).filter(([, v]) => v === false).map(([k]) => k)
-writeFileSync(resolve(OUT_DIR, 'look-left-e2e-probe.json'), `${JSON.stringify({ probe: 'm2/look-left-e2e', port: DSH_PORT, fixturePort: FIXTURE_PORT, at: new Date().toISOString(), results, intent, landedFile: landedPath, draftAfter, applied, deliveries: deliveries?.length ?? 0, chips }, null, 2)}\n`)
-console.log(`\n${failed.length === 0 ? '✅ 全部通过' : `❌ 失败 ${String(failed.length)} 项：${failed.join('、')}`}（报告 → docs/reviews/look-left-e2e-probe.json）`)
+writeFileSync(resolve(OUT_DIR, 'look-left-e2e-probe.json'), `${JSON.stringify({ probe: 'm2/look-left-e2e', port: DSH_PORT, fixturePort: FIXTURE_PORT, at: new Date().toISOString(), results, observations, intent, landedFile: landedPath, draftAfter, applied, deliveries: deliveries?.length ?? 0, chips }, null, 2)}\n`)
 cleanup()
-process.exitCode = failed.length === 0 ? 0 : 1
+finish('look-left-e2e-probe.json')

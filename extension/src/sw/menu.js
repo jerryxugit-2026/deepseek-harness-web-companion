@@ -23,7 +23,15 @@ export function registerMenus() {
 export async function handleMenuClick(info, capture, openPanel) {
   const mode = info.menuItemId === MENU_SELECTION ? 'selection' : 'page'
   await openPanel(info.tab?.windowId)
-  return capture({ mode, trigger: 'contextmenu' })
+  // `trigger` must be one of the AttachRequest enum (protocol/messages.schema.json):
+  // look_left | button | shortcut | manual. This used to send 'contextmenu', which is
+  // NOT in that enum — so every right-click capture was rejected 400/E_PAYLOAD by the
+  // host's `validateAs('AttachRequest')` (routes/attach.js:41) before anything reached
+  // disk. The menu looked wired up and silently did nothing. 'manual' is the honest
+  // value: a user-gesture capture that is neither the panel button nor a shortcut.
+  // Regression: tests/unit/menu-trigger.test.mjs feeds the emitted value through the
+  // same generated validator, so leaving the enum fails `npm run check`.
+  return capture({ mode, trigger: 'manual' })
 }
 
 export { MENU_PAGE, MENU_SELECTION }

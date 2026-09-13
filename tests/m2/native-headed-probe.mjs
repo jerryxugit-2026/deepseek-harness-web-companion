@@ -12,6 +12,7 @@
 import { execFileSync } from 'node:child_process'
 import { cpSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
+import { createResults } from '../lib/probe-result.mjs'
 
 const CDP = 9235
 const PROFILE = '/tmp/dshwc-native-headed'
@@ -75,4 +76,7 @@ const expression = `(async () => {
 const result = await send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true }, sid)
 console.log('有头 Chrome connectNative:', result.result.result.value)
 cleanup()
-process.exit(0)
+// 这个探针**本来一条断言都没有**（PiMoa 审核指出：零断言、零报告）。这里不假装它有：
+// finish() 会如实打印「断言 0 条」，把缺口显式留在报告里，而不是静默绿。
+const recorder = createResults({ label: 'm2-native-headed' })
+recorder.finish()

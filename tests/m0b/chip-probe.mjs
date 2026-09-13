@@ -17,6 +17,7 @@ import { execFileSync } from 'node:child_process'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createResults } from '../lib/probe-result.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(HERE, '..', '..')
@@ -110,11 +111,9 @@ const evaluate = async (expression, timeoutMs = 12000) => {
   return result.result.value
 }
 
-const results = {}
-const record = (name, value) => {
-  results[name] = value
-  console.log(`  ${name}: ${(JSON.stringify(value) ?? String(value)).slice(0, 240)}`)
-}
+// 断言 / 观测分离，只有布尔 true 算通过；规则单一真源见 tests/lib/probe-result.mjs。
+// 以前这个探针既不算失败集，又以 `process.exit(0)` 收尾 —— 结构上不可能变红。
+const { record, observe, results, observations, finish } = createResults({ label: 'm0b-chip' })
 
 console.log('1. 等待 client 半加载并连上 /ag/client')
 let ready = null
@@ -227,8 +226,7 @@ const shot = join(OUT_DIR, 'probe-chip.png')
 writeFileSync(shot, Buffer.from(data, 'base64'))
 record('screenshot', shot)
 
-const report = { probe: 'm0b-chip', dshPort: PORT, captureId, workspace: WORKSPACE, results }
+const report = { probe: 'm0b-chip', dshPort: PORT, captureId, workspace: WORKSPACE, results, observations }
 writeFileSync(join(OUT_DIR, 'probe-chip.json'), `${JSON.stringify(report, null, 2)}\n`)
-console.log('\n写入 docs/reviews/probe-chip.json')
 cleanup()
-process.exit(0)
+finish('docs/reviews/probe-chip.json')

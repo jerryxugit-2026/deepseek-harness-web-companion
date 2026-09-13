@@ -12,9 +12,21 @@
  * closed therefore simply means "no agent connected" — the bridge queues the
  * intent and replays it on the next connect.
  */
-import { PROTOCOL_VERSION, validateAs } from '../lib/protocol.generated.js'
+import { ENUM, PROTOCOL_VERSION, validateAs } from '../lib/protocol.generated.js'
 import { withinFrameBudget } from '../lib/frame-budget.js'
 import { agentSocketUrl, isPaired } from '../lib/urls.js'
+
+/**
+ * Every error code that leaves this module must be in the protocol's closed set.
+ *
+ * The schema now enforces `error.code` against `ErrorCode` (`$ref`), and the bridge **drops a
+ * frame that fails validation** — so forwarding an unknown code (a thrown DOM/chrome error can
+ * carry any `code`, and a future op may invent one) would turn a diagnosable failure into a
+ * silently ignored frame: the intent would never be linked to its capture, and the attach would
+ * land on the wrong page half. Normalising here keeps the wire honest *and* keeps the frame.
+ */
+const PROTOCOL_CODES = new Set(ENUM.ErrorCode)
+const wireCode = (code) => (typeof code === 'string' && PROTOCOL_CODES.has(code) ? code : 'E_INTERNAL')
 
 const HEARTBEAT_MS = 20000
 const RECONNECT_MIN_MS = 1000
@@ -55,7 +67,7 @@ export function startAgentChannel({ runCapture, log = () => {}, onState = () => 
     const validated = validateAs('AgentToolCall', frame)
     if (!validated.ok) {
       log(`tool-call rejected: ${validated.error.message}`)
-      send({ type: 'tool-result', protocolVersion: PROTOCOL_VERSION, id: typeof frame?.id === 'string' ? frame.id : 'unknown', ok: false, error: { code: 'E_PAYLOAD', message: validated.error.message } })
+      send({ type: 'tool-result', protocolVersion: PROTOCOL_VERSION, id: typeof frame?.id === 'string' ? frame.id : 'unknown', ok: false, error: { code: wireCode('E_PAYLOAD'), message: validated.error.message } })
       return
     }
     const started = Date.now()
@@ -74,7 +86,7 @@ export function startAgentChannel({ runCapture, log = () => {}, onState = () => 
       ok: result.ok === true,
       ...(result.ok === true
         ? { value: withinFrameBudget(result.value) }
-        : { error: { code: result.error?.code ?? 'E_INTERNAL', message: String(result.error?.message ?? 'op failed').slice(0, 600) } }),
+        : { error: { code: wireCode(result.error?.code), message: String(result.error?.message ?? 'op failed').slice(0, 600) } }),
       elapsedMs: Date.now() - started,
     })
   }
@@ -84,6 +96,17 @@ export function startAgentChannel({ runCapture, log = () => {}, onState = () => 
     const validated = validateAs('CaptureRequestEvent', frame)
     if (!validated.ok) {
       log(`capture-request rejected: ${validated.error.message}`)
+      // Design §5.2: `capture-result` is answered **unconditionally**. Bailing out here used
+      // to leave the intent with no terminal state on either side — the plugin waits for a
+      // receipt that never comes, and nothing is logged where the user could see it.
+      send({
+        type: 'capture-result',
+        protocolVersion: PROTOCOL_VERSION,
+        requestId: typeof frame?.requestId === 'string' ? frame.requestId : 'unknown',
+        ok: false,
+        error: { code: 'E_PAYLOAD', message: validated.error.message },
+        at: Date.now(),
+      })
       return
     }
     // Contract note: the generated validator returns only `{ ok }` on success —
@@ -105,7 +128,7 @@ export function startAgentChannel({ runCapture, log = () => {}, onState = () => 
               fileRef: result.value?.result?.fileRef,
               filePath: result.value?.result?.filePath,
             }
-          : { error: { code: result?.error?.code ?? 'E_INTERNAL', message: String(result?.error?.message ?? 'capture failed') } }),
+          : { error: { code: wireCode(result?.error?.code), message: String(result?.error?.message ?? 'capture failed') } }),
         at: Date.now(),
       })
     } catch (error) {

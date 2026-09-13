@@ -18,6 +18,20 @@ import { companionPath } from './paths.js'
  * @property {string | undefined} error      load failure, when any
  */
 
+/**
+ * The one definition of "paired", so every endpoint answers the same question the same way.
+ *
+ * It used to differ per route: `/ag/ping` said *paired = key && trusted origins*, while
+ * `/ag/wsprobe` said *paired = key*. Same word, two meanings, and the panel/probes read
+ * `paired` to decide whether the install is usable — `keyConfigured` and `trustedOrigins`
+ * stay in the payload for whoever needs the parts instead of the verdict.
+ *
+ * @param {CompanionKey} pairing
+ */
+export function isPaired(pairing) {
+  return pairing?.key !== undefined && (pairing?.extensionOrigins?.length ?? 0) > 0
+}
+
 /** @returns {Promise<CompanionKey>} */
 export async function loadCompanionKey(path = companionPath()) {
   try {

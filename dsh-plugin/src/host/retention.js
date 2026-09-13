@@ -31,8 +31,16 @@ export const CAPTURE_FILE = /^\d{4}-\d{2}-\d{2}-\d{4}-.*\.md$/u
  * the retention policy exists to prevent, just in a subdirectory.
  */
 export const ASSET_FILE = /^browser-\d{4}-\d{2}-\d{2}-\d{4}-.*\.(?:png|jpe?g|webp)$/u
-/** Half-written files from a crashed run (`.tmp` is renamed into place on success). */
-export const TEMP_FILE = /\.tmp$/u
+/**
+ * Half-written files from a crashed run (`.tmp` is renamed into place on success).
+ *
+ * Anchored to **our own** naming (`store.js` writes `<stamp>-<slug>-<id6>.md.tmp`), because the
+ * old `/\.tmp$/u` matched *any* `.tmp` in the capture directory — i.e. a file the user dropped
+ * there named `notes.tmp` became eligible for deletion after 24h, contradicting the promise in
+ * this file's header ("Anything a user dropped into that folder is theirs — never touched").
+ * Found by review 2026-09-12, verified here.
+ */
+export const TEMP_FILE = /^\d{4}-\d{2}-\d{2}-\d{4}-.*\.md\.tmp$/u
 
 /**
  * Delete expired captures in one directory.

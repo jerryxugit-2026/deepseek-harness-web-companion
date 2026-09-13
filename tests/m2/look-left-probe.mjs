@@ -24,6 +24,7 @@ import { WebSocket } from 'ws'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createResults } from '../lib/probe-result.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(HERE, '..', '..')
@@ -42,8 +43,8 @@ const pairing = JSON.parse(readFileSync(PAIRING, 'utf8'))
 const KEY = pairing.key
 const EXT_ORIGIN = pairing.extensionOrigins[0]
 
-const results = {}
-const record = (name, value) => { results[name] = value; console.log(`  ${value === true ? '✅' : value === false ? '❌' : '·'} ${name}: ${JSON.stringify(value)}`) }
+// 断言/观测分离，且只有布尔 true 算通过 —— 见 ../lib/probe-result.mjs 的由来。
+const { record, observe, results, observations, finish } = createResults({ label: 'm2/look-left' })
 
 /** A peer socket that keeps every frame it receives, with `waitFor`. */
 function connect(path, headers) {
@@ -100,13 +101,18 @@ const main = async () => {
   console.log(`探测 ${ORIGIN}（paired=${String(info.paired)}，扩展 origin ${String(EXT_ORIGIN)}）\n`)
 
   // ── case 1: panel closed → intent must be queued, then replayed ────────────
+  // 每次运行用**唯一**的草稿：宿主的意图去重规则是「同一 sessionId+draft、来自另一个页面半、5 秒内」
+  // 折叠成一次（v3.40 修重复抓取时加的）。本探针每次都开新 socket（新 client id），但用过固定的
+  // sessionId+draft ⇒ 5 秒内连跑两次时，第二次的意图被判成「另一个页面半的重复投递」而被吃掉。
+  // 实测：连续跑第 2、3 次都红 3 条。探针必须与运行次数无关，所以草稿带时间戳。
+  const DRAFT = `看左边 ${String(Date.now())}`
   const client = connect('/ag/client', { Origin: ORIGIN })
   await client.opened
   // 不要谎报 workspace：插件会记住最近一次 client hello 的 workspace，后续探针的落盘
   // 就会跑到这个假目录（真实发生：probe:capture 的文件落进 /tmp/probe-workspace）。
   // 省略该字段，插件会退到配置里的 defaultWorkspace —— 与其它探针一致。
   client.send({ type: 'hello', protocolVersion: 1, sessionId: 's-look-left' })
-  client.send({ type: 'intent', protocolVersion: 1, kind: 'look-left', sessionId: 's-look-left', draft: '看左边', trigger: 'keyword', at: Date.now() })
+  client.send({ type: 'intent', protocolVersion: 1, kind: 'look-left', sessionId: 's-look-left', draft: DRAFT, trigger: 'keyword', at: Date.now() })
   await sleep(600)
 
   const agent = connect(`/ag/agent?key=${encodeURIComponent(KEY)}`, { Origin: EXT_ORIGIN })
@@ -130,7 +136,7 @@ const main = async () => {
 
   // ── case 2: panel connected → immediate relay ──────────────────────────────
   const before = agent.frames.length
-  client.send({ type: 'intent', protocolVersion: 1, kind: 'look-left', sessionId: 's-look-left', draft: '看左边', trigger: 'keyword', at: Date.now() })
+  client.send({ type: 'intent', protocolVersion: 1, kind: 'look-left', sessionId: 's-look-left', draft: DRAFT, trigger: 'keyword', at: Date.now() })
   let relayed
   try {
     relayed = await agent.waitFor((f, i) => f.type === 'capture-request' && f.reason === 'look-left', 3000)
@@ -156,6 +162,9 @@ const main = async () => {
   bad.close()
 
   // ── case 5: 回归 —— 抓取推送必须仍然到达 client 通道（intent 队列不得污染它） ──
+  // 审计文件是**追加**的：id 固定不变的话，上一轮写下的 ack 条目会替本轮作答（实测：去掉 handler
+  // 后探针仍然绿 —— 典型的假绿）。所以每次运行用唯一 id，探针必须与运行次数无关。
+  const ACK_CAPTURE_ID = `cap-look-left-ack-${String(Date.now())}`
   const workspace = resolve(ROOT, '.devhome/workspace-m0a')
   mkdirSync(workspace, { recursive: true })
   const attached = await fetch(`${ORIGIN}/ag/attach?key=${encodeURIComponent(KEY)}`, {
@@ -163,7 +172,7 @@ const main = async () => {
     headers: { 'content-type': 'application/json', Origin: EXT_ORIGIN },
     body: JSON.stringify({
       protocolVersion: 1,
-      captureId: 'cap-look-left-regression',
+      captureId: ACK_CAPTURE_ID,
       trigger: 'button',
       page: { title: '意图回归页', url: `${ORIGIN}/fixture`, domain: '127.0.0.1', capturedAt: Date.now() },
       content: { markdown: '意图回归正文' },
@@ -178,17 +187,31 @@ const main = async () => {
   } catch {
     pushed = undefined
   }
-  record('抓取推送到达 client 通道（未被 intent 队列吞掉）', pushed?.captureId === 'cap-look-left-regression')
+  record('抓取推送到达 client 通道（未被 intent 队列吞掉）', pushed?.captureId === ACK_CAPTURE_ID)
   record('推送 mode=page 且带 fileRef', pushed?.mode === 'page' && typeof pushed?.fileRef === 'string')
+
+  // ★ 页面半把"我怎么处理这份抓取"回执（`ClientAckEvent`）发给宿主 —— 宿主必须留痕。
+
+  // 由来（2026-09-12 真机）：client 半从 v3.38 起就在发这个帧，而 `onClientFrame` 只认
+  // hello/request-pending/intent ⇒ 回执被静默丢弃，一整天的真实抓取在审计里留下 **0 条** `ack`
+  // （而审计字段表里 `status` 的注释写的正是 "ack: inserted | dismissed | failed"）。
+  // 于是"引用到底插进输入框没有"事后无法回答 —— 这正是审计存在的意义。
+  client.send({ type: 'ack', captureId: ACK_CAPTURE_ID, status: 'inserted' })
+  await sleep(400)
+  const auditLines = readFileSync(resolve(ROOT, argOf('audit-file', '.devhome/logs/web-companion-audit.jsonl')), 'utf8')
+    .split('\n').filter((line) => line !== '')
+    .map((line) => { try { return JSON.parse(line) } catch { return null } })
+    .filter((value) => value !== null)
+  const ackEntry = [...auditLines].reverse().find((entry) => entry.kind === 'ack' && entry.captureId === ACK_CAPTURE_ID)
+  record('★宿主收下页面的回执并写进审计（kind=ack）', ackEntry !== undefined)
+  record('★回执里的 status 如实落盘（inserted）', ackEntry?.status === 'inserted')
 
   client.close()
   agent.close()
   await sleep(200)
 
-  const failed = Object.entries(results).filter(([, v]) => v === false).map(([k]) => k)
-  writeFileSync(resolve(OUT_DIR, 'look-left-probe.json'), `${JSON.stringify({ probe: 'm2/look-left', port: PORT, at: new Date().toISOString(), results }, null, 2)}\n`)
-  console.log(`\n${failed.length === 0 ? '✅ 全部通过' : `❌ 失败 ${String(failed.length)} 项：${failed.join('、')}`}（报告 → docs/reviews/look-left-probe.json）`)
-  process.exitCode = failed.length === 0 ? 0 : 1
+    writeFileSync(resolve(OUT_DIR, 'look-left-probe.json'), `${JSON.stringify({ probe: 'm2/look-left', port: PORT, at: new Date().toISOString(), results, observations }, null, 2)}\n`)
+  finish('look-left-probe.json')
 }
 
 await main()

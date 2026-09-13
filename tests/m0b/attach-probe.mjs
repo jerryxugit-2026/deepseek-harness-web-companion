@@ -20,6 +20,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { WebSocket } from 'ws'
+import { createResults } from '../lib/probe-result.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(HERE, '..', '..')
@@ -39,12 +40,7 @@ const pairing = JSON.parse(readFileSync(join(HOME, 'dsh-web-companion.json'), 'u
 const KEY = pairing.key
 const EXT_ORIGIN = pairing.extensionOrigins[0]
 
-const results = {}
-const record = (name, value) => {
-  results[name] = value
-  const printed = JSON.stringify(value) ?? String(value)
-  console.log(`  ${name}: ${printed.slice(0, 220)}`)
-}
+const { record, observe, results, observations, finish } = createResults({ label: 'm0b/attach-probe' })
 
 const post = async (path, body, headers = {}) => {
   const response = await fetch(`${ORIGIN}${path}`, {
@@ -55,7 +51,7 @@ const post = async (path, body, headers = {}) => {
   const text = await response.text()
   let parsed
   try { parsed = JSON.parse(text) } catch { parsed = text.slice(0, 200) }
-  return { status: response.status, body: parsed }
+  return { status: response.status, body: parsed, headers: Object.fromEntries(response.headers) }
 }
 
 const capturePayload = (suffix, overrides = {}) => ({
@@ -150,6 +146,69 @@ record('extensionOriginWithoutKey', (await post('/ag/attach', capturePayload('C'
 record('schemaRejected', (await post(`/ag/attach?key=${encodeURIComponent(KEY)}`, { protocolVersion: 1, captureId: 'x', trigger: 'telepathy', page: {}, content: {} }, { origin: EXT_ORIGIN })).status)
 const oversize = await post(`/ag/attach?key=${encodeURIComponent(KEY)}`, `${JSON.stringify(capturePayload('D')).slice(0, -1)},"pad":"${'x'.repeat(9 * 1024 * 1024)}"}`, { origin: EXT_ORIGIN })
 record('oversize', oversize.status)
+// 413 是**故意不读完**请求体的：socket 上还有没读的数据，Node 必须销毁它。
+// 回 `keep-alive` 就是撒谎 —— 客户端会把这条死连接放回池子，下一个请求直接 ECONNRESET
+// （实测：413 之后紧接着 GET /ag/pending 必崩）。所以这里钉住"如实说 close"。
+record('★ oversize 的 413 如实声明 connection: close（否则下一个请求踩死 socket）', oversize.headers?.connection === 'close')
+
+console.log('7. 积压补投：没有页面连着时抓的图，页面一连上就必须收到（`request-pending`）')
+{
+  // 缺陷（v3.41 修）：client 半在**每次**连上时都会发 `{type:'request-pending'}`（设计 §4.2），
+  // 而宿主**没有这个帧的 handler**。于是"没开 DSH 页面时抓的东西"落盘、入队、然后**永远躺在队列里**：
+  // `GET /ag/pending` 存在但没有任何调用方 —— 队列是**只写**的，用户看到的现象就是"抓了但什么都没发生"。
+  // 注意这里刻意**不用** `GET /ag/pending` 去取：探针要验的是**页面自己那条路**（它是产品路径）。
+  const offlineId = 'M0B-PROBE-PENDING'
+  const before = await fetch(`${ORIGIN}/ag/pending?peek=1&key=${encodeURIComponent(KEY)}`, { headers: { origin: ORIGIN } }).then((r) => r.json())
+  const offline = await post(`/ag/attach?key=${encodeURIComponent(KEY)}`, capturePayload('PENDING', { captureId: offlineId }), { origin: EXT_ORIGIN })
+  record('离线抓取的 attach 是 200', offline.status === 200)
+  record('deliveredTo 是空数组（没人收，如实入队）', Array.isArray(offline.body?.deliveredTo) && offline.body.deliveredTo.length === 0)
+  const queuedPeek = await fetch(`${ORIGIN}/ag/pending?peek=1&key=${encodeURIComponent(KEY)}`, { headers: { origin: ORIGIN } }).then((r) => r.json())
+  record('入队了（peek 里能找到它）', Array.isArray(queuedPeek.items) && queuedPeek.items.some((item) => item.captureId === offlineId))
+
+  // 页面半连上 —— 这就是真实浏览器里打开 DSH 页面时发生的事
+  const late = new WebSocket(`ws://127.0.0.1:${PORT}/ag/client?key=${encodeURIComponent(KEY)}`, { headers: { origin: ORIGIN } })
+  const lateFrames = []
+  late.on('message', (data) => {
+    const text = String(data)
+    if (text.includes('"ping"')) { late.send(JSON.stringify({ type: 'pong' })); return }
+    try { lateFrames.push(JSON.parse(text)) } catch { /* ignore */ }
+  })
+  const lateOpen = await new Promise((resolve) => {
+    late.on('open', () => resolve(true))
+    late.on('error', (error) => resolve(`error:${String(error.message)}`))
+    setTimeout(() => resolve('timeout'), 5000)
+  })
+  record('晚到的页面半连上了', lateOpen === true)
+  late.send(JSON.stringify({ type: 'hello', protocolVersion: 1, extVersion: 'probe', embedded: false, sessionId: 'sess-late' }))
+  await sleep(120)
+  late.send(JSON.stringify({ type: 'request-pending' }))
+
+  const pendingFrame = async () => {
+    for (let i = 0; i < 30; i += 1) {
+      const hit = lateFrames.find((frame) => frame.type === 'attach' && frame.captureId === offlineId)
+      if (hit !== undefined) return hit
+      await sleep(150)
+    }
+    return undefined
+  }
+  const replayed = await pendingFrame()
+  record('★ 页面上线后主动要，积压的抓取被推过来了（不再永远躺在队列里）', replayed !== undefined)
+  record('推的是那条抓取（captureId 对得上）', replayed?.captureId === offlineId)
+  record('带上可直接引用的 fileRef', typeof replayed?.fileRef === 'string' && replayed.fileRef.startsWith('@'))
+
+  // 再要一次：不能重复推（重复插同一条 `@文件` 是 v3.39 修过的旧病）
+  late.send(JSON.stringify({ type: 'request-pending' }))
+  await sleep(500)
+  const duplicates = lateFrames.filter((frame) => frame.type === 'attach' && frame.captureId === offlineId).length
+  record('再要一次不会重复推同一条（计数仍是 1）', duplicates === 1)
+
+  const emptied = await fetch(`${ORIGIN}/ag/pending?peek=1&key=${encodeURIComponent(KEY)}`, { headers: { origin: ORIGIN } }).then((r) => r.json())
+  record('队列里已经没有它了（补投是"取走"而不是"复制"）', Array.isArray(emptied.items) && emptied.items.some((item) => item.captureId === offlineId) === false)
+  observe('pendingBefore', Array.isArray(before.items) ? before.items.length : before)
+  observe('pendingAfterReplay', Array.isArray(emptied.items) ? emptied.items.map((item) => item.captureId) : emptied)
+  late.close()
+  await sleep(300)
+}
 
 const report = {
   probe: 'm0b-attach',
@@ -159,6 +218,6 @@ const report = {
 }
 writeFileSync(join(OUT_DIR, 'probe-attach.json'), `${JSON.stringify(report, null, 2)}\n`)
 console.log(`\n结果写入 docs/reviews/probe-attach.json`)
-const failed = Object.entries(results).filter(([, v]) => v === false || v === 'error:').map(([k]) => k)
-if (failed.length > 0) console.log(`⚠️ 疑似失败项: ${failed.join(', ')}`)
-process.exit(0)
+// 判定交给 createResults#finish —— 这里原来留着一条 `v === false || v === 'error:'` 的旧判定，
+// 它和 finish() 的判断标准不同（非布尔的记录它一个都不算失败），属于两套判定并存。
+finish('probe-attach.json')

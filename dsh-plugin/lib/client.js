@@ -134,6 +134,39 @@ window.__ModuleLoader__.load({
       }
 
       /**
+       * What this page half is, right now.
+       *
+       * `embedded` is the important one: the DSH GUI runs both as a normal tab and inside
+       * the side panel's iframe, and BOTH connect to the bridge. The bridge delivers each
+       * capture to exactly one of them (hub.pickPrimary), so it needs to know which half is
+       * which, whether it is on screen, and where the user's attention is.
+       */
+      const pageFacts = () => {
+        let embedded = false
+        try { embedded = window.self !== window.top } catch { embedded = true /* cross-origin parent ⇒ we are framed */ }
+        let visible = true
+        try { visible = document.visibilityState === 'visible' } catch { /* keep default */ }
+        let focused = false
+        try { focused = document.hasFocus() } catch { /* keep default */ }
+        return { sessionId: currentSessionId(), workspace: currentWorkspace(), embedded, visible, focused }
+      }
+
+      /** Announce pageFacts to the bridge (`hello` is re-sent whenever they change). */
+      const announceFacts = () => {
+        const facts = pageFacts()
+        return send({
+          type: 'hello',
+          protocolVersion: 1,
+          extVersion: 'client',
+          ...(facts.sessionId === undefined ? {} : { sessionId: facts.sessionId }),
+          ...(facts.workspace === undefined ? {} : { workspace: facts.workspace }),
+          embedded: facts.embedded,
+          visible: facts.visible,
+          focused: facts.focused,
+        })
+      }
+
+      /**
        * Harness-driven write used by the M0b assertions: only runs once the UI has
        * an ACTIVE composer, writes a marker, verifies it in the live editor's DOM,
        * then restores whatever the user had typed.
@@ -263,25 +296,29 @@ window.__ModuleLoader__.load({
           const items = typeof sessionId === 'string' ? chipsForSession(sessionId) : []
           if (items.length === 0) return null
           return React.createElement('div', { 'data-ag-dock': 'slot', style: ROW_STYLE },
-            items.map((item) => React.createElement('div', {
-              key: item.captureId,
-              'data-ag-chip': 'true',
-              'data-capture-id': item.captureId,
-              'data-mode': item.mode ?? 'page',
-              'data-status': item.status ?? 'inserted',
-              'data-session-mode': item.sessionMode ?? 'current',
-              style: CHIP_STYLE,
-            },
-            React.createElement('span', { key: 'label', 'data-ag-chip-label': 'true', style: LABEL_STYLE }, chipLabel(item)),
-            React.createElement('span', { key: 'meta', 'data-ag-chip-meta': 'true', style: META_STYLE }, chipMeta(item)),
-            React.createElement('button', {
-              key: 'dismiss',
-              type: 'button',
-              'data-ag-chip-dismiss': 'true',
-              title: '移除上下文',
-              style: DISMISS_STYLE,
-              onClick: () => { void dismissCapture({ captureId: item.captureId }) },
-            }, '✕'))))
+            items.map((item) => {
+              const actions = [React.createElement('button', {
+                key: 'dismiss',
+                type: 'button',
+                'data-ag-chip-dismiss': 'true',
+                title: '移除上下文',
+                style: DISMISS_STYLE,
+                onClick: () => { void dismissCapture({ captureId: item.captureId }) },
+              }, '✕')]
+              return React.createElement('div', {
+                key: item.captureId,
+                'data-ag-chip': 'true',
+                'data-capture-id': item.captureId,
+                'data-mode': item.mode ?? 'page',
+                'data-status': item.status ?? 'inserted',
+                'data-session-mode': item.sessionMode ?? 'current',
+                ...(item.elsewhere === true ? { 'data-ag-elsewhere': 'true' } : {}),
+                style: CHIP_STYLE,
+              },
+              React.createElement('span', { key: 'label', 'data-ag-chip-label': 'true', style: LABEL_STYLE }, chipLabel(item)),
+              React.createElement('span', { key: 'meta', 'data-ag-chip-meta': 'true', style: META_STYLE }, chipMeta(item)),
+              ...actions)
+            }))
         }
 
         try {
@@ -309,7 +346,7 @@ window.__ModuleLoader__.load({
         chip.dataset.agChip = 'true'
         chip.dataset.captureId = item.captureId
         chip.dataset.mode = item.mode ?? 'page'
-        chip.dataset.status = 'inserted'
+        chip.dataset.status = item.status ?? 'inserted'
         chip.style.cssText = 'pointer-events:auto;display:inline-flex;align-items:center;gap:6px;max-width:min(560px,90vw);padding:4px 8px;border-radius:999px;border:1px solid rgba(127,127,127,.35);background:rgba(127,127,127,.12);backdrop-filter:blur(6px);color:inherit'
         const label = document.createElement('span')
         label.dataset.agChipLabel = 'true'
@@ -362,6 +399,14 @@ window.__ModuleLoader__.load({
         const id = await sessions.create(workspaceId === undefined ? {} : { workspaceId })
         void id
         const sessionId = typeof id === 'string' ? id : (id?.id ?? id?.sessionId)
+        // Switch to the session we just created — this IS the designed behaviour for the
+        // button / context-menu path (`attachSessionMode: 'new'`): the capture belongs to a
+        // fresh conversation and the user lands there, with the `@文件` already in the
+        // composer. It is only safe because a capture is now delivered to **exactly one**
+        // page half (hub.pushClientPrimary) and the intent sniffer fires **once per
+        // 「看左边」 episode**: before those two fixes, the same switch could happen twice
+        // from one capture (two page halves) or twice from one intent, which is what made
+        // it look random — see docs/CHANGELOG.md v3.39.
         let switched = false
         try {
           await sessions.open(sessionId)
@@ -374,26 +419,46 @@ window.__ModuleLoader__.load({
         return { sessionId, switched }
       }
 
-      /** Apply one attach event: reference into the draft, chip on screen, ack. */
+      /**
+       * Apply one attach event.
+       *
+       * Both paths end with the reference IN the draft — that is the product: a capture
+       * exists to be sent to the model. What differs is WHICH conversation:
+       *
+       *   - `sessionMode: 'current'` — the 「看左边」 path. The user typed the intent INTO
+       *     this conversation, so the reference goes into this very draft (splitting their
+       *     question from its page would be worse).
+       *   - `sessionMode: 'new'` — the button / context-menu path. A fresh session is
+       *     created, the shell switches to it, and the reference goes into ITS draft.
+       */
       async function applyAttach(item) {
+        // Idempotent per capture: a re-delivered `attach` (reconnect, retry, a buggy sender) must
+        // not insert the same `@文件` a second time — the old code had no such guard, so the same
+        // capture could double-insert into one draft (review 2026-09-12).
+        if (state.chips.has(item.captureId)) {
+          log('attach ignored (already applied)', item.captureId)
+          return false
+        }
         state.deliveries.push({ captureId: item.captureId, fileRef: item.fileRef, at: Date.now() })
         let inserted = false
         let detail = ''
         let sessionId
         let preDraft = ''
-        let sessionMode = item.sessionMode ?? 'current'
+        const sessionMode = item.sessionMode ?? 'current'
         let switched = false
+        let status = 'inserted'
         try {
           if (sessionMode === 'new') {
             const fresh = await openFreshSession(currentWorkspace() ?? undefined)
             sessionId = fresh.sessionId
             switched = fresh.switched
           } else {
-            const id = currentSessionId()
-            if (typeof id !== 'string') throw new Error('no current session')
-            sessionId = id
+            sessionId = currentSessionId()
           }
           if (typeof sessionId !== 'string') throw new Error('no target session')
+          // One insertion routine for both paths: the reference belongs in the draft of the
+          // session this capture targets (the fresh one for 'new', the one the user is in
+          // for 'current').
           const shell = ctx.get('conversation').input.for(ctx.get('sessions').scope(sessionId))
           preDraft = readDraft(shell)
           const next = preDraft.trim() === '' ? item.fileRef : `${preDraft.trimEnd()}\n${item.fileRef}`
@@ -401,6 +466,7 @@ window.__ModuleLoader__.load({
           inserted = true
         } catch (error) {
           detail = String(error).slice(0, 160)
+          status = 'failed'
         }
         // The dock hosts the chip when it mounted; the DOM strip is the fallback
         // for shells where the slot never appeared. Either way the chips Map is the
@@ -408,18 +474,18 @@ window.__ModuleLoader__.load({
         const useSlot = state.dockMounted === true
         const root = useSlot ? undefined : renderChip(item, dismissCapture)
         state.chips.set(item.captureId, {
-          sessionId, preDraft, inserted: item.fileRef, sessionMode, switched,
-          status: inserted ? 'inserted' : 'failed',
+          sessionId, preDraft, inserted: inserted ? item.fileRef : false, sessionMode, switched,
+          status,
           mode: item.mode, page: item.page, summary: item.summary,
           fileRef: item.fileRef, host: useSlot ? 'slot' : 'dom',
           ...(root === undefined ? {} : { root, chip: root.firstElementChild }),
         })
-        if (root !== undefined) root.firstElementChild.dataset.status = inserted ? 'inserted' : 'failed'
+        if (root !== undefined) root.firstElementChild.dataset.status = status
         notifyChips()
         send({ type: 'ack', captureId: item.captureId, status: inserted ? 'inserted' : 'failed', ...(detail === '' ? {} : { detail }) })
         state.acks.push({ captureId: item.captureId, status: inserted ? 'inserted' : 'failed' })
-        globalThis.__AG_LAST_ATTACH__ = { captureId: item.captureId, inserted, detail, fileRef: item.fileRef, sessionId, sessionMode, switched }
-        log('attach applied', item.captureId, sessionMode, inserted ? 'inserted' : `failed: ${detail}`, switched ? '(switched)' : '(no-switch)')
+        globalThis.__AG_LAST_ATTACH__ = { captureId: item.captureId, inserted, status, detail, fileRef: item.fileRef, sessionId, sessionMode, switched }
+        log('attach applied', item.captureId, sessionMode, status, switched ? '(switched)' : '(no-switch)')
         return inserted
       }
 
@@ -445,21 +511,51 @@ window.__ModuleLoader__.load({
         log('dismissed', item.captureId)
       }
 
-      /** 「看左边」intent watcher (design ADR-11: sniffing lives in this half). */
+      /**
+       * 「看左边」intent watcher (design ADR-11: sniffing lives in this half).
+       *
+       * ONE capture per intent episode — not one per draft change.
+       *
+       * Real defect (2026-09-12): the guard used to be "the draft differs from the last
+       * one I sent". Inserting the reference *changes the draft*, so 785ms later (the poll
+       * period) the sniffer saw a "new" draft that still began with 「看左边」 and fired
+       * again: one request produced two captures and two `@文件` in the composer — double
+       * context cost, identical content. Same trap while the user was still typing the
+       * sentence.
+       *
+       * Now it is an armed/disarmed episode: fire once when the keyword appears, then stay
+       * quiet until the keyword leaves the draft (user cleared it) or the session changes.
+       */
+      let intentArmed = true
+      let intentSession
+      function sniffOnce(sessionId, draft) {
+        // Type check FIRST: re-arming on a session id that is momentarily `undefined`
+        // (shell switching sessions) would let the same 「看左边」 fire a second capture.
+        if (typeof sessionId !== 'string') return false
+        if (sessionId !== intentSession) {
+          intentSession = sessionId
+          intentArmed = true
+        }
+        if (typeof draft !== 'string' || draft === '' || !INTENT_PATTERN.test(draft)) {
+          // No intent in the composer → ready for the next one.
+          intentArmed = true
+          return false
+        }
+        if (!intentArmed) return false
+        intentArmed = false
+        state.intents.push({ draft, at: Date.now() })
+        send({ type: 'intent', protocolVersion: 1, kind: 'look-left', sessionId, draft, trigger: 'keyword', at: Date.now() })
+        log('intent detected (episode armed → disarmed)', draft.slice(0, 40))
+        return true
+      }
+
       function watchIntent() {
-        let lastSent = ''
         const timer = setInterval(() => {
           try {
             const sessionId = currentSessionId()
             if (typeof sessionId !== 'string') return
             const shell = ctx.get('conversation').input.for(ctx.get('sessions').scope(sessionId))
-            const draft = readDraft(shell)
-            if (draft === '' || draft === lastSent) return
-            if (!INTENT_PATTERN.test(draft)) return
-            lastSent = draft
-            state.intents.push({ draft, at: Date.now() })
-            send({ type: 'intent', protocolVersion: 1, kind: 'look-left', sessionId, draft, trigger: 'keyword', at: Date.now() })
-            log('intent detected', draft.slice(0, 40))
+            sniffOnce(sessionId, readDraft(shell))
           } catch { /* composer not ready */ }
         }, 800)
         return () => { clearInterval(timer) }
@@ -470,9 +566,7 @@ window.__ModuleLoader__.load({
         try { socket = new WebSocket(`${scheme}//${location.host}${CHANNEL}`) } catch (error) { log('ws throw', String(error)); return }
         socket.addEventListener('open', () => {
           state.connected = true
-          const sessionId = currentSessionId()
-          const workspace = currentWorkspace()
-          send({ type: 'hello', protocolVersion: 1, extVersion: 'client', ...(sessionId === undefined ? {} : { sessionId }), ...(workspace === undefined ? {} : { workspace }) })
+          announceFacts()
           send({ type: 'request-pending' })
           log('ws open')
         })
@@ -491,18 +585,22 @@ window.__ModuleLoader__.load({
       heartbeat = setInterval(() => { send({ type: 'ping' }) }, HEARTBEAT_MS)
       stopIntent = watchIntent()
 
-      // Re-announce when the user picks another session/workspace, so captures
-      // land in what they are actually looking at (design §7 resolution order).
-      let announcedWorkspace
+      // Re-announce whenever something the bridge routes on changes: which session the
+      // user is in, which workspace, and whether this page is embedded / visible /
+      // focused. The bridge picks exactly ONE page half per capture (hub.pickPrimary),
+      // so a stale answer here sends the capture to the wrong React app.
+      let announced
       const announceTimer = setInterval(() => {
         if (socket === undefined || socket.readyState !== 1) return
-        const workspace = currentWorkspace()
-        if (workspace === undefined || workspace === announcedWorkspace) return
-        announcedWorkspace = workspace
-        const sessionId = currentSessionId()
-        send({ type: 'hello', protocolVersion: 1, extVersion: 'client', ...(sessionId === undefined ? {} : { sessionId }), workspace })
-        log('re-announced workspace', workspace.slice(-32))
+        const key = JSON.stringify(pageFacts())
+        if (key === announced) return
+        announced = key
+        announceFacts()
       }, 3000)
+      for (const target of [window]) {
+        for (const event of ['focus', 'blur']) target.addEventListener(event, () => { announced = undefined })
+      }
+      document.addEventListener('visibilitychange', () => { announced = undefined })
       stopIntent = ((inner) => () => { clearInterval(announceTimer); inner() })(stopIntent)
 
       // Register the dock BEFORE the app mounts, so a capture that lands early still
@@ -529,6 +627,10 @@ window.__ModuleLoader__.load({
           const entry = state.chips.get(captureId) ?? {}
           return dismissCapture({ captureId, ...entry })
         },
+        /** Harness: the page's own facts, as last announced to the bridge. */
+        facts: () => pageFacts(),
+        /** Harness: run ONE 「看左边」sniffer iteration (see sniffOnce) — returns whether it fired. */
+        sniff: (draft) => sniffOnce(currentSessionId(), draft),
         reconnect: connect,
         /** Harness: create + open a session so an agent turn has somewhere to go. */
         newSession: async () => {

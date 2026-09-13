@@ -15,6 +15,10 @@ import { execFileSync } from 'node:child_process'
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createResults } from '../lib/probe-result.mjs'
+
+// 断言/观测分离、只有布尔 true 算通过（规则单一真源见该 helper）。
+const { record, observe, results, observations, finish } = createResults({ label: 'm2-autostart' })
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(HERE, '..', '..')
@@ -108,7 +112,6 @@ try {
   }
 
   const results = {}
-  const record = (n, v) => { results[n] = v; console.log(`  ${n}: ${(JSON.stringify(v) ?? String(v)).slice(0, 220)}`) }
 
   record('dshListeningBefore', await listening(PORT))
   // call the native host directly first: proves Chrome→host wiring and the manifest
@@ -125,7 +128,7 @@ try {
       return JSON.stringify(reply)
     } catch (error) { return JSON.stringify({ threw: String(error), lastError: chrome.runtime.lastError?.message ?? null }) }
   })()`, 15000)
-  record('nativeHostReply', typeof nativeReply === 'string' ? JSON.parse(nativeReply) : nativeReply)
+  observe('nativeHostReply', typeof nativeReply === 'string' ? JSON.parse(nativeReply) : nativeReply)
 
   // now let the panel drive the whole path
   let status = null
@@ -140,11 +143,11 @@ try {
   const ping = await fetch(`http://127.0.0.1:${PORT}/ag/ping`).then((r) => r.json()).catch(() => null)
   record('pingAfter', ping === null ? null : { plugin: ping.plugin, paired: ping.paired, port: ping.dsh?.port })
 
-  writeFileSync(join(OUT_DIR, 'probe-autostart.json'), `${JSON.stringify({ probe: 'm2-autostart', port: PORT, results }, null, 2)}\n`)
+  writeFileSync(join(OUT_DIR, 'probe-autostart.json'), `${JSON.stringify({ probe: 'm2-autostart', port: PORT, results, observations }, null, 2)}\n`)
   console.log('\n写入 docs/reviews/probe-autostart.json')
 } finally {
   try { process.kill(Number(chromePid)) } catch { /* gone */ }
   cleanupAll()
   console.log('已恢复 dev-config 并清理临时 DSH')
 }
-process.exit(0)
+finish()

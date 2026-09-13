@@ -28,7 +28,9 @@ export function extractPage(options = {}) {
 
   /** Invisible/zero-width characters are a prompt-injection vector; strip them. */
   const clean = (value) => String(value)
-    .replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u2064\uFEFF]/gu, '')
+    .replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u2064\u2066-\u2069\uFEFF]/gu, '')
+    // 行/段分隔符**不是**零宽字符：它们是换行，删掉会把两段粘成一段（审核 2026-09-12）。
+    .replace(/[\u2028\u2029]/gu, '\n')
     .replace(/\u00A0/gu, ' ')
 
   /** Root element holding the main content, if the site marks one. */
@@ -70,7 +72,13 @@ export function extractPage(options = {}) {
   const text = (el) => String(el.textContent ?? '').replace(/\s+/g, ' ').trim()
   const sentences = (value) => /[。．.!?；;：:]|\s\S{40,}/u.test(value)
 
-  /** Chips are labels; anything longer is treated as content (see the note above). */
+  /**
+   * Chips are labels; anything longer is treated as content (see the note above).
+   *
+   * 注意：这个阈值**不是**"短链接保护机制"。审核 2026-09-12 指出注释曾暗示把阈值从 24 降到 12
+   * 是为了保住 `[Go]` / `doc/2` 这类真实短链接 —— 但那些只有 4–5 个字符，本来就在任何阈值之下；
+   * 真正保住它们的是 `stripPlaceholderAnchors` 里那条"会跳转到别处就不算占位锚点"的判据。
+   */
   const CHIP_LABEL_MAX = 12
   const stripChipRows = () => {
     for (const parent of [...clone.querySelectorAll('*')]) {
@@ -103,9 +111,12 @@ export function extractPage(options = {}) {
       const value = text(el)
       if (value === '' || value.length > 400) continue
       if (!META_BLOCK.test(value)) continue
-      // only drop when the block is mostly numbers/labels, not prose
-      const digitRatio = (value.match(/[\d.]+/gu) ?? []).join('').length / Math.max(1, value.length)
-      if (digitRatio > 0.15 || /^[^。.!?]{0,80}$/u.test(value)) el.remove()
+      // 判据：**上方 META_BLOCK 已命中**（含 downloads / last updated / license 这类词），且这一段
+      // "像标签而不像句子"——短、无句末标点。这里原来还有一条数字判据 `digitRatio > 0.15`，但它被
+      // 同一个 `||` **完全架空**（右边那支几乎恒真），注释却声称"只在以数字为主时才删"，代码与注释
+      // 相反；数字判据已删（从未起作用），阈值从 80 收到 40（80 字符能装下一整句英文说明）。
+      // 审核 2026-09-12 指出，我在此逐字核实。
+      if (/^[^。.!?]{0,40}$/u.test(value)) el.remove()
     }
   }
 
@@ -118,8 +129,13 @@ export function extractPage(options = {}) {
       const label = text(link)
       if (label.length === 0 || label.length > 2) continue
       const href = String(link.getAttribute('href') ?? '').trim()
-      // `#`, `#fragment`, or the same document with a fragment: a no-op navigation
-      const isBareAnchor = /^#/u.test(href) || (href !== '' && href.startsWith('#') === false && /#$/u.test(href) && href.split('#')[0].startsWith(location.href.split('#')[0]))
+      // `#`、`#fragment`，或"本页 + fragment"（即一次没有实际跳转的导航）。
+      //
+      // 旧实现拿字符串 `startsWith` 比：`location.href` 带 query 时比不中（**漏判**占位锚点），
+      // 而当 `location.href` 恰好就是链接目标时又会把**有效**的同页锚删掉（**误删**）。改成比较
+      // 去掉 fragment/query 之后的文档地址，两端一致才算"本页"。（审核 2026-09-12）
+      const baseOf = (url) => String(url).split('#')[0].split('?')[0]
+      const isBareAnchor = /^#/u.test(href) || (href !== '' && /#$/u.test(href) && baseOf(href) === baseOf(location.href))
       if (!isBareAnchor) continue
       // keep the item when it carries real text beyond the placeholder link
       if (text(item).replace(label, '').trim() !== '') continue

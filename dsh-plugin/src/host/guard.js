@@ -49,21 +49,57 @@ export function createGuard(pairing) {
     return presented !== undefined && sameSecret(presented, key)
   })()
 
+  /**
+   * The extension proves itself, in the only two ways Chrome actually lets it.
+   *
+   * Form F2 is "key + exact `Origin`", and that is what this checks — but Chrome does **not**
+   * send `Origin` on a *simple* cross-origin GET from an extension document (measured
+   * 2026-09-12 against a real panel document: `GET /ag/control?key=…` arrived with
+   * `origin: null, sec-fetch-site: none, sec-fetch-mode: cors`, and the strict check answered
+   * 403 — so the panel's 「read the switch」 call could never succeed; the v3.40 change from
+   * POST to GET for that read was therefore never verified in a browser). Non-simple methods
+   * (POST) *do* carry the exact `Origin`, which is why the flip always worked.
+   *
+   * So the same request is accepted when the browser certifies the initiator instead:
+   * `Sec-Fetch-Site: none` **and** `Sec-Fetch-Mode: cors`. Both headers are set by the browser
+   * and cannot be forged by a page (a website's fetch is `cross-site`, a navigation is
+   * `navigate`), and the pairing key is still required — so this is not a loosening of the
+   * credential, only of the *shape* the credential arrives in. Symmetric with F4, which already
+   * spells out what "Origin absent" is allowed to mean.
+   */
   const originOk = (req) => {
     const origin = req.headers.origin
-    return typeof origin === 'string' && origins.has(origin)
+    if (typeof origin === 'string') return origins.has(origin)
+    return req.headers['sec-fetch-site'] === 'none' && req.headers['sec-fetch-mode'] === 'cors'
+  }
+
+  /** Does the request carry a DSH session cookie (`dsh-auth-…`)? */
+  const sessionCookieOk = (req) => {
+    const raw = req.headers.cookie
+    return typeof raw === 'string' && raw.split(';').some((part) => part.trim().startsWith('dsh-auth-'))
   }
 
   /**
-   * Form F4 (design §5.4): the DSH page's own client half. A same-origin
-   * request from that page may carry NO `Origin` header at all, so accept either
-   * an absent Origin or one naming this server's own authority — plus the key.
+   * Form F4 (design §5.4): the DSH page's own client half.
+   *
+   * Design §5.4 spells the rule out in full: an `Origin`, **when present**, must equal this
+   * server's own authority; when it is **absent**, same-origin-ness must be established
+   * from `Sec-Fetch-Site: same-origin` **plus a session cookie**.
+   *
+   * The implementation used to stop at "absent ⇒ accept". That branch also matches every
+   * request the browser sends *without* `Origin` for reasons that have nothing to do with
+   * same-origin: navigations and subresources (`<img>`, `<script>`, `<link>`) send none.
+   * So a web page could reach these routes with no credential at all — and `GET /ag/pending`
+   * is destructive (`store.drain()` splices), i.e. `<img src="http://127.0.0.1:3080/ag/pending">`
+   * on any site could empty the queue. Fixed to the documented rule; callers that are not a
+   * browser (probes, scripts) must send an explicit `Origin` naming this authority — which
+   * is exactly what they already do.
    */
   const sameOriginOk = (req) => {
     const origin = req.headers.origin
-    if (origin === undefined) return true
     const host = req.headers.host
-    return typeof host === 'string' && origin === `http://${host}`
+    if (typeof origin === 'string') return typeof host === 'string' && origin === `http://${host}`
+    return req.headers['sec-fetch-site'] === 'same-origin' && sessionCookieOk(req)
   }
 
   return {
@@ -83,9 +119,9 @@ export function createGuard(pairing) {
      * Client-half channel/endpoints (form F4).
      *
      * The DSH page's own client half holds no key on purpose — the key never
-     * belongs in page JavaScript. Same-origin is the credential: a foreign page
-     * can neither be served by this server nor forge a matching `Origin`/`Host`
-     * pair for loopback, so "same-origin, or key+extension-origin" is the gate.
+     * belongs in page JavaScript. Same-origin is the credential (see `sameOriginOk`
+     * for what "same-origin" is allowed to mean), with key+extension-origin as the
+     * non-browser/extension path.
      */
     checkClient: (req) => sameOriginOk(req) || (keyOk(req) && originOk(req)),
   }

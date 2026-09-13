@@ -1,14 +1,14 @@
 /**
  * AUTO-GENERATED — do not edit. Source: protocol/messages.schema.json
  * protocolVersion: 1
- * schemaSha256: 6aaff4935b118d3f78774eb2778974c58ea6e454d9917b3cdd75f0671ca2fbb0
+ * schemaSha256: 608a16de9b9d463e5ebae2b3a069e64c117c13f78c723d1118af8cf18588a68b
  * platform: chrome-extension (ESM)
  * Runtime: browser (Chrome MV3).
  * Regenerate: node protocol/codegen.mjs   Verify: node protocol/codegen.mjs --check
  */
 
 export const PROTOCOL_VERSION = 1
-export const SCHEMA_SHA256 = '6aaff4935b118d3f78774eb2778974c58ea6e454d9917b3cdd75f0671ca2fbb0'
+export const SCHEMA_SHA256 = '608a16de9b9d463e5ebae2b3a069e64c117c13f78c723d1118af8cf18588a68b'
 export const SCHEMA_ID = 'https://dsh.local/web-companion/messages.schema.json'
 
 /** Message kinds this protocol defines (from the schema's top-level oneOf). */
@@ -59,7 +59,12 @@ export const ENUM = Object.freeze({
     "E_UNPAIRED",
     "E_NATIVE_MISSING",
     "E_NO_PERMISSION",
-    "E_INTERNAL"
+    "E_INTERNAL",
+    "E_NO_SELECTION",
+    "E_READONLY",
+    "E_TARGET_BUSY",
+    "E_PERMISSION",
+    "E_PLUGIN"
   ],
   "Trigger": [
     "look_left",
@@ -129,6 +134,8 @@ export const ROUTE = Object.freeze({
   "ack": "/ag/ack",
   "control": "/ag/control",
   "whoami": "/ag/whoami",
+  "wsEcho": "/ag/wsecho",
+  "wsProbe": "/ag/wsprobe",
   "probePage": "/ag/probe-page"
 })
 
@@ -248,8 +255,14 @@ export const MESSAGE_SCHEMA = {
         "E_UNPAIRED",
         "E_NATIVE_MISSING",
         "E_NO_PERMISSION",
-        "E_INTERNAL"
-      ]
+        "E_INTERNAL",
+        "E_NO_SELECTION",
+        "E_READONLY",
+        "E_TARGET_BUSY",
+        "E_PERMISSION",
+        "E_PLUGIN"
+      ],
+      "description": "Closed set of error codes that may cross the wire (HTTP bodies and WS frames). A code the product raises but that is missing here would be rejected by validateAs and the frame silently dropped, so this list is checked against the code by scripts/consistency-check.mjs."
     },
     "Error": {
       "type": "object",
@@ -1075,7 +1088,7 @@ export const MESSAGE_SCHEMA = {
           "additionalProperties": false,
           "properties": {
             "code": {
-              "type": "string"
+              "$ref": "#/$defs/ErrorCode"
             },
             "message": {
               "type": "string"
@@ -1085,6 +1098,19 @@ export const MESSAGE_SCHEMA = {
         "at": {
           "type": "number"
         }
+      },
+      "if": {
+        "description": "A successful result is only useful with the id it refers to: the bridge links it to the intent that asked (requestId → captureId → page half). Without captureId that link is lost, and `ok:true` with no id cannot be acted on by anyone.",
+        "properties": {
+          "ok": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "captureId"
+        ]
       }
     },
     "AgentToolCall": {
@@ -1160,7 +1186,7 @@ export const MESSAGE_SCHEMA = {
           "additionalProperties": false,
           "properties": {
             "code": {
-              "type": "string"
+              "$ref": "#/$defs/ErrorCode"
             },
             "message": {
               "type": "string"
@@ -1236,6 +1262,23 @@ function validateAgainst(schema, value, root, path) {
   if (schema.const !== undefined && value !== schema.const) return fail('expected const ' + JSON.stringify(schema.const))
   if (Array.isArray(schema.enum) && !schema.enum.includes(value)) return fail('not in enum ' + JSON.stringify(schema.enum))
 
+  // Conditional requirement (if/then/else). Needed because a rule can be about a *pair* of
+  // fields — e.g. "a successful capture-result must carry the captureId it refers to" — and
+  // "required" alone is unconditional, which would reject the legitimate failure frames that
+  // carry no id at all; oneOf cannot express it either (it means "any branch passes" here).
+  if (schema.if !== undefined) {
+    const condition = validateAgainst(schema.if, value, root, path)
+    if (condition.ok) {
+      if (schema.then !== undefined) {
+        const result = validateAgainst(schema.then, value, root, path)
+        if (!result.ok) return result
+      }
+    } else if (schema.else !== undefined) {
+      const result = validateAgainst(schema.else, value, root, path)
+      if (!result.ok) return result
+    }
+  }
+
   if (schema.type !== undefined) {
     const types = Array.isArray(schema.type) ? schema.type : [schema.type]
     const actual = value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value
@@ -1250,7 +1293,10 @@ function validateAgainst(schema, value, root, path) {
     }
   }
 
-  if (schema.properties !== undefined || schema.additionalProperties === false) {
+  // A bare "required" (no properties, no additionalProperties) is legal JSON Schema and is
+  // exactly what an if/then rule produces — the old guard skipped it and validated NOTHING, so the
+  // rule looked enforced while the invalid frame sailed through (found by the new vector).
+  if (schema.properties !== undefined || schema.required !== undefined || schema.additionalProperties === false) {
     if (value === null || typeof value !== 'object' || Array.isArray(value)) return fail('expected object for properties check')
     const properties = schema.properties ?? {}
     for (const key of schema.required ?? []) {

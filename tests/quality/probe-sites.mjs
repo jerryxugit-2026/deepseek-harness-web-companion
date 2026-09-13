@@ -23,6 +23,7 @@ import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, write
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { WebSocket } from 'ws'
+import { createResults } from '../lib/probe-result.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(HERE, '..', '..')
@@ -162,11 +163,8 @@ const evaluate = async (sessionId, expression, timeoutMs = 40000) => {
 const panel = await open(`chrome-extension://${extId}/src/sidepanel/panel.html`)
 await sleep(1500)
 const attachDir = join(WORKSPACE, '网页捕获')
-const results = {}
-const record = (name, value) => {
-  results[name] = value
-  console.log(`  ${value === true ? '✅' : value === false ? '❌' : '·'} ${name}`)
-}
+// 断言/观测分离，且只有布尔 true 算通过 —— 见 ../lib/probe-result.mjs 的由来。
+const { record, observe, results, observations, finish } = createResults({ label: 'm4/sites' })
 
 console.log(`多站点质量回归：${String(CASES.length)} 类页面（夹具 ${String(FIXTURE_PORT)}）\n`)
 for (const testCase of CASES) {
@@ -191,8 +189,6 @@ for (const testCase of CASES) {
   await browser.send('Target.closeTarget', { targetId: page.targetId }).catch(() => {})
 }
 
-const failed = Object.entries(results).filter(([, v]) => v === false).map(([k]) => k)
-writeFileSync(resolve(OUT_DIR, 'm4-site-quality.json'), `${JSON.stringify({ probe: 'm4/sites', fixturePort: FIXTURE_PORT, at: new Date().toISOString(), cases: CASES.map((c) => c.name), results }, null, 2)}\n`)
-console.log(`\n${failed.length === 0 ? '✅ 全部通过' : `❌ 失败 ${String(failed.length)} 项：${failed.join('、')}`}（报告 → docs/reviews/m4-site-quality.json）`)
+writeFileSync(resolve(OUT_DIR, 'm4-site-quality.json'), `${JSON.stringify({ probe: 'm4/sites', fixturePort: FIXTURE_PORT, at: new Date().toISOString(), cases: CASES.map((c) => c.name), results, observations }, null, 2)}\n`)
 cleanup()
-process.exitCode = failed.length === 0 ? 0 : 1
+finish('m4-site-quality.json')

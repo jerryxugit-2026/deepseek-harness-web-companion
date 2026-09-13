@@ -23,5 +23,14 @@ export function companionPath(env = process.env) {
 
 /** Directory holding bridge logs. */
 export function logPath(env = process.env) {
-  return join(dshHome(env), 'logs', 'antigravity-bridge.log')
+  return join(dshHome(env), 'logs', 'dsh-web-companion-bridge.log')
+}
+
+/**
+ * Metadata-only audit trail (JSONL). Deliberately a separate file from the rolling
+ * log: it is the artifact you read *after* something unexplained happened, so it must
+ * survive log rotation and be machine-readable.
+ */
+export function auditPath(env = process.env) {
+  return join(dshHome(env), 'logs', 'web-companion-audit.jsonl')
 }

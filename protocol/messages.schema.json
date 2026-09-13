@@ -107,8 +107,14 @@
         "E_UNPAIRED",
         "E_NATIVE_MISSING",
         "E_NO_PERMISSION",
-        "E_INTERNAL"
-      ]
+        "E_INTERNAL",
+        "E_NO_SELECTION",
+        "E_READONLY",
+        "E_TARGET_BUSY",
+        "E_PERMISSION",
+        "E_PLUGIN"
+      ],
+      "description": "Closed set of error codes that may cross the wire (HTTP bodies and WS frames). A code the product raises but that is missing here would be rejected by validateAs and the frame silently dropped, so this list is checked against the code by scripts/consistency-check.mjs."
     },
     "Error": {
       "type": "object",
@@ -934,7 +940,7 @@
           "additionalProperties": false,
           "properties": {
             "code": {
-              "type": "string"
+              "$ref": "#/$defs/ErrorCode"
             },
             "message": {
               "type": "string"
@@ -944,6 +950,19 @@
         "at": {
           "type": "number"
         }
+      },
+      "if": {
+        "description": "A successful result is only useful with the id it refers to: the bridge links it to the intent that asked (requestId → captureId → page half). Without captureId that link is lost, and `ok:true` with no id cannot be acted on by anyone.",
+        "properties": {
+          "ok": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "captureId"
+        ]
       }
     },
     "AgentToolCall": {
@@ -1019,7 +1038,7 @@
           "additionalProperties": false,
           "properties": {
             "code": {
-              "type": "string"
+              "$ref": "#/$defs/ErrorCode"
             },
             "message": {
               "type": "string"

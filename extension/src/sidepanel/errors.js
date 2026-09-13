@@ -18,7 +18,9 @@ export function explainError(error) {
   if (error?.code === 'E_DSH_DOWN') return '本地 DSH 未运行：请先启动 dsh web。'
   if (error?.code === 'E_READONLY') return '这次操作需要写权限：请在面板打开「写操作」开关（模型侧才会注册点击/输入/导航工具）。'
   if (error?.code === 'E_EXT_OFFLINE') return '浏览器扩展没有连上：请打开侧边栏面板（面板打开时才会建立 /ag/agent 通道）。'
-  if (error?.code === 'E_TARGET_BUSY') return '目标标签页已被别的调试器占用（例如 DevTools 打开着）：关掉它再试。'
+  // 成因按实测收窄：2026-09-12 真机上 DevTools 打开着时，本扩展 attach **照样成功**（两次调用都返回了树）。
+  // 已知会触发这条的是**另一个扩展**占着该目标（以及同一扩展重复 attach，见 probe:m3-debugger 的 secondAttach）。
+  if (error?.code === 'E_TARGET_BUSY') return '目标标签页已被另一个调试器占用（通常是另一个扩展在调试该页）：关掉那个调试器再试。'
   if (error?.code === 'E_TIMEOUT') return `操作超时：${message}。页面可能仍在加载，可稍后重试。`
   return message
 }

@@ -25,6 +25,7 @@ import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { WebSocket } from 'ws'
+import { createResults } from '../lib/probe-result.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(HERE, '..', '..')
@@ -188,14 +189,10 @@ if (dumpApi) {
   const surface = await inDsh('JSON.stringify(globalThis.__AG_CLIENT__.api(), null, 1)', 20000)
   console.log(typeof surface === 'string' ? surface : JSON.stringify(surface))
   cleanup()
-  process.exit(0)
+  finish()
 }
 
-const results = {}
-const record = (name, value) => {
-  results[name] = value
-  console.log(`  ${value === true ? '✅' : value === false ? '❌' : '·'} ${name}: ${(JSON.stringify(value) ?? String(value)).slice(0, 200)}`)
-}
+const { record, observe, results, observations, finish } = createResults({ label: 'm3/agent-turn-probe' })
 
 
 // 面板页（非 DSH 上下文）里的自检：agent 通道为什么没连上
@@ -282,7 +279,8 @@ writeFileSync(join(OUT_DIR, 'm3-agent-turn-probe.json'), `${JSON.stringify({
   delivery: typeof delivery === 'string' ? JSON.parse(delivery) : delivery,
   results,
 }, null, 2)}\n`)
-const failed = Object.entries(results).filter(([, value]) => value === false).map(([key]) => key)
-console.log(`\n${failed.length === 0 ? '✅ 全部通过' : `❌ 失败 ${String(failed.length)} 项：${failed.join('、')}`}（报告 → docs/reviews/m3-agent-turn-probe.json）`)
-process.exitCode = failed.length === 0 ? 0 : 1
+// 判定统一交给 createResults#finish（只有布尔 true 算过；非布尔值进观测桶）。
+// 这里原来还留着一条 `value === false` 的旧判定并抢着设退出码 —— 两套判定并存时，
+// 松的那套会说话（记成 null 的断言静默算过）。
 cleanup()
+finish('m3-agent-turn-probe.json')

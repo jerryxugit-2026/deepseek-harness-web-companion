@@ -19,7 +19,7 @@
  * sockets are heartbeated, and every in-flight request is failed immediately on
  * disconnect instead of waiting for its timeout.
  */
-import { WebSocketServer } from 'ws'
+import { WebSocket, WebSocketServer } from 'ws'
 
 const HEARTBEAT_MS = 20000
 const OFFLINE_AFTER_MS = 30000
@@ -53,7 +53,16 @@ export function createHub({
     servers[channel].handleUpgrade(req, socket, head, (ws) => {
       // `lastSeen` is refreshed by every inbound frame — the liveness signal a call
       // selection can trust (see callAgent).
-      const entry = { ws, lastSeen: Date.now(), id: `client:${Math.random().toString(16).slice(2, 6)}`, inflight: new Set() }
+      const entry = {
+        ws,
+        lastSeen: Date.now(),
+        connectedAt: Date.now(),
+        // What this page half told us about itself (`hello`). Used to pick exactly ONE
+        // recipient for a capture — see pushClientPrimary.
+        facts: {},
+        id: `client:${Math.random().toString(16).slice(2, 6)}`,
+        inflight: new Set(),
+      }
       sockets[channel].add(entry)
       log(`hub: ${channel} peer connected (${String(sockets[channel].size)})`)
       // first thing after a peer appears: hand it whatever it missed
@@ -61,12 +70,29 @@ export function createHub({
       ws.on('message', (data) => {
         entry.lastSeen = Date.now()
         const text = String(data)
-        if (text.includes('"pong"')) return
-        try { log(`hub: ${channel} ← ${text.slice(0, 160)}`) } catch { /* ignore */ }
         let frame
         try {
           frame = JSON.parse(text)
         } catch { return /* not JSON */ }
+        // Heartbeat fast-path on the **parsed** type, never on a substring of the raw text.
+        // The old `text.includes('"pong"')` also matched any *payload* containing that literal,
+        // returning before `settle()` — so a legitimate `tool-result` could vanish and the call
+        // could only end in E_TIMEOUT (found by review 2026-09-12, verified here).
+        if (frame?.type === 'pong') return
+        try { log(`hub: ${channel} ← ${text.slice(0, 160)}`) } catch { /* ignore */ }
+        // Facts live with the socket that announced them: `hello` is re-sent whenever
+        // the page's embedding / focus / visibility / session changes, so this table is
+        // never staler than the page itself.
+        if (channel === 'client' && frame?.type === 'hello') {
+          entry.facts = {
+            ...entry.facts,
+            ...(typeof frame.workspace === 'string' ? { workspace: frame.workspace } : {}),
+            ...(typeof frame.sessionId === 'string' ? { sessionId: frame.sessionId } : {}),
+            ...(typeof frame.embedded === 'boolean' ? { embedded: frame.embedded } : {}),
+            ...(typeof frame.visible === 'boolean' ? { visible: frame.visible } : {}),
+            ...(typeof frame.focused === 'boolean' ? { focused: frame.focused } : {}),
+          }
+        }
         // A tool result settles its own promise here — correlation belongs to the
         // socket owner, not to the caller, so a disconnect can fail the whole set.
         if (channel === 'agent' && frame?.type === 'tool-result' && typeof frame.id === 'string' && inflight.has(frame.id)) {
@@ -110,6 +136,39 @@ export function createHub({
     return delivered
   }
 
+  /**
+   * Pick the ONE DSH page half that should receive a capture-bearing event.
+   *
+   * Why this exists (real defect, 2026-09-12): `push()` **fanned out to every client**,
+   * and a user typically has two page halves connected at once — the DSH GUI in a normal
+   * tab *and* the DSH GUI embedded in the side panel's iframe. Each half ran
+   * `applyAttach()` on its own, so one capture produced **two sessions, two chips, two
+   * draft inserts** (measured: sessions created 3ms apart, twice per capture; the original
+   * 22:23 report was the same thing at 5ms). Deliver to one, and the duplication is gone
+   * by construction.
+   *
+   * Order of preference:
+   *   1. `preferredId` — the page half that *asked* for this capture (an intent's owner);
+   *   2. the embedded half (side panel) — that is where the capture was initiated from;
+   *   3. the most focused / visible half (somebody is looking at it);
+   *   4. the most recently connected half.
+   *
+   * @param {string} [preferredId] entry id returned by `clientIds()` / `primaryClientId()`
+   */
+  const pickPrimary = (preferredId) => {
+    const candidates = [...sockets.client]
+    if (candidates.length === 0) return undefined
+    if (typeof preferredId === 'string') {
+      const wanted = candidates.find((entry) => entry.id === preferredId)
+      if (wanted !== undefined) return wanted
+    }
+    const score = (entry) => {
+      const facts = entry.facts ?? {}
+      return (facts.embedded === true ? 8 : 0) + (facts.focused === true ? 4 : 0) + (facts.visible === true ? 2 : 0)
+    }
+    return candidates.sort((a, b) => (score(b) - score(a)) || ((b.connectedAt ?? 0) - (a.connectedAt ?? 0)))[0]
+  }
+
   /** Settle one in-flight call from its tool-result frame. */
   const settle = (id, frame) => {
     const pending = inflight.get(id)
@@ -133,6 +192,50 @@ export function createHub({
     /** Broadcast an event to the DSH page halves; returns how many accepted it. */
     push(event) {
       return pushTo('client', event)
+    },
+
+    /**
+     * Send a capture-bearing event to **exactly one** DSH page half (see pickPrimary).
+     * Returns 1 when it was accepted, 0 when no page half is connected — the caller then
+     * queues it for the next connect.
+     *
+     * @param {object} event
+     * @param {string} [preferredId] the page half that asked for this capture
+     * @returns {string|null} the receiving half's id, or `null` when nobody could take it.
+     *   Returning the **id** matters: `/ag/attach` reports `deliveredTo`, and it used to report
+     *   a *count* dressed up as an id (`client:1`) — a fact that was simply false.
+     */
+    pushClientPrimary(event, preferredId) {
+      const text = JSON.stringify(event)
+      // The preferred/primary half first, then everyone else as fallback: a half that cannot
+      // take the frame must not swallow the capture.
+      // `ws.send()` only throws while CONNECTING; for every other non-OPEN state it silently
+      // buffers and reports through an optional callback (node_modules/ws/lib/websocket.js →
+      // `sendAfterClose`), so "it did not throw" is NOT proof of delivery.
+      const candidates = []
+      const first = pickPrimary(preferredId)
+      if (first !== undefined) candidates.push(first)
+      for (const entry of [...sockets.client]) { if (entry !== first) candidates.push(entry) }
+      for (const entry of candidates) {
+        if (entry.ws.readyState !== WebSocket.OPEN) continue
+        try {
+          entry.ws.send(text)
+          return entry.id
+        } catch {
+          sockets.client.delete(entry)
+        }
+      }
+      return null
+    },
+
+    /** Which page half a capture would go to right now (diagnostics / probes). */
+    primaryClientId() {
+      return pickPrimary()?.id ?? null
+    },
+
+    /** Every connected page half's id, in connection order (diagnostics / tests). */
+    clientIds() {
+      return [...sockets.client].map((entry) => entry.id)
     },
 
     /** Broadcast an event to the extension (browser-tool / capture requests). */

@@ -76,12 +76,99 @@ const gateC = createWriteGate({ ctx: ctxC, writeEnabled: () => true, approvalReq
 record('mode=off', gateC.mode === 'off')
 record('开关打开时放行', ctxC.registered['tools/pre-execute']({ name: 'browser_navigate' }, next) === ALLOW)
 
-console.log('\n7. 防御性：缺少 next 时不静默否决')
+console.log('\n7. 防御性：宿主契约变化时，**读工具放行、写工具 fail-closed**')
 const ctxD = makeCtx({ approval: undefined })
-createWriteGate({ ctx: ctxD, writeEnabled: () => true })
-record('没有 next 时返回 allow（宁可放行也不挂住调用）', ctxD.registered['tools/pre-execute']({ name: 'bash' }, undefined).kind === 'allow')
-record('dispose 可调用', typeof createWriteGate({ ctx: makeCtx({ approval: undefined }), writeEnabled: () => true }).dispose === 'function')
+const gateD = createWriteGate({ ctx: ctxD, writeEnabled: () => true })
+record('非写工具缺 next 时返回 allow（不挂住调用）', ctxD.registered['tools/pre-execute']({ name: 'bash' }, undefined).kind === 'allow')
+// 写工具：必须**拒绝**。旧实现无差别返回 allow ⇒ 宿主 API 一变，写操作就静默变成"无限制"
+// （三层闸门存在的全部意义就是不让这种事发生）。2026-09-12 审核指出、已修。
+record('★写工具缺 next 时必须 deny（fail-closed）', ctxD.registered['tools/pre-execute']({ name: 'browser_click' }, undefined).kind === 'deny')
+record('拒绝理由可诊断（说明审批钩子没跑起来）', /approval hook|host API/u.test(String(ctxD.registered['tools/pre-execute']({ name: 'browser_type' }, undefined).reason ?? '')))
+record('dispose 可调用', typeof gateD.dispose === 'function')
+// mode 不再是创建期快照：审批服务中途卸载后，读 mode 必须跟着变（面板据它给用户看文案）
+record('★mode 每次读取重算（不是创建期快照）', (() => {
+  let approval = { request: async () => 'allowed-once' }
+  const ctxE = {
+    registered: {},
+    get: (name) => (name === 'approval' ? approval : undefined),
+    on: (name, callback) => { ctxE.registered[name] = callback; return () => {} },
+  }
+  const gateE = createWriteGate({ ctx: ctxE, writeEnabled: () => true })
+  const before = gateE.mode
+  approval = undefined
+  return before === 'ask' && gateE.mode === 'switch-only'
+})())
 
-const failed = Object.entries(results).filter(([, v]) => v === false).map(([k]) => k)
+console.log('\n7. ★审批策略 never：服务在、但没人会被问 —— 不许骗模型说"用户拒绝了"')
+{
+  // dsh-user-approval：APPROVAL_POLICIES = ['ask','never']；policy=never 时 decide() 在**问任何人之前**
+  // 就返回 'rejected'。旧代码只问"审批服务在不在"，于是报告 mode=ask：面板承诺"每次都会先问你"，
+  // 而每次点击都被自动拒，模型收到的是 `the user rejected tool "browser_click"` —— 没有人被问过
+  // （台账 §5-12）。这里钉住三件事：mode 如实、写调用被拒、理由说的是策略而不是"用户拒绝"。
+  const neverSession = {}
+  const approvalNever = {
+    config: { policy: 'never' },
+    effectivePolicy: () => 'never',
+    request: async () => 'rejected',
+  }
+  const ctxF = makeCtx({ approval: approvalNever })
+  const gateF = createWriteGate({ ctx: ctxF, writeEnabled: () => true })
+  record('mode=policy-never（不再谎报 ask）', gateF.mode === 'policy-never')
+  record('policy 读得出是 never', gateF.policy === 'never')
+  const refused = ctxF.registered['tools/pre-execute']({ name: 'browser_click', agent: { session: neverSession } }, next)
+  record('写调用被拒（不会绕过 never 直接放行）', refused.kind === 'deny')
+  record('理由点名策略 never（可诊断、可操作）', /never/u.test(String(refused.reason)))
+  record('★理由**不**甩锅给用户（没有 "user rejected"/"用户拒绝"）', /user rejected|用户拒绝/iu.test(String(refused.reason)) === false)
+  record('非写工具照样放行（never 只管需要审批的动作）', ctxF.registered['tools/pre-execute']({ name: 'browser_read', agent: { session: neverSession } }, next) === ALLOW)
+
+  // 会话级覆盖：配置默认是 never，但会话被改成 ask → 必须能问
+  const approvalMixed = {
+    config: { policy: 'never' },
+    effectivePolicy: (session) => (session === neverSession ? 'never' : 'ask'),
+    request: async () => 'allowed-once',
+  }
+  const ctxG = makeCtx({ approval: approvalMixed })
+  const gateG = createWriteGate({ ctx: ctxG, writeEnabled: () => true })
+  const otherSession = {}
+  record('同一部署里另一个会话（ask）仍然走审批', ctxG.registered['tools/pre-execute']({ name: 'browser_type', agent: { session: otherSession } }, next).kind === 'ask')
+  record('而 never 的那个会话仍被拒', ctxG.registered['tools/pre-execute']({ name: 'browser_type', agent: { session: neverSession } }, next).kind === 'deny')
+
+  // 引擎没暴露 effectivePolicy 时退到配置默认值，而不是假装 ask
+  const approvalNoFold = { config: { policy: 'never' }, request: async () => 'rejected' }
+  const ctxH = makeCtx({ approval: approvalNoFold })
+  const gateH = createWriteGate({ ctx: ctxH, writeEnabled: () => true })
+  record('拿不到会话折算式时按配置默认判（仍不谎报 ask）', gateH.mode === 'policy-never')
+
+  // policy=ask 的正常路径不受影响（修过头检查）
+  const approvalAsk = { config: { policy: 'ask' }, effectivePolicy: () => 'ask', request: async () => 'allowed-once' }
+  const ctxI = makeCtx({ approval: approvalAsk })
+  const gateI = createWriteGate({ ctx: ctxI, writeEnabled: () => true })
+  record('policy=ask → mode=ask、写调用走审批（没有把正常部署一起封掉）',
+    gateI.mode === 'ask' && ctxI.registered['tools/pre-execute']({ name: 'browser_click', agent: { session: {} } }, next).kind === 'ask')
+}
+
+console.log('\n8. ★「显式关掉审批」优先于会话策略：approvalForWriteOps=false 时写操作只由开关把关')
+{
+  // 2026-09-12 用户决定把他的部署改成这一形态：本会话审批策略是 never（弹窗根本弹不出来），
+  // 而 `approvalForWriteOps: false` 的含义是「写操作根本不走审批缝」—— 此时再拿 never 去拒，
+  // 就是"操作者说不用问，插件却替他拒绝"。所以这个判断要排在会话策略之前。
+  const approvalNever = { config: { policy: 'never' }, effectivePolicy: () => 'never', request: async () => 'rejected' }
+  const ctxJ = makeCtx({ approval: approvalNever })
+  const gateJ = createWriteGate({ ctx: ctxJ, writeEnabled: () => true, approvalRequired: () => false })
+  record('mode=off（如实报告"审批已在配置里关闭"）', gateJ.mode === 'off')
+  const allowed = ctxJ.registered['tools/pre-execute']({ name: 'browser_click', agent: { session: {} } }, next)
+  record('★写操作**放行**（不再被 never 挡下）', allowed === ALLOW)
+  record('非写工具照旧放行', ctxJ.registered['tools/pre-execute']({ name: 'browser_read' }, next) === ALLOW)
+
+  // 但开关仍然是闸门：关掉开关时无论审批怎么配都要 deny（否则"无审批部署"会变成"无闸门"）
+  const ctxK = makeCtx({ approval: approvalNever })
+  const gateK = createWriteGate({ ctx: ctxK, writeEnabled: () => false, approvalRequired: () => false })
+  const deniedK = ctxK.registered['tools/pre-execute']({ name: 'browser_navigate' }, next)
+  record('★开关关着时仍然 deny（开关是最后一道闸）', deniedK.kind === 'deny' && String(deniedK.reason).includes('allowBrowserWriteOps'))
+  void gateK
+}
+
+// 只有布尔 true 算通过：任何没记上的都算失败（原来记成 null/对象会静默通过）
+const failed = Object.entries(results).filter(([, v]) => v !== true).map(([k]) => k)
 console.log(`\n${failed.length === 0 ? '✅ 全部通过' : `❌ 失败 ${String(failed.length)} 项：${failed.join('、')}`}（${String(Object.keys(results).length)} 条断言）`)
 process.exitCode = failed.length === 0 ? 0 : 1

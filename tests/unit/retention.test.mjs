@@ -82,7 +82,20 @@ record('24h+1s 的文件被删（严格老于保留期）', !list().includes('20
 record('24h-1s 的文件被保留', list().includes('2026-09-10-2201-under-24h-ii99.md'))
 record('清扫只删该删的那一个', edge.removed.length === 1)
 
+console.log('\n5. TEMP_FILE 不许越界：本插件的 .md.tmp 归我们，用户自己的 .tmp 不许碰')
+{
+  // 旧实现是 `/\.tmp$/u` —— 任何 `.tmp` 都算"崩溃残留"，于是用户在捕获目录里放一个
+  // `notes.tmp`（老于 24h）就会被删掉，与本文件头部承诺的 "Anything a user dropped into
+  // that folder is theirs — never touched" 直接矛盾（2026-09-12 审核指出、已修）。
+  plant('2026-09-10-1200-capture-aa11.md.tmp', 30) // store.js 真正会写的形态
+  plant('notes.tmp', 30)                            // 用户自己放的
+  await sweepCaptures(dir, { retentionHours: 24, now })
+  record('本插件的 .md.tmp 被清（崩溃残留该清）', !list().includes('2026-09-10-1200-capture-aa11.md.tmp'))
+  record('★用户自己的 notes.tmp 被保留（注释承诺"绝不碰"）', list().includes('notes.tmp'))
+}
+
 rmSync(root, { recursive: true, force: true })
-const failed = Object.entries(results).filter(([, v]) => v === false).map(([k]) => k)
+// 只有布尔 true 算通过：任何没记上的都算失败（原来记成 null/对象会静默通过）
+const failed = Object.entries(results).filter(([, v]) => v !== true).map(([k]) => k)
 console.log(`\n${failed.length === 0 ? '✅ 全部通过' : `❌ 失败 ${String(failed.length)} 项：${failed.join('、')}`}（${String(Object.keys(results).length)} 条断言）`)
 process.exitCode = failed.length === 0 ? 0 : 1
