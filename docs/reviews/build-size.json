@@ -3,7 +3,7 @@
     "limitBytes": 1048576,
     "metric": "dist/ total, uncompressed"
   },
-  "totalBytes": 159186,
+  "totalBytes": 159187,
   "gzipBytes": 399,
   "pass": true,
   "files": [
@@ -29,7 +29,7 @@
     },
     {
       "path": "manifest.json",
-      "bytes": 1122
+      "bytes": 1123
     }
   ]
 }

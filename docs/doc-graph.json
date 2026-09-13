@@ -210,6 +210,15 @@
       "docRefs": 1
     },
     {
+      "path": "docs/releases/v3.47.0.md",
+      "title": "v3.47.0 — first public release",
+      "version": null,
+      "lines": 137,
+      "sections": 10,
+      "codeRefs": 1,
+      "docRefs": 2
+    },
+    {
       "path": "docs/research/01-dsh-plugin-authoring.md",
       "title": "01 — Writing, building, installing and testing a THIRD-PARTY DSH plugin (host half + browser/client half)",
       "version": null,
@@ -625,7 +634,7 @@
     }
   ],
   "code": {
-    "indexedFiles": 220,
+    "indexedFiles": 222,
     "areas": {
       "extension": [
         "docs/01-protocol.md",
@@ -1190,10 +1199,6 @@
       {
         "doc": "docs/11-台账.md",
         "ref": "hub.ts"
-      },
-      {
-        "doc": "docs/11-台账.md",
-        "ref": "tests/unit/_record.mjs"
       },
       {
         "doc": "详细设计文档.md",
