@@ -306,7 +306,15 @@ export function extractPage(options = {}) {
     },
     content: {
       markdown: (() => {
-        const cleaned = clean(markdown)
+        /*
+         * ★ 折叠空行**必须在 `clean()` 之后再做一次**（2026-09-13 实测）。
+         *
+         * `toMarkdown()` 结尾已经折过一次 `\n{3,}` → `\n\n`，但紧接着 `clean()` 会把
+         * U+2028/U+2029（行/段分隔符，GitHub 这类页面里真的会出现）**再变成换行** ——
+         * 那一步在折叠**之后**，于是空行又被撑开：真机抓取出现过 106 行里 71 行空行、
+         * 21 处 4 连换行。所以这里补折一次。
+         */
+        const cleaned = clean(markdown).replace(/\n{3,}/g, '\n\n')
         return cleaned.length > maxChars ? cleaned.slice(0, maxChars) : cleaned
       })(),
       truncated: markdown.length > maxChars,

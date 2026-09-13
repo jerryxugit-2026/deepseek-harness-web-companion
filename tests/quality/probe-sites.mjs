@@ -127,6 +127,14 @@ const CASES = [
       name: '每个字段标签独立成行（Repository name / Description / 仓库名称 都在行首）',
       // 注意：中文后面不能加 \b —— JS 的 \b 是 ASCII 词边界，`仓库名称\b` 恒不匹配（第一版就错在这）
       test: (body) => /^Repository name/mu.test(String(body)) && /^Description/mu.test(String(body)) && /^仓库名称/mu.test(String(body)),
+    }, {
+      /*
+       * 2026-09-13 追加：**不许有空行堆**。
+       * 真机抓取出现过 106 行里 71 行空行（21 处 4 连换行）—— 根因是 `clean()` 把
+       * U+2028/U+2029 又变成换行，而它跑在空行折叠**之后**。现在折叠补在 `clean()` 之后。
+       */
+      name: '正文没有空行堆（不出现 3 个以上连续空行）',
+      test: (body) => /\n{4,}/u.test(String(body)) === false,
     }],
     drop: [/^\s*[-*]?\s*Search\s*$/mu],
     dropWhy: '小搜索框仍必须清掉（只按大小判，不按 form 标签整类删）',
