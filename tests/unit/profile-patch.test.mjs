@@ -350,6 +350,19 @@ console.log('\n13. ★ 与邻居同处一个 `- insert:` 段：只动我们这�
   record('只有我们一条时，段头一起摘掉（返回空文件）', rmAlone.text.trim() === '' && rmAlone.action === 'removed')
 }
 
+console.log('\n14. ★ 混合形状的卸载安全性（PiMoa 片 6b 第 1 条 MAJOR 的实测）')
+{
+  const mixed = ['- insert:', '    - id: mcp-semble', '      name: x', '', '    - name: /new/p.js', `      id: ${PLUGIN_ID}`, ''].join('\n')
+  const r1 = removeCompanion(mixed, { id: PLUGIN_ID })
+  record('单行邻居 + 分行我们：邻居与段头都留着', r1.text.includes('mcp-semble') && r1.text.includes('- insert:'))
+  record('且我们那条被摘干净', r1.text.includes(PLUGIN_ID) === false)
+  const commented = ['# --- DSH Web Companion bridge ---', '- insert:', '    - id: mcp-semble', '      name: x', '', `    - id: ${PLUGIN_ID}`, '      name: /new/p.js', ''].join('\n')
+  const r2 = removeCompanion(commented, { id: PLUGIN_ID })
+  record('段头上方有本插件注释 + 有邻居：邻居必须活着（6b 指控的数据丢失路径，实测不存在）', r2.text.includes('mcp-semble'))
+  record('且段头也活着', r2.text.includes('- insert:'))
+}
+
+
 const failed = Object.entries(results).filter(([, v]) => v !== true).map(([k]) => k)
 console.log(`\n${failed.length === 0 ? '✅ 全部通过' : `❌ 失败 ${String(failed.length)} 项：${failed.join('、')}`}（${String(Object.keys(results).length)} 条断言）`)
 process.exitCode = failed.length === 0 ? 0 : 1

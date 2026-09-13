@@ -462,6 +462,15 @@
       "docRefs": 0
     },
     {
+      "path": "docs/reviews/pimoa-wizard-6b-orchestration.md",
+      "title": "PiMoa 对抗性审核结果",
+      "version": null,
+      "lines": 61,
+      "sections": 4,
+      "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
       "path": "docs/reviews/probe-autostart-manual-verification.md",
       "title": "M2 · 自动拉起（H4①）实测验证 —— 用户真实 Chrome",
       "version": null,
@@ -588,6 +597,15 @@
       "docRefs": 0
     },
     {
+      "path": "scripts/review-prompts/wizard-6-frozen.md",
+      "title": "Prompt：审查**冻结版**引导程序的「未被审过的那一段改动」",
+      "version": null,
+      "lines": 49,
+      "sections": 4,
+      "codeRefs": 1,
+      "docRefs": 0
+    },
+    {
       "path": "详细设计文档.md",
       "title": "DSH Web Companion · 详细设计规范说明书",
       "version": "v3.37",
@@ -636,6 +654,7 @@
         "scripts/review-prompts/wizard-3-interaction.md",
         "scripts/review-prompts/wizard-4-changes.md",
         "scripts/review-prompts/wizard-5-tests.md",
+        "scripts/review-prompts/wizard-6-frozen.md",
         "详细设计文档.md"
       ],
       "tests/e2e": [

@@ -502,19 +502,29 @@ step(3, '准备 DSH 与插件依赖（DSH 缺了才装；插件依赖链接过�
       w.warn(`DSH 里缺 ${gaps.fatal.join('、')} —— 这三个包正常随 DSH 一起来。`)
       w.warn('它们是 DSH 自己的子包，插件必须与 DSH 用同一份；下载第二份会变成两个模块实例，所以这里不下载。')
       w.warn('先把 DSH 装好（例如重装 `@deepseek-ai/dsh`）再重跑本程序。')
-      must({ status: 1 }, `插件依赖检查（缺 ${gaps.fatal.join('、')}）`)
+      // 与隔壁"拒下载"分支统一：显式 die(2)（前置条件不满足），不再借道 must 编一个假的 exit 1
+      w.close()
+      die(2)
     }
-    if (await w.confirm('建立这些链接？')) {
+    const linkOk = await w.confirm('建立这些链接？')
+    if (linkOk) {
       const made = applyPluginLinks({ pluginDir: layout.pluginDir, plan })
       w.info(`   ✅ 链接了 ${String(made.length)} 个包`)
     }
-    /*
-     * ★ 可下载依赖的处理放在**这个 confirm 之外**（2026-09-13 修；PiMoa 片 A 第 3 条）：
-     * 原来它嵌在"建立这些链接？"里面 ⇒ 用户拒绝建链接时，缺 `ws` 这件事被整段跳过，
-     * 而隔壁 fatal 分支却在 confirm **之前**就硬失败 —— 两条路的守卫位置不对称。
-     * 注意顺序：`applyPluginLinks()` 开头会 `rm -rf node_modules`，所以这一段必须在它之后。
-     */
-    if (gaps.downloadable.length > 0) await linkDownloadablePluginDeps(gaps.downloadable)
+    if (gaps.downloadable.length > 0) {
+      /*
+       * ★ 用户拒绝建链接时**不能再自动去链 `ws`**（2026-09-13 修；PiMoa 片 6b 第 2 条 MAJOR）：
+       * 把它提到 confirm 之外是为了修"整段跳过"，但那样会把 `ws` 无条件 `symlinkSync` 进去 ——
+       * **绕过用户刚刚的"否"**，还留下半截依赖树（`@deepseek-ai/*` 没链）。拒绝就是拒绝，停下。
+       */
+      if (!linkOk) {
+        w.warn('你拒绝了建立依赖链接 —— 缺的依赖也不再处理（不绕过你的拒绝），就此停下。')
+        w.warn('想继续就重跑本程序并在这一步选 y。')
+        w.close()
+        die(2)
+      }
+      await linkDownloadablePluginDeps(gaps.downloadable)
+    }
   }
 }
 
@@ -778,8 +788,21 @@ w.close()
  *   0 = 复检全过 / 4 = 用户拒绝了关键步骤（或非交互全按否）/ 5 = 步骤跑完但复检没过 / 3 = 中途失败
  */
 const exitCode = banner.ok ? 0 : (mountSkipped || w.autoDeclined > 0 ? 4 : 5)
-if (exitCode === 5 && health.length > 0) {
-  w.info(' 💡 步骤都跑完了。若这是**首次安装**，DSH 还没重启 ⇒ 插件尚未加载，复检当然不过：')
-  w.info('    重启 DSH（dsh web）后再跑一次 `node <安装目录>/bootstrap/doctor.mjs` 即可复验。')
+if (exitCode === 5) {
+  /*
+   * ★ 提示必须**按哪几条硬判据没过**分流（2026-09-13 修；PiMoa 片 6b 第 3 条 MAJOR）：
+   * 原来只要是 exit 5 就劝"重启 DSH 就好"。可 exit 5 涵盖**任何**硬判据不过 ——
+   * 例如 `dist-port`（缺 check-dist-config＝安装残缺、或产物端口不一致），用户重启完仍然红灯，
+   * 而且被这句提示带偏、拿不到真因。本批刚把 dist-port 抬成硬判据就是为了暴露它，不能再藏回去。
+   */
+  const hardFailed = health.filter((i) => !i.soft && !i.ok).map((i) => i.id)
+  const onlyNotLive = hardFailed.length > 0 && hardFailed.every((id) => id === 'dsh-up' || id === 'paired')
+  if (onlyNotLive) {
+    w.info(' 💡 步骤都跑完了。若这是**首次安装**，DSH 还没重启 ⇒ 插件尚未加载，复检当然不过：')
+    w.info('    重启 DSH（dsh web）后再跑一次 `node <安装目录>/bootstrap/doctor.mjs` 即可复验。')
+  } else {
+    w.info(` 💡 步骤跑完了，但硬判据没过：${hardFailed.join('、')} —— 见上面的 ❌ 与 ↳ 修法。`)
+    w.info('    （这不是"重启就好"：`dist-port` 那条说明安装目录不完整或产物端口不一致，先按 ↳ 修。）')
+  }
 }
 die(exitCode)
