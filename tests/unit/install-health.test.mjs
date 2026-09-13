@@ -16,7 +16,7 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { evaluateHealth, overallOk, pendingHard, probeHealth, renderHealth } from '../../bootstrap/lib/health.mjs'
+import { evaluateHealth, finishBanner, overallOk, pendingHard, probeHealth, renderHealth } from '../../bootstrap/lib/health.mjs'
 
 const results = {}
 const record = (name, value) => {
@@ -152,6 +152,42 @@ console.log('\n7. ★ probeHealth（有 I/O 的那层）：引导程序第 11 �
   record('DSH 不通 ⇒ 总判定失败', overallOk(down) === false)
 
   rmSync(base, { recursive: true, force: true })
+}
+
+/**
+ * 2026-09-13 追加：收尾横幅不许把"**没查**"说成"**没过**"。
+ *
+ * 真实现场：`node bootstrap/install.mjs --apply --yes`（非交互）跑完，最后打的是
+ * "还有硬判据没过（见上面的 ❌ 与 ↳ 修法）" —— 可上面一条 ❌ 都没有，因为非交互时
+ * `w.pause()` 返回 false、第 11 步复检**压根没跑**，`health` 是空数组，
+ * 而 `overallOk([])` 是 false。退回"直接 overallOk(health)"的写法，第一条断言就会红。
+ */
+console.log('\n4. finishBanner：没复检 ≠ 复检没过')
+{
+  const none = finishBanner([])
+  record('★ 没复检时不许说"硬判据没过"（退回 overallOk(health) ⇒ 这里红）', none.text.includes('硬判据没过') === false)
+  record('没复检时要说清是"没做复检"', none.text.includes('没做复检'))
+  record('没复检时不提示软判据', none.softHint === false)
+
+  const allHardOk = finishBanner([
+    { id: 'dsh-up', ok: true, soft: false },
+    { id: 'paired', ok: true, soft: false },
+    { id: 'dist-port', ok: true, soft: false },
+  ])
+  record('硬判据全过 ⇒ 报"全过"', allHardOk.text.includes('硬判据全过'))
+
+  const hardFail = finishBanner([
+    { id: 'dsh-up', ok: true, soft: false },
+    { id: 'paired', ok: false, soft: false },
+  ])
+  record('硬判据真没过 ⇒ 才报"没过"', hardFail.text.includes('硬判据没过'))
+
+  const onlySoftFail = finishBanner([
+    { id: 'dsh-up', ok: true, soft: false },
+    { id: 'extension-proxy', ok: false, soft: true },
+  ])
+  record('只有软判据没过 ⇒ 硬判据仍算全过', onlySoftFail.text.includes('硬判据全过'))
+  record('且给出"打开侧边栏就会变 ✅"的提示', onlySoftFail.softHint === true)
 }
 
 const failed = Object.entries(results).filter(([, v]) => v !== true).map(([k]) => k)

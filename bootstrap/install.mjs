@@ -46,7 +46,7 @@ import { checkChrome, checkDirectory, checkDshCli, checkMount, checkNode, checkP
 import { dirStatus, dshVersion as readDshVersion, pingPlugin, portListening, readPairingKey, which } from './lib/probe.mjs'
 import { applyNativeHostInstall, describeNativeHostPlan, planNativeHostInstall } from './lib/native-host-install.mjs'
 import { buildMountConfig, describeCompanion, upsertCompanion } from './lib/profile-patch.mjs'
-import { overallOk, pendingHard, probeHealth, renderHealth } from './lib/health.mjs'
+import { finishBanner, overallOk, pendingHard, probeHealth, renderHealth } from './lib/health.mjs'
 import { DEEPSEEK_KEY_REF, readRef, upsertRef } from './lib/credentials.mjs'
 import { createWizard } from './lib/wizard.mjs'
 
@@ -566,13 +566,15 @@ if (waited) {
 
 w.blank()
 w.info('════════════════════════════════════════════════════════════')
-const allOk = overallOk(health)
-const softMissing = health.length > 0 && pendingHard(health).length === 0 && health.some((i) => i.soft && !i.ok)
-w.info(allOk
-  ? ' ✅ 装好了，硬判据全过（DSH 应答 / 已配对 / 产物端口一致）'
-  : ' 安装步骤已跑完，但还有硬判据没过（见上面的 ❌ 与 ↳ 修法）')
-if (softMissing) w.info(' 💡 那条 ⚠️ 是软判据：打开侧边栏后它会变 ✅ —— 那才是"扩展真的连上来了"的证据')
+/*
+ * `finishBanner()` 把"**没查**"（非交互跳过了第 11 步）与"**查了没过**"分开 ——
+ * 原来直接用 `overallOk(health)`，而空数组是 false，于是非交互跑法会谎报"硬判据没过"。
+ */
+const banner = finishBanner(health)
+w.info(banner.text)
+if (banner.softHint) w.info(' 💡 那条 ⚠️ 是软判据：打开侧边栏后它会变 ✅ —— 那才是"扩展真的连上来了"的证据')
 w.info('════════════════════════════════════════════════════════════')
+w.info(` 自查：node ${join(layout.installDir, 'bootstrap', 'doctor.mjs')}`)
 w.info(` 卸载：node ${join(layout.installDir, 'bootstrap', 'uninstall.mjs')}`)
 w.info(' 试试：打开侧边栏，在输入框写「看左边」')
 w.blank()

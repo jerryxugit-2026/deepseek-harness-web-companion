@@ -104,6 +104,32 @@ export function pendingHard(items) {
 }
 
 /**
+ * 收尾横幅该说什么。
+ *
+ * ★ 真实缺陷（2026-09-13，`node bootstrap/install.mjs --apply --yes` 实测）：
+ * 非交互时 `w.pause()` 直接返回 false ⇒ **第 11 步复检根本没跑** ⇒ `health` 还是空数组；
+ * 而 `overallOk([])` 是 `false`（它要求"至少有一条硬判据 **且** 全过"）⇒ 收尾一律打印
+ * "安装步骤已跑完，但还有硬判据没过（见上面的 ❌ 与 ↳ 修法）" —— 可上面**一条 ❌ 都没有**。
+ * 对"跑在 CI / 脚本里"的用法这是纯误导：人会去翻根本不存在的失败项。
+ *
+ * 所以这里把"**没查**"与"**查了没过**"分开（抽成纯函数是为了能被单测咬住）。
+ */
+export function finishBanner(items) {
+  if (items.length === 0) {
+    return {
+      text: ' 安装步骤已跑完；本轮**没做复检**（非交互环境跳过了第 11 步）—— 随时可用下面的 doctor 自查',
+      softHint: false,
+    }
+  }
+  return {
+    text: overallOk(items)
+      ? ' ✅ 装好了，硬判据全过（DSH 应答 / 已配对 / 产物端口一致）'
+      : ' 安装步骤已跑完，但还有硬判据没过（见上面的 ❌ 与 ↳ 修法）',
+    softHint: pendingHard(items).length === 0 && items.some((i) => i.soft && !i.ok),
+  }
+}
+
+/**
  * 探测 + 判定（**这一层有 I/O**）。引导程序第 11 步与 `bootstrap/doctor.mjs` 共用它，
  * 于是"装完复检"和"随时自查"走的是**同一段逻辑**，不会两处漂移。
  *

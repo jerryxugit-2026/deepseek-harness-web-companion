@@ -69,7 +69,7 @@ $ node bootstrap/install.mjs
 `@deepseek-ai/dsh` 本体 ❌ 走 `npm install -g`（全局 prefix）；插件运行期依赖 ❌ **从已装的 DSH 里符号链接**
 —— 插件跑在 DSH 进程**内**，必须绑到 DSH 自己那份 `@deepseek-ai/dsh-tools`（多一份副本=两个模块实例）。缺链接兜底见 §5。
 
-### 4. 顺带修掉向导的两个真缺陷（都是 pty 实测撞出来的）
+### 4. 顺带修掉三个真缺陷（都是实测撞出来的）
 
 1. **`ask()` 不认 `--yes`** ⇒ `--apply --yes` 会照样弹问句然后**永久等输入**（`--yes` 的语义被破坏，
    且这正是"自动化里最糟的失败形态：不是报错，是僵住"）。现在 `--yes` 直接回落默认值并打出来（`wizard.mjs:88`）。
@@ -77,9 +77,16 @@ $ node bootstrap/install.mjs
    `Error [ERR_USE_AFTER_CLOSE]: readline was closed`；而"提问进行中被关"时那个 promise 可能
    **永不 settle**（挂死）。现在统一走 `askLine()`（`wizard.mjs:44`），与 `close` 事件**赛跑**，
    输入没了就按最保守的默认值收场（是与否→否、路径→默认、等待→不等）**并说明原因**。
+3. **安装器收尾谎报"硬判据没过"**（`--apply --yes` 实测）：非交互时 `w.pause()` 返回 false ⇒
+   第 11 步复检**没跑** ⇒ `health` 是空数组，而 `overallOk([])` 是 `false`（它要求"至少一条硬判据"）
+   ⇒ 一律打印"还有硬判据没过（见上面的 ❌ 与 ↳ 修法）"，可上面**一条 ❌ 都没有**。
+   现在抽出纯函数 `finishBanner()`（`bootstrap/lib/health.mjs`）把"**没查**"与"**查了没过**"分开，
+   并给出 `doctor.mjs` 自查入口。
 
-回归：`tests/unit/wizard-interaction.test.mjs` 32 → **40 条断言**（新增 `--yes`×2 + EOF×6）。
-**咬合验证**：把 `askLine` 退回 `rl.question` ⇒ 单测**直接崩在 `ERR_USE_AFTER_CLOSE`**。
+回归：`tests/unit/wizard-interaction.test.mjs` 32 → **40 条断言**（`--yes`×2 + EOF×6）、
+`tests/unit/install-health.test.mjs` 45 → **52 条断言**（横幅 7 条）。
+**咬合验证**：把 `askLine` 退回 `rl.question` ⇒ 向导单测**直接崩在 `ERR_USE_AFTER_CLOSE`**；
+删掉 `finishBanner()` 的空数组分支 ⇒ 安装器单测**正好 2 条变红**。
 
 ### 5. 复查结论与仍没做的事（如实列出）
 

@@ -141,7 +141,7 @@
       "path": "docs/11-台账.md",
       "title": "项目台账（对照《详细设计文档》）",
       "version": "v3.1",
-      "lines": 236,
+      "lines": 243,
       "sections": 12,
       "codeRefs": 9,
       "docRefs": 0
@@ -177,7 +177,7 @@
       "path": "docs/CHANGELOG.md",
       "title": "变更记录（CHANGELOG）",
       "version": "v3.0",
-      "lines": 2579,
+      "lines": 2586,
       "sections": 49,
       "codeRefs": 0,
       "docRefs": 1
