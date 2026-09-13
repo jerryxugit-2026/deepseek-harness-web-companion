@@ -136,29 +136,43 @@ The short version: **it all runs on your computer, and nothing happens without y
 
 ## Getting it, and installing it
 
-### Which files do I download?
+### Step 1 — download it (click by click, no GitHub experience needed)
 
-**Nothing in particular — take the whole repository.** Either way works:
+You do **not** need the green `Code` button, and you do **not** need `git`. GitHub has a page made for
+exactly this: **Releases**. Here is what to click.
 
-**Option A — download a ZIP (no git needed)**
-1. Open <https://github.com/jerryxugit-2026/deepseek-harness-web-companion>
-2. Click the green **Code** button → **Download ZIP**
-3. Unzip it anywhere you like (for example your home folder). You get one folder.
+1. **Open this page** — <https://github.com/jerryxugit-2026/deepseek-harness-web-companion/releases>
 
-**Option B — clone it**
-```bash
-git clone https://github.com/jerryxugit-2026/deepseek-harness-web-companion.git
-```
+   (Or open the project page and click **Releases**, in the right-hand column.)
+
+2. You will see an entry titled **v3.47.0 — first public release**. **Click that title.**
+
+3. On that page, **scroll to the very bottom** — the last section is called **Assets**.
+   Under it, click the one that says **`Source code (zip)`**. A `.zip` file starts downloading.
+   *(Ignore `Source code (tar.gz)` unless you know you want it; ignore everything above `Assets`.)*
+
+4. Find the downloaded file — usually in **Downloads** — and **double-click it** to unzip.
+   You get a folder whose name starts with `deepseek-harness-web-companion`.
+   Move it somewhere you will find again (your home folder is fine).
+
+*(Comfortable with git? `git clone https://github.com/jerryxugit-2026/deepseek-harness-web-companion.git`
+gives you the same thing.)*
 
 **What you are downloading (and what you are not)**: only the project's own source. There is **no**
 `node_modules`, **no** pre-built extension, and **no** keys inside. Everything else — DeepSeek Harness
 itself, the plugin's dependencies, and the built Chrome extension — is **fetched or built on your machine
 by the installer**, with your own settings. That is why the download is small.
 
-### Then run the installer
+### Step 2 — run the installer
 
-You need **macOS**, **Node 22 or newer**, and **Chrome**. Open a terminal in the folder you just unzipped
-and run:
+You need **macOS**, **Node 22 or newer** and **Chrome**.
+
+**Getting the Terminal into the right folder (the part everyone gets stuck on):**
+
+1. Press `Cmd + Space`, type `Terminal`, press Enter — a black window opens.
+2. Type `cd ` — the letters c, d and **one space** — then **drag the unzipped folder from Finder into
+   that window** (the path types itself), and press Enter.
+3. Now run:
 
 ```bash
 node bootstrap/install.mjs          # dry run: it only prints what it *would* change
@@ -310,27 +324,41 @@ operations; the two local channels are `/ag/agent` (extension) and `/ag/client` 
 
 ## 怎么下载、怎么安装
 
-### 我该下载哪几个文件？
+### 第一步：下载（一步步点，不需要用过 GitHub）
 
-**不用挑，把整个仓库拿走就行。** 两种方式都可以：
+**不要**点绿色的 `Code` 按钮，也**不需要** `git`。GitHub 有一个专门给这件事的页面叫 **Releases**。
+你要点的就是下面这几下：
 
-**方式 A —— 下载 ZIP（不需要 git）**
-1. 打开 <https://github.com/jerryxugit-2026/deepseek-harness-web-companion>
-2. 点绿色的 **Code** 按钮 → **Download ZIP**
-3. 解压到任何地方（比如你的主目录），得到一个文件夹。
+1. **打开这个页面** —— <https://github.com/jerryxugit-2026/deepseek-harness-web-companion/releases>
 
-**方式 B —— clone**
-```bash
-git clone https://github.com/jerryxugit-2026/deepseek-harness-web-companion.git
-```
+   （或者打开项目主页，在**右侧栏**点 **Releases**。）
+
+2. 你会看到一条标题为 **v3.47.0 — first public release** 的记录，**点这个标题**。
+
+3. 进去后**拉到页面最下面**，最后一块区域叫 **Assets**。在它下面点 **`Source code (zip)`**
+   那一项，浏览器就开始下载一个 `.zip`。
+   *（除非你明确知道自己要，否则**不要**选 `Source code (tar.gz)`；`Assets` 上面那些内容也都不用管。）*
+
+4. 找到刚下载的文件（通常在**下载**文件夹），**双击解压**。你会得到一个名字以
+   `deepseek-harness-web-companion` 开头的文件夹。把它挪到你找得到的地方（比如你的主目录）。
+
+*（熟悉 git 的话，`git clone https://github.com/jerryxugit-2026/deepseek-harness-web-companion.git`
+拿到的是同一份东西。）*
 
 **你下载到的（以及没有下载到的）**：只有项目自己的源码。里面**没有** `node_modules`、**没有**预先构建好的扩展、
 **没有**任何钥匙。其余的一切 —— DeepSeek Harness 本体、插件的依赖、以及构建出来的 Chrome 扩展 ——
 都由**安装器在你的机器上**获取或构建，用的是你自己的设置。所以下载包很小。
 
-### 然后运行安装器
+### 第二步：运行安装器
 
-需要 **macOS**、**Node 22 或更高**、**Chrome**。在你刚解压出来的目录里打开终端：
+需要 **macOS**、**Node 22 或更高**、**Chrome**。
+
+**怎么让终端进到那个文件夹（大多数人卡在这一步）：**
+
+1. 按 `Cmd + 空格`，输入 `Terminal`（终端），回车 —— 会开一个黑窗口。
+2. 先输入 `cd` 再加**一个空格**，然后**把刚才解压出来的文件夹从访达（Finder）拖进这个窗口**
+   （路径会自己填上），按回车。
+3. 然后运行：
 
 ```bash
 node bootstrap/install.mjs          # dry run：只打印"打算"改哪些文件
