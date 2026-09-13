@@ -2,7 +2,7 @@
   "probe": "m2/look-left-e2e",
   "port": "3099",
   "fixturePort": 3998,
-  "at": "2026-09-13T02:02:21.190Z",
+  "at": "2026-09-13T02:56:15.348Z",
   "results": {
     "DSH iframe 已加载": true,
     "面板 agent 通道已连接（无手势）": true,
@@ -24,7 +24,7 @@
     "意图路径不切换会话外壳（switched=false）": true,
     "输入框里出现文件引用（硬要求）": true,
     "落盘文件的引用进了输入框": true,
-    "触发草稿是否保留（观察）: \"看左边\\n\\n@网页捕获/2026-09-12-2202-看左边夹具页-0-3e0c.md\"": true,
+    "触发草稿是否保留（观察）: \"看左边\\n\\n@网页捕获/2026-09-12-2256-看左边夹具页-6-4a68.md\"": true,
     "屏幕上出现 chip": true
   },
   "observations": {},
@@ -32,21 +32,21 @@
     "mode": "page",
     "reason": "look-left",
     "ok": true,
-    "fileRef": "@网页捕获/2026-09-12-2202-看左边夹具页-0-3e0c.md",
-    "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-12-2202-看左边夹具页-0-3e0c.md"
+    "fileRef": "@网页捕获/2026-09-12-2256-看左边夹具页-6-4a68.md",
+    "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-12-2256-看左边夹具页-6-4a68.md"
   },
-  "landedFile": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-12-2202-看左边夹具页-0-3e0c.md",
-  "draftAfter": "看左边\n\n@网页捕获/2026-09-12-2202-看左边夹具页-0-3e0c.md",
+  "landedFile": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-12-2256-看左边夹具页-6-4a68.md",
+  "draftAfter": "看左边\n\n@网页捕获/2026-09-12-2256-看左边夹具页-6-4a68.md",
   "applied": {
-    "captureId": "cap-mtz65bu0-3e0c",
+    "captureId": "cap-mtz82n86-4a68",
     "inserted": true,
     "status": "inserted",
     "detail": "",
-    "fileRef": "@网页捕获/2026-09-12-2202-看左边夹具页-0-3e0c.md",
-    "sessionId": "session-0d66fbf8-aa8d-442e-a78c-a00a168a2061",
+    "fileRef": "@网页捕获/2026-09-12-2256-看左边夹具页-6-4a68.md",
+    "sessionId": "session-3e6e2cd7-6476-4076-b617-67b89479aefc",
     "sessionMode": "current",
     "switched": false
   },
   "deliveries": 1,
-  "chips": "[{\"host\":\"slot\",\"captureId\":\"cap-mtz65bu0-3e0c\",\"status\":\"inserted\",\"mode\":\"page\",\"label\":\"📄 网页: 看左边夹具页\"}]"
+  "chips": "[{\"host\":\"slot\",\"captureId\":\"cap-mtz82n86-4a68\",\"status\":\"inserted\",\"mode\":\"page\",\"label\":\"📄 网页: 看左边夹具页\"}]"
 }

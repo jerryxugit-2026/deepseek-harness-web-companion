@@ -1,7 +1,7 @@
 {
   "probe": "m3/debugger",
   "fixturePort": 3996,
-  "at": "2026-09-13T01:58:30.332Z",
+  "at": "2026-09-13T02:52:23.237Z",
   "manifestPermissions": [
     "sidePanel",
     "storage",
@@ -61,12 +61,12 @@
       "result"
     ],
     "evaluateValue": "{\"clicks\":1,\"typed\":\"DSH-M3-PROBE\",\"title\":\"M3 debugger 夹具\"}",
-    "pngBytes": 16134
+    "pngBytes": 16140
   },
   "lifecycle": {
     "before": 1,
     "during": 2,
     "after": 1,
-    "secondAttach": "Another debugger is already attached to the tab with id: 1261070406."
+    "secondAttach": "Another debugger is already attached to the tab with id: 765934854."
   }
 }

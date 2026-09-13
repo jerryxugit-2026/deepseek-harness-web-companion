@@ -134,7 +134,7 @@
       "version": "v3.1",
       "lines": 234,
       "sections": 12,
-      "codeRefs": 10,
+      "codeRefs": 9,
       "docRefs": 0
     },
     {
@@ -150,7 +150,7 @@
       "path": "docs/CHANGELOG.md",
       "title": "变更记录（CHANGELOG）",
       "version": "v3.0",
-      "lines": 1690,
+      "lines": 1717,
       "sections": 45,
       "codeRefs": 0,
       "docRefs": 1
@@ -159,9 +159,9 @@
       "path": "docs/HANDOFF.md",
       "title": "交接提示词（新会话从这里开始）",
       "version": "v3.41，两者**不是同一个号**）",
-      "lines": 337,
+      "lines": 343,
       "sections": 10,
-      "codeRefs": 20,
+      "codeRefs": 23,
       "docRefs": 0
     },
     {
@@ -463,7 +463,7 @@
     }
   ],
   "code": {
-    "indexedFiles": 187,
+    "indexedFiles": 188,
     "areas": {
       "extension": [
         "docs/01-protocol.md",

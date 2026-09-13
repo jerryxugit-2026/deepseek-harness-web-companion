@@ -307,6 +307,33 @@ approvalForWriteOps=false   → 放行（mode 报 off，面板文案「审批已
 
 **验收（实测）**：连续两次 `npm run check` 后，`docs/DOC-GRAPH.md`、`docs/doc-graph.json`、`docs/reviews/build-size.json` 三个生成物的 **md5 完全相同**；`git status` 剩下的只有本次有意的源码/生成物改动，不再有时间戳噪声。
 
+### 14. 探针不再把抓取写进仓库（根因 + 门禁），顺带修掉两处端口撞车
+
+**现象**：`git status` 里冒出 `/Users/mac/ai_tools/dsh project/网页插件/网页捕获/`，里面一个 `trigger: button` 的抓取文件，
+front-matter 指向 `http://127.0.0.1:3994/docs.html` —— 那是 `probe:sites` 的文档站夹具。附带症状：doc-graph 的"文档数"会莫名 +1（那份 .md 被当成文档统计）。
+
+**根因（实测链路）**：`/Users/mac/ai_tools/dsh project/网页插件/scripts/probe-all.mjs` 用 `cwd: <仓库根>` 拉起测试 DSH
+⇒ 面板 iframe 里那个 DSH 会话的**工作目录就是仓库根** ⇒ 它向插件 announce 的 `workspace` 就是仓库根
+⇒ **凡是不显式钉 `target.workspace` 的抓取**（点面板按钮那条路）就写进仓库。
+（直接 `POST /ag/attach` 的探针不受影响 —— `tests/m0b/attach-probe.mjs` 一直有钉 `target.workspace`。）
+
+**修法（两条腿）**：
+
+| # | 改什么 | 验证 |
+|---|---|---|
+| ① | `scripts/probe-all.mjs` 的 spawn `cwd` 改成测试工作区 `/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a` | 跑完整套 `probe:all`（**8/8**）后，`probe:sites` 的产物落在 `/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/`，仓库根干净 |
+| ② | 新增门禁 `/Users/mac/ai_tools/dsh project/网页插件/scripts/check-repo-root.mjs`，接进 `npm run check`：仓库根一旦出现 `网页捕获/` 或 `yyyy-MM-dd-HHmm-*.md` 就 **exit 1** 并打印修法 | 咬合实测：手工造一个 `网页捕获/x.md` + 一个根级抓取命名文件 ⇒ 门禁列出两处违规并 exit 1；清掉后 exit 0 |
+
+门禁故意收得很窄（**只看仓库根这一层**、只认抓取目录名与抓取文件命名形态），仓库里正当的 md 不会长那样 ⇒ 零误报。
+
+**顺带修掉两处探针端口撞车**（同类"探针之间互相污染"）：
+
+- `tests/m0a/permission-probe.mjs` 与 `tests/m2/capture-probe.mjs` 默认夹具端口**都是 3999** → 前者改 **3997**；
+- `tests/m2/gate-probe.mjs` 与 `tests/m2/look-left-e2e-probe.mjs` 默认 CDP 端口**都是 9233** → 前者改 **9235**。
+
+**另一个实测到的环境坑（已记进 HANDOFF 避坑第 10 条）**：某探针 **0 秒**失败往往不是代码问题，而是上一次残留进程占着端口
+（`probe:agent-turn` 就这么失败过一次，`EADDRINUSE 3992`；`lsof -nP -iTCP:3992 -sTCP:LISTEN` 确认后端口一空即通过）。
+
 ## v3.40 — 2026-09-12
 
 **触发**：把 v3.39 里"审核 + 验真"产出的缺陷清单按 P0 → P1 → P2 修下去。用户同时拍板两件事：**接受 G1 实测 2.1–2.7 秒**（目标由 1.5s 下调为 2.8s）、以及**按上述顺序持续整改**。

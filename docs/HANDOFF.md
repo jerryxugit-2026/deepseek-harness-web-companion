@@ -285,13 +285,19 @@ D 抓取质量（用户判"够了"）、E14 保留策略双向、写操作演示
    `npm run probe:all` 会自己拉、结束只杀自己拉的那个 —— **不要**动用户真实的那个（3080）。
 8. **探针会临时改写** `extension/src/lib/dev-config.js`（端口/密钥指向测试实例），结束时自己还原**并重建 dist**。
    中断时检查该文件是否被留在测试端口（`node scripts/check-dist-config.mjs` 会当场抓出来）。
-9. **探针会把抓取写进仓库根**（2026-09-12 实测）：`scripts/probe-all.mjs` 用 `cwd: <项目根>` 拉起测试 DSH ⇒
-   面板 iframe 里那个 DSH 会话的**工作目录就是项目根**，它向插件 announce 的 `workspace` 也就是项目根 ⇒
-   凡是**不显式钉 `target.workspace`** 的抓取（实测 `probe:sites` 的 `trigger: button` 那次）就落到
-   `/Users/mac/ai_tools/dsh project/网页插件/网页捕获/`（仓库里！）。所以：① 写探针时**显式钉** `target: { workspace: <探针工作区> }`；
-   ② 或把 `probe-all.mjs` 拉起测试实例的 `cwd` 改到 `.devhome`（尚未做，见台账 §5）；③ 提交前先看一眼 `git status` 有没有冒出 `网页捕获/`。
-9. **Chrome 137+ 忽略 `--load-extension`**：探针走 CDP `Extensions.loadUnpacked`，且**路径不能含空格**（先把 dist 拷到 `/tmp`）。
-10. **扩展侧改动必须重建 dist**：Chrome 加载的是 `extension/dist`（不是 `src`）；只改 src 不生效。
+9. **探针会把抓取写进仓库根**（2026-09-12 实测，**同日已修 + 加了门禁**）：`scripts/probe-all.mjs` 曾用 `cwd: <项目根>` 拉起测试 DSH ⇒
+   面板 iframe 里那个 DSH 会话的工作目录就是仓库根，它向插件 announce 的 `workspace` 也就是仓库根 ⇒
+   凡是不显式钉 `target.workspace` 的抓取（实测 `probe:sites` 的 `target: button` 那次）就落到
+   `/Users/mac/ai_tools/dsh project/网页插件/网页捕获/`（仓库里！被 git 看见，还被 doc-graph 当成一份"文档"统计）。
+   **已修**：① `scripts/probe-all.mjs` 的 spawn `cwd` 改成测试工作区 `/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a`
+   （实测：`probe:sites` 的产物现在落在 `/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/`，已被 `.gitignore` 覆盖）；
+   ② 新增门禁 `/Users/mac/ai_tools/dsh project/网页插件/scripts/check-repo-root.mjs`（已接进 `npm run check`）：
+   仓库根一旦出现 `网页捕获/` 或 `yyyy-MM-dd-HHmm-*.md` 就 **exit 1** 并打印修法（实测：造一个假污染立刻变红）。
+   ③ 写探针时仍要**显式钉** `target: { workspace: … }`（直接 POST `/ag/attach` 的那种，参考 `/Users/mac/ai_tools/dsh project/网页插件/tests/m0b/attach-probe.mjs`）。
+10. **探针端口撞车**（2026-09-12 顺手修的）：`tests/m0a/permission-probe.mjs` 与 `tests/m2/capture-probe.mjs` 默认夹具端口都是 **3999**、
+   `tests/m2/gate-probe.mjs` 与 `tests/m2/look-left-e2e-probe.mjs` 默认 CDP 端口都是 **9233** ⇒ 并发或"上一次残留没退"时直接 `EADDRINUSE`。
+   已改为各自独立（3997 / 9235）。**残留进程**另一种表现：某探针 **0 秒**失败 —— 先用
+   `lsof -nP -iTCP:<端口> -sTCP:LISTEN` 看谁占着（实测 `probe:agent-turn` 就这么失败过一次，端口一空即通过）。10. **扩展侧改动必须重建 dist**：Chrome 加载的是 `extension/dist`（不是 `src`）；只改 src 不生效。
     改完跑 `npm run check`（含 build + `check:dist`）。
 11. **宿主侧改动必须重启 `dsh web`**；**扩展侧改动必须在 `chrome://extensions` 刷新扩展**；**刷新扩展会关掉侧边栏**
     （通道由侧边栏文档持有 ⇒ 之后 `browser_*` 工具会报 `E_EXT_OFFLINE`，这不是 bug，重新打开侧边栏即可）。

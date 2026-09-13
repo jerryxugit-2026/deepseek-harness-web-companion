@@ -13,6 +13,7 @@
  * 用法：node scripts/probe-all.mjs [--port 3099] [--only probe:capture,probe:sites]
  */
 import { spawn, execFileSync } from 'node:child_process'
+import { mkdirSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -52,8 +53,16 @@ const alive = async () => {
 let started = null
 if (!(await alive())) {
   console.log(`dev 实例不在跑，自己拉一个（${ORIGIN}）…`)
+  // ★ cwd 必须是**测试工作区**，不能是仓库根。
+  //
+  // 实测事故（2026-09-12）：这里原来写 `cwd: ROOT` ⇒ 面板 iframe 里那个 DSH 会话的工作目录就是仓库根，
+  // 它向插件 announce 的 `workspace` 也就是仓库根 ⇒ 凡是不显式钉 `target.workspace` 的抓取
+  // （实测 `probe:sites` 点面板按钮那次）就落到 `<仓库根>/网页捕获/`，被 git 看见、还会被 doc-graph
+  // 当成一份"文档"统计。改用测试工作区后，这类抓取落在 `.devhome/workspace-m0a/网页捕获/`（已被 .gitignore 覆盖）。
+  const devCwd = join(ROOT, '.devhome', 'workspace-m0a')
+  mkdirSync(devCwd, { recursive: true })
   started = spawn('dsh', ['web', '--no-open', '--port', PORT], {
-    cwd: ROOT,
+    cwd: devCwd,
     env: { ...process.env, DSH_HOME: join(ROOT, '.devhome') },
     stdio: 'ignore',
     detached: false,

@@ -26,7 +26,8 @@ const argOf = (name, fallback) => {
   return at === -1 ? fallback : process.argv[at + 1]
 }
 const TARGET_URL = argOf('url', 'https://example.com')
-const CDP_PORT = Number(argOf('cdp-port', '9233'))
+// 9235：原来默认 9233，与 tests/m2/look-left-e2e-probe.mjs 撞车
+const CDP_PORT = Number(argOf('cdp-port', '9235'))
 const OUT_DIR = resolve(ROOT, argOf('out', 'docs/reviews'))
 const EXT_COPY = join(process.env.TMPDIR ?? '/tmp', 'dshwc-gate-ext')
 const PROFILE = join(process.env.TMPDIR ?? '/tmp', 'dshwc-gate-profile')

@@ -32,7 +32,8 @@ const argOf = (name, fallback) => {
   return at === -1 ? fallback : process.argv[at + 1]
 }
 const OUT_DIR = resolve(ROOT, argOf('out', 'docs/reviews'))
-const FIXTURE_PORT = Number(argOf('fixture-port', '3999'))
+// 3997：原来默认 3999，与 tests/m2/capture-probe.mjs 撞车（两个探针若并发就会 EADDRINUSE）
+const FIXTURE_PORT = Number(argOf('fixture-port', '3997'))
 const CDP_PORT = Number(argOf('cdp-port', '9223'))
 const PROFILE = join(process.env.TMPDIR ?? '/tmp', 'm0a-permission-profile')
 const EXT_COPY = '/tmp/m0a-permission-ext' // loadUnpacked cannot resolve paths containing spaces
