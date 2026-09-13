@@ -64,7 +64,11 @@ export function findEntrySpan(text, id) {
    * 不把起点上移的话，那行会被当成"同缩进的邻居" ⇒ 段头摘不掉、卸载后**残留半条**。
    */
   let start = idAt
-  const prev = all[idAt - 1] ?? ''
+  // ★ 夹在 `- name:` 与 `id:` 之间的注释行要跳过（2026-09-13 修；PiMoa 片 6a 第 6 条）：
+  //   原来直接看 `idAt - 1`，那一行是注释 ⇒ 破折号判据不命中 ⇒ 起点不上移、卸载残留半条。
+  let above = idAt - 1
+  while (above >= 0 && /^\s*#/u.test(all[above])) above -= 1
+  const prev = all[above] ?? ''
   /*
    * ★ 起点上移的判据（2026-09-13 修；PiMoa 片 6a 第 5 条 + 我自己的回归）：
    *   · 不能写死"缩进差 2 空格"（profile 用 4 空格缩进时判据不命中，"卸载后残留半条"原样存在）；
@@ -77,7 +81,7 @@ export function findEntrySpan(text, id) {
   const headerIndent = headerAt === undefined ? -1 : (/^\s*/u.exec(all[headerAt])?.[0] ?? '').length
   const prevIndent = (/^\s*/u.exec(prev)?.[0] ?? '').length
   if (/^\s*-\s/u.test(prev) && prevIndent > headerIndent && prevIndent < entryIndent.length) {
-    start = idAt - 1
+    start = above
   }
   let end = all.length
   for (let i = idAt + 1; i < all.length; i += 1) {
@@ -227,12 +231,15 @@ function readBlockConfig(lines) {
 function rehydrate(text) {
   const t = String(text ?? '').trim()
   /*
-   * 判据必须与 `yamlScalar()` 的"像数字"**对齐**（2026-09-13 修；PiMoa 片 A 第 8 条）：
-   * 那边已经把 `1e5` / `0x10` / `.5` 也算作数字外观、写出时加引号；这边如果只认十进制，
-   * 旧块里的 `x: 1e5` 会被读回成字符串、再写成 `x: '1e5'` ⇒ 配置两轮之间自己漂。
+   * 判据必须与 `yamlScalar()` 的"像数字"**对齐**（2026-09-13 修；PiMoa 片 A 第 8 条 / 6a 第 7 条）：
+   * 那边把 `1e5` / `0x10` / `0b101` / `0o17` / 下划线 / `.5` 也算数字外观并加引号；这边如果只认
+   * 十进制与 `0x`，用户手写的裸 `k: 0b101` 会被读成字符串、再写成 `'0b101'` ⇒ 配置两轮之间自己漂。
    */
-  if (/^[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?$/u.test(t)) return Number(t)
-  if (/^[+-]?0[xX][0-9a-fA-F]+$/u.test(t)) return Number(t)
+  const bare = t.replaceAll('_', '')
+  if (/^[+-]?0[xX][0-9a-fA-F]+$/u.test(bare) || /^[+-]?0[bB][01]+$/u.test(bare) || /^[+-]?0[oO][0-7]+$/u.test(bare)) {
+    return Number(bare)
+  }
+  if (/^[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?$/u.test(bare)) return Number(bare)
   if (t === 'true') return true
   if (t === 'false') return false
   return t
