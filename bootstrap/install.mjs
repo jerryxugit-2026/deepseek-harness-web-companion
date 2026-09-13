@@ -516,8 +516,17 @@ step(5, '生成配对钥匙（幂等，不轮换已有 key）')
 if (await w.confirm('生成/复用配对钥匙？')) {
   // 先备份：init-key 会重写配对文件（幂等，但用户可能想回滚）
   if (!DRY_RUN && existsSync(layout.pairingFile)) {
-    copyFileSync(layout.pairingFile, `${layout.pairingFile}.bak-before-install`)
-    w.detail(`已备份配对文件 → ${layout.pairingFile}.bak-before-install`)
+    /*
+     * ★ **首份原件只备份一次**（2026-09-13 修；PiMoa 片 2 第 3 条）：备份名是固定的，
+     * 每次 `copyFileSync` 都覆盖 ⇒ 跑第二遍就把"原始状态"换成了"已被我们改过的状态"，
+     * 那句回滚提示 `cp … .bak-before-install …` 就回不到原点了。
+     */
+    if (!existsSync(`${layout.pairingFile}.bak-before-install`)) {
+      copyFileSync(layout.pairingFile, `${layout.pairingFile}.bak-before-install`)
+      w.detail(`已备份配对文件 → ${layout.pairingFile}.bak-before-install`)
+    } else {
+      w.detail(`保留首份备份（不覆盖）→ ${layout.pairingFile}.bak-before-install`)
+    }
   }
   must(run(process.execPath, [join(layout.installDir, 'scripts', 'init-key.mjs'), '--home', dshHome, '--port', String(port)]), '生成配对钥匙')
 
@@ -606,7 +615,8 @@ step(8, '把插件挂到 DSH profile（幂等，先备份）')
     w.info('      若你之前设过别的键（例如 approvalForWriteOps: false），用 `--approval-for-write-ops false` 或 `--set key=value` 显式带上；它不会自己去猜。')
   }
   if (await w.confirm('写入这一行挂载？')) {
-    if (existsSync(layout.profilePatch)) copyFileSync(layout.profilePatch, `${layout.profilePatch}.bak-before-companion`)
+    // ★ 首份原件只备份一次（2026-09-13 修；见配对文件那处注释）
+    if (existsSync(layout.profilePatch) && !existsSync(`${layout.profilePatch}.bak-before-companion`)) copyFileSync(layout.profilePatch, `${layout.profilePatch}.bak-before-companion`)
     mkdirSync(dirname(layout.profilePatch), { recursive: true })
     writeFileSync(layout.profilePatch, next.text)
   } else {
@@ -637,7 +647,8 @@ step(9, `写入 DeepSeek API key（${DEEPSEEK_KEY_REF}）`)
   if (key === '') {
     w.info('   已跳过（稍后可以重跑这一步，或直接在 DSH 界面里设置）')
   } else if (await w.confirm('把 key 写进凭据文件？')) {
-    if (existsSync(layout.credentialsFile)) copyFileSync(layout.credentialsFile, `${layout.credentialsFile}.bak-before-apikey`)
+    // ★ 首份原件只备份一次（2026-09-13 修；见配对文件那处注释）
+    if (existsSync(layout.credentialsFile) && !existsSync(`${layout.credentialsFile}.bak-before-apikey`)) copyFileSync(layout.credentialsFile, `${layout.credentialsFile}.bak-before-apikey`)
     const res = upsertRef(credentialsText, DEEPSEEK_KEY_REF, key)
     mkdirSync(dirname(layout.credentialsFile), { recursive: true })
     writeFileSync(layout.credentialsFile, res.text, { mode: 0o600 })

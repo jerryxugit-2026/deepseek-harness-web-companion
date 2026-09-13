@@ -12,6 +12,7 @@
  * 并且把生成物 `run-host.sh`（内含**本机** node 与仓库绝对路径）提交进了 git。
  */
 import { mkdirSync, writeFileSync, chmodSync, rmSync, existsSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 import { HOST_NAME, chromeNativeMessagingCandidates, pickChromeTarget } from './layout.mjs'
 
 /** 拉起器脚本内容（路径来自参数，绝不写死）。 */
@@ -55,11 +56,16 @@ export function planNativeHostInstall(layout, opts) {
     hostName: HOST_NAME,
     runnerPath: layout.runner,
     runnerBody: runnerScript({ nodePath, hostEntry: layout.nativeHostEntry }),
-    manifestPath: chromeDir === null ? null : `${chromeDir}/${HOST_NAME}.json`,
+    /*
+     * ★ 用 `join()` 拼，不再写字面量 `/`（2026-09-13 修；PiMoa 片 2 第 4 条）：
+     * 同一个清单路径原来在这里和 `layout` 里各拼一遍，分隔符硬编码 ⇒ dry-run 展示的
+     * 与实际要写的可以是两个不同的字符串（"路径唯一真源"被破坏）。
+     */
+    manifestPath: chromeDir === null ? null : join(chromeDir, `${HOST_NAME}.json`),
     manifest: hostManifest({ extensionId, runnerPath: layout.runner }),
     chromeDir,
-    browser: Array.isArray(candidates) ? target.browser : null,
-    /** Windows 走注册表：这里给出该写哪，具体写由调用方决定（本项目暂不支持，见 README）。 */
+    browser: Array.isArray(candidates) ? target.browser ?? null : null,
+    /** 非数组 ⇒ 该平台不是"写清单文件"那一类（Windows 走注册表）。本项目**只支持 macOS**。 */
     registry: Array.isArray(candidates) ? null : candidates,
   }
 }
@@ -77,16 +83,24 @@ export function describeNativeHostPlan(plan) {
 
 /** 真正落盘。返回写过的文件清单，便于卸载时反向。 */
 export function applyNativeHostInstall(plan) {
+  /*
+   * ★ `manifestPath === null` 时**必须报错**，不许"正常返回"（2026-09-13 修；PiMoa 片 2 第 6 条）。
+   *
+   * 原来这里直接 `if (plan.manifestPath !== null) {...}` 就结束了：非 macOS（Windows 走注册表、
+   * 其它平台未验证）会**静默跳过写清单**并返回成功 ⇒ 正面违反用户那条「Windows 可以不做，
+   * 但不许假装成功」。本项目**只支持 macOS**，所以这里把话说死、当场停下。
+   */
+  if (plan.manifestPath === null) {
+    throw new Error('这只支持 macOS：Chrome 的 native messaging 清单路径不存在（Windows 需写注册表，其它平台未验证）。与其假装成功，这里直接报错。')
+  }
   const written = []
-  mkdirSync(plan.runnerPath.slice(0, plan.runnerPath.lastIndexOf('/')), { recursive: true })
+  mkdirSync(dirname(plan.runnerPath), { recursive: true })
   writeFileSync(plan.runnerPath, plan.runnerBody)
   chmodSync(plan.runnerPath, 0o755)
   written.push(plan.runnerPath)
-  if (plan.manifestPath !== null) {
-    mkdirSync(plan.manifestPath.slice(0, plan.manifestPath.lastIndexOf('/')), { recursive: true })
-    writeFileSync(plan.manifestPath, `${JSON.stringify(plan.manifest, null, 2)}\n`)
-    written.push(plan.manifestPath)
-  }
+  mkdirSync(dirname(plan.manifestPath), { recursive: true })
+  writeFileSync(plan.manifestPath, `${JSON.stringify(plan.manifest, null, 2)}\n`)
+  written.push(plan.manifestPath)
   return written
 }
 

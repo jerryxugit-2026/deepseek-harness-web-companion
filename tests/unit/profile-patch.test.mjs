@@ -278,17 +278,75 @@ console.log('\n11. ★ 新装 vs 老装：要写哪些 config（附一次真事�
   record('托管块的键名清单里含这两个', MANAGED_CONFIG_KEYS.includes('attachDir') && MANAGED_CONFIG_KEYS.includes('approvalForWriteOps'))
 }
 
-console.log('\n12. 托管块的写入语义：整体替换（我们自己写的块，配置以本次参数为准）')
+console.log('\n12. 托管块写入：**保留**上一轮写入、本次没传的键（升级不许丢配置）')
 {
   const first = upsertCompanion('- insert:\n    - id: other\n      name: x\n', {
     id: PLUGIN_ID, entryPath: NEW_PATH, config: { attachDir: 'captures', approvalForWriteOps: false },
   })
   record('先写入带两个键的托管块', first.text.includes('attachDir: captures') && first.text.includes('approvalForWriteOps: false'))
   const second = upsertCompanion(first.text, { id: PLUGIN_ID, entryPath: NEW_PATH, config: { approvalForWriteOps: false } })
-  record("★ 只传一个键时，托管块里那个没传的键**会被去掉**（整体替换语义）",
-    second.text.includes('attachDir') === false && second.text.includes('approvalForWriteOps: false'))
-  record('没有残留的重复键', (second.text.match(/approvalForWriteOps:/gu) ?? []).length === 1)
+  /*
+   * ★ 2026-09-13 **有意改掉**旧期望（原文：「只传一个键时，那个没传的键**会被去掉**（整体替换语义）」）。
+   *
+   * 那个旧期望正是 2026-09-12 那次真实事故的**成因**：「卸载 → 重装 / 升级」把用户 profile 里
+   * 的 `approvalForWriteOps: false` 悄悄删掉，`/ag/control` 的 approvalMode 从 off 变回 ask。
+   * 用户明确要求"装/升级合一、升级不许丢配置"，所以改成保留 —— 这不是"为绿灯改期望"，
+   * 是把一个被固化的**缺陷**改成正确行为（PiMoa 片 2 第 9 条也点了这条）。
+   */
+  record('★ 没传的键**被保留**（退回整体替换语义 ⇒ 这里红）', second.text.includes('attachDir: captures'))
+  record('★ 且如实报告保留了哪些键（升级时好提示用户）', second.preserved.includes('attachDir'))
+  record('没传的键不被删也不重复', (second.text.match(/attachDir:/gu) ?? []).length === 1)
+  record('本次传的键照常生效', second.text.includes('approvalForWriteOps: false'))
   record('别人的条目仍在', second.text.includes('- id: other'))
+}
+
+console.log('\n13. ★ 与邻居同处一个 `- insert:` 段：只动我们这一条（数据安全）')
+{
+  /*
+   * 真机形状：DSH **允许一个 `- insert:` 段里装好几条** —— 用户真实的
+   * `/Users/mac/.dsh/profiles/web/cordis.patch.yml` 里，那一段就同时装着 mcp-semble
+   * 与 mcp-codegraph。原来的"段级"范围会把邻居的 name 覆盖掉、卸载时把邻居整段删掉。
+   */
+  const shared = [
+    '- insert:',
+    '    - id: mcp-semble',
+    "      name: '@deepseek-ai/dsh-mcp-client'",
+    '      config:',
+    '        serverName: semble',
+    '',
+    '    - id: mcp-codegraph',
+    "      name: '@deepseek-ai/dsh-mcp-client'",
+    '      config:',
+    '        serverName: codegraph',
+    '        args:',
+    '          - --liftoff-only',
+    '',
+    `    - id: ${PLUGIN_ID}`,
+    '      name: /old/path.js',
+    '      config:',
+    '        approvalForWriteOps: false',
+    '',
+  ].join('\n')
+
+  const up = upsertCompanion(shared, { id: PLUGIN_ID, entryPath: NEW_PATH, config: { attachDir: 'captures' } })
+  record('★ 邻居的 name 没被覆盖（退回段级范围 ⇒ 这里红）',
+    (up.text.match(/'@deepseek-ai\/dsh-mcp-client'/gu) ?? []).length === 2)
+  record('邻居的 config 仍在', up.text.includes('serverName: semble') && up.text.includes('serverName: codegraph'))
+  record('嵌套列表项没被当成"另一个条目"处理', up.text.includes('- --liftoff-only'))
+  record('我们这条的 name 换新了', up.text.includes(NEW_PATH))
+  record('段头没被拆成两个', (up.text.match(/^- insert:/gmu) ?? []).length === 1)
+
+  const rm = removeCompanion(shared, { id: PLUGIN_ID })
+  record('★ 卸载只摘我们这条，邻居一字不动（退回段级 splice ⇒ 这里红）',
+    rm.text.includes('mcp-semble') && rm.text.includes('mcp-codegraph'))
+  record('我们这条真没了', rm.text.includes(PLUGIN_ID) === false)
+  record('段头仍在（还有邻居，不能删）', rm.text.includes('- insert:'))
+  record('邻居的嵌套 args 也还在', rm.text.includes('- --liftoff-only'))
+
+  // 反过来：段里只有我们一条时，段头必须被摘干净（不留空 `- insert:`）
+  const alone = `- insert:\n    - id: ${PLUGIN_ID}\n      name: /x.js\n`
+  const rmAlone = removeCompanion(alone, { id: PLUGIN_ID })
+  record('只有我们一条时，段头一起摘掉（返回空文件）', rmAlone.text.trim() === '' && rmAlone.action === 'removed')
 }
 
 const failed = Object.entries(results).filter(([, v]) => v !== true).map(([k]) => k)
