@@ -24,3 +24,8 @@ tests/e2e/out/
 
 # extension build output
 extension/dist/
+
+# 本机专属：含明文凭证（GitHub 经验记录，用户 2026-09-13 要求明文）
+# 同时被 scripts/doc-graph.mjs 的 LOCAL_ONLY_DOCS 排除 —— 否则凭证会被索引进
+# 被提交的 docs/DOC-GRAPH.md 与 docs/doc-graph.json。
+docs/github experience.md

@@ -64,7 +64,15 @@ const allFiles = walk(ROOT).map((f) => relative(ROOT, f).split('\\').join('/'))
  * （`docs/doc-graph.json` 同理，但它只影响"代码文件计数"、不自我引用，故无需排除。）
  */
 const GENERATED_DOC = /^docs\/DOC-GRAPH\.md$/u
-const mdFiles = allFiles.filter((f) => f.endsWith('.md') && !GENERATED_DOC.test(f)).sort()
+/*
+ * ★ 本机专属、含明文凭证的文档 —— **绝不能**进 DOC-GRAPH.md / doc-graph.json（那两个是提交的）。
+ * 2026-09-13：用户要求把 GitHub 经验（含明文 PAT）记在 docs/，而本脚本 walk(ROOT) 会索引所有 .md，
+ * 于是凭证会被写进公开仓库的图里。这里显式排除。
+ */
+const LOCAL_ONLY_DOCS = [/^docs\/github experience\.md$/u]
+const mdFiles = allFiles
+  .filter((f) => f.endsWith('.md') && !GENERATED_DOC.test(f) && !LOCAL_ONLY_DOCS.some((re) => re.test(f)))
+  .sort()
 const codeFiles = allFiles.filter((f) => /\.(mjs|cjs|js|ts|tsx|json|sh)$/u.test(f) && !f.endsWith('package-lock.json')).sort()
 
 /** Paths that look like code inside backticks, e.g. `extension/src/sw/index.js`. */
