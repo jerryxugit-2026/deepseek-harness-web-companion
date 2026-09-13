@@ -22,6 +22,37 @@ export function createWizard({ stdin = process.stdin, stdout = process.stdout, a
    */
   const rl = interactive ? createInterface({ input: stdin, output: stdout }) : null
   let autoDeclined = 0
+  /*
+   * ★ 输入被关掉（Ctrl-D / EOF / 上游进程先退出）时，`rl.question()` 会**抛**
+   * `ERR_USE_AFTER_CLOSE` —— 于是安装器甩一段 readline 栈就死了。2026-09-13 用 pty 实测复现：
+   * 在两个问句之间喂 EOF 就崩在 `wizard.mjs` 的 ask 上。
+   *
+   * 用户关掉输入不该是崩溃。统一走 `askLine()`：输入已关闭 ⇒ 返回 `null`，
+   * 由调用方按"最保守的默认值"处理（是与否 ⇒ 否、路径 ⇒ 默认路径、等待 ⇒ 不等）。
+   */
+  let inputClosed = false
+  rl?.on('close', () => { inputClosed = true })
+  /**
+   * 统一的提问入口，返回 `null` 表示"输入已经没了"。
+   *
+   * 三种情形都要盖住（少一种就是崩或挂）：
+   *   · 接口**已经关闭** ⇒ `rl.question()` 同步抛 `ERR_USE_AFTER_CLOSE`；
+   *   · 提问**进行中**被关掉 ⇒ 某些 Node 版本里那个 promise **永不 settle**（挂死），
+   *     所以这里跟 `close` 事件**赛跑**；
+   *   · 正常作答 ⇒ 拿到字符串。
+   */
+  const askLine = async (prompt) => {
+    if (rl === null || inputClosed) return null
+    let onClose
+    const closed = new Promise((resolve) => { onClose = () => { resolve(null) }; rl.once('close', onClose) })
+    try {
+      return await Promise.race([rl.question(prompt), closed])
+    } catch {
+      return null
+    } finally {
+      rl.off('close', onClose)
+    }
+  }
 
   const write = (s) => { stdout.write(`${s}\n`) }
 
@@ -40,14 +71,25 @@ export function createWizard({ stdin = process.stdin, stdout = process.stdout, a
     async confirm(question) {
       if (assumeYes) { write(`? ${question} → yes（--yes）`); return true }
       if (rl === null) { autoDeclined += 1; write(`? ${question} → no（非交互环境，未给 --yes）`); return false }
-      const answer = (await rl.question(`? ${question} [y/N] `)).trim().toLowerCase()
+      const raw = await askLine(`? ${question} [y/N] `)
+      if (raw === null) { autoDeclined += 1; write('  （输入已关闭 ⇒ 按默认 No 处理）'); return false }
+      const answer = raw.trim().toLowerCase()
       return answer === 'y' || answer === 'yes'
     },
 
-    /** 自由输入（可给默认值）。非交互 ⇒ 直接返回默认值。 */
+    /**
+     * 自由输入（可给默认值）。
+     *
+     * 非交互 ⇒ 直接返回默认值（绝不阻塞）；`--yes` ⇒ 同样返回默认值，但把这件事打出来 ——
+     * `--yes` 的语义是"别再逐项问我"，而"装到哪个目录"仍然可以由 `--install-dir` /
+     * `--dsh-home` 这类参数表达（参数优先，见 install.mjs）。
+     */
     async ask(question, fallback) {
+      if (assumeYes) { write(`? ${question} → ${String(fallback ?? '')}（--yes）`); return fallback }
       if (rl === null) return fallback
-      const answer = (await rl.question(`? ${question}${fallback === undefined ? '' : ` [${fallback}]`} `)).trim()
+      const raw = await askLine(`? ${question}${fallback === undefined ? '' : ` [${fallback}]`} `)
+      if (raw === null) return fallback
+      const answer = raw.trim()
       return answer === '' ? fallback : answer
     },
 
@@ -60,6 +102,7 @@ export function createWizard({ stdin = process.stdin, stdout = process.stdout, a
         const finish = (value) => {
           stdin.setRawMode(false)
           stdin.off('data', onData)
+          stdin.off('end', onEnd)
           /*
            * ★ 这里**必须 resume，不能 pause**（2026-09-12 实测的真实挂起 bug）。
            *
@@ -81,17 +124,21 @@ export function createWizard({ stdin = process.stdin, stdout = process.stdout, a
             buf += ch
           }
         }
+        /** stdin 被关掉（Ctrl-D / EOF）⇒ 当"跳过"收场，别让它挂在一个永远不会来的回车后面。 */
+        const onEnd = () => finish('')
         stdin.setRawMode(true)
         stdin.resume()
         stdin.on('data', onData)
+        stdin.once('end', onEnd)
       })
     },
 
     /** 等用户按回车（用于"请你去 Chrome 里点完再回来"）。非交互 ⇒ 立刻返回 false（不阻塞）。 */
     async pause(question) {
       if (rl === null) { write(`… ${question}（非交互环境，跳过等待）`); return false }
-      await rl.question(`… ${question}（装好了按回车继续）`)
-      return true
+      const raw = await askLine(`… ${question}（装好了按回车继续）`)
+      // 输入被关掉 ⇒ 不再等（返回 false 表示"没等到人按回车"），而不是崩掉
+      return raw !== null
     },
 
     close() { rl?.close() },

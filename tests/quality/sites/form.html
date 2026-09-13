@@ -30,14 +30,20 @@
       <h2>General</h2>
 
       <!--
-        照**真机 GitHub markup** 写：标题 + 值 + 必填徽章是**相邻的 span**。
-        旧渲染器不给块级元素加分隔 ⇒ 三者首尾相接，拼出
-        "Repository owner and nameOwner(required)*"（github.com/new 真抓取的原样症状）。
-        夹具不放这个形态，"标签不粘连"那条断言就不会咬 —— 这是咬合验证实测发现的
-        （第一版夹具漏了它，退回旧行为时那条断言仍然绿 ⇒ 装饰性断言）。
+        真机 GitHub markup，**两种形状都要放**（少一种，断言就变装饰性的）：
+          ① 相邻的 span：标题 + 值 + 必填徽章三兄弟首尾相接 ⇒ 旧渲染器拼出
+             "Repository owner and nameOwner(required)*"（github.com/new 真抓取的原样症状）。
+          ② 文本节点紧邻 inline 元素：`Owner<span>(required)</span>` ⇒ 拼出 `Owner(required)`。
+             2026-09-13 真机抓出 `Owner(required) *` 才发现的 —— 第一版夹具只写了 ①
+             （那份 markup 是从渲染后的文字反推的，看不到节点类型），所以线上仍粘连而断言全绿。
       -->
       <div class="field-head">
         <span>Repository owner and name</span><span>Owner</span><span>(required)*</span>
+      </div>
+
+      <!-- 形状 ②：label 内先是裸文本 `Owner`，紧跟两个 span -->
+      <div class="field-head field-head-b">
+        <label for="owner-v2">Owner<span class="req">(required)</span><span aria-hidden="true">*</span></label>
       </div>
 
       <label for="owner">Owner</label>

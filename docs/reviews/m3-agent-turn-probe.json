@@ -1,6 +1,6 @@
 {
   "probe": "m3/agent-turn",
-  "at": "2026-09-13T03:05:10.103Z",
+  "at": "2026-09-13T05:32:37.874Z",
   "prompt": "请用 browser_read 工具读取我当前正在看的那个网页，然后只回答一句话：正文里出现的特定标记是什么？不要猜测，必须真的调用工具。",
   "capabilities": [
     "browser_read",
@@ -10,17 +10,17 @@
     "browser_ax"
   ],
   "session": {
-    "sessionId": "session-b7a6585a-133c-4b50-b31e-2ac5de3c0530",
+    "sessionId": "session-3e7b583b-8448-4f81-a596-660a8eb6d9a2",
     "switched": true
   },
   "actions": {
-    "sessionId": "session-b7a6585a-133c-4b50-b31e-2ac5de3c0530",
+    "sessionId": "session-3e7b583b-8448-4f81-a596-660a8eb6d9a2",
     "hasInputActions": true,
     "inputActionKeys": [
       "setDraft",
-      "addImages",
-      "removeImage",
-      "pruneImages",
+      "addAttachments",
+      "removeAttachment",
+      "pruneAttachments",
       "submit"
     ],
     "conversationHasSend": true,

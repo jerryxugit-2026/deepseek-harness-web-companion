@@ -185,24 +185,40 @@ export function extractPage(options = {}) {
      * 走一层子节点，并**在相邻的两个元素之间补一个空格**。
      *
      * ★ 为什么需要它（2026-09-13，第二次修才补上）：只给块级元素加分隔是**不够的** ——
-     * 真实症状出在**同一容器内相邻的 inline 元素**之间。github.com/new 的原样 markup 是
-     * `<span>Repository owner and name</span><span>Owner</span><span>(required)*</span>`，
-     * 三者是 inline 兄弟、源码里也没有空白 ⇒ 旧渲染器把它们拼成
-     * `Repository owner and nameOwner(required)*`。夹具照这个形态写之后，
-     * "标签不粘连"那条断言立刻咬出来了（只加块级分隔时它仍然红）。
+     * 真实症状出在**同一容器内相邻的 inline 兄弟**之间，而且实测有**两种**形状：
+     *
+     *   ① 相邻 inline **元素**：`<span>Repository owner and name</span><span>Owner</span>`
+     *      ⇒ 旧渲染器拼成 `nameOwner`；
+     *   ② **文本节点紧邻 inline 元素**：`Owner<span>(required)</span>`
+     *      ⇒ 拼成 `Owner(required)`（2026-09-13 真机 github.com/new 抓出 `Owner(required) *`）。
+     *
+     * 形状 ② 是第一版夹具漏掉的：当时那份 markup 是**从渲染后的文字反推**的（看不到节点类型），
+     * 于是夹具只写了形状 ①，线上仍粘连而"标签不粘连"那条断言**照样全绿**（装饰性断言）。
+     * 2026-09-13 把夹具补上形状 ② 之后它才咬得住。
+     * （注：浏览器 `innerText` 对形状 ①② 都**不**补空格，所以这活儿只能我们干。）
      *
      * 代价（明知）：**一个词被拆在多个 span 里**（纯为样式）时会多出一个空格。
-     * 取舍依据：真实页面里"相邻 inline 元素且源码无空白"绝大多数是**不同的界面原子**
-     * （标签 / 值 / 徽章），而不是同一个词的碎片。
+     * 取舍依据：真实页面里"相邻 inline 且源码无空白"绝大多数是**不同的界面原子**
+     * （标签 / 值 / 徽章），而不是同一个词的碎片。形状 ② 的补空格条件收得更紧
+     * （上一个字符是文字/数字 **且** 该元素以文字/数字/ASCII 左括号开头），
+     * 这样 `(<span>x</span>)` 不会变成 `( x )`、`foo<span>,</span>` 不会变成 `foo ,`。
      */
+    const endsWithWord = (text) => /[\p{L}\p{N}]$/u.test(text)
+    const startsLikeWord = (node) => /^[\p{L}\p{N}(]/u.test(String(node.textContent ?? '').trimStart())
     const walkChildren = (parent, listDepth) => {
       let previousWasElement = false
+      /** 上一个「非空文本兄弟」的原文：形状 ② 靠它判断边界。 */
+      let previousText = ''
       for (const child of parent.childNodes) {
         const isElement = child.nodeType === 1
-        if (isElement && previousWasElement) out.push(' ')
+        if (isElement && (previousWasElement || (endsWithWord(previousText) && startsLikeWord(child)))) out.push(' ')
         walk(child, listDepth)
-        if (isElement) previousWasElement = true
-        else if (String(child.textContent ?? '').trim() !== '') previousWasElement = false
+        if (isElement) { previousWasElement = true; previousText = '' }
+        else if (String(child.textContent ?? '').trim() !== '') {
+          // 与旧实现一致：**任何**非空非元素节点（含注释）都结束"紧跟元素"的状态。
+          previousWasElement = false
+          if (child.nodeType === 3) previousText = String(child.textContent)
+        }
       }
     }
     const walk = (node, listDepth) => {

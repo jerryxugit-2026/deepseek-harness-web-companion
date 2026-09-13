@@ -68,8 +68,8 @@ if (flag('help') || flag('h')) {
   node bootstrap/install.mjs --apply --yes    # 真的安装，不再逐项询问
 
 可选：
-  --install-dir <路径>   安装到哪（默认 ~/.dsh/plugins/dsh-web-companion）
-  --dsh-home <路径>      DSH 数据目录（默认 $DSH_HOME 或 ~/.dsh）
+  --install-dir <路径>   安装到哪（默认 ~/.dsh/plugins/dsh-web-companion；**不给就会问你一次**）
+  --dsh-home <路径>      DSH 数据目录（默认 $DSH_HOME 或 ~/.dsh；**不给就会问你一次**）
   --port <端口>          DSH 端口（默认 3080）
   --dsh-version <版本>   要钉的 DSH 版本（默认用你已装的那个；**不要用 latest**）
 `)
@@ -83,8 +83,16 @@ const ROOT = resolve(HERE, '..')
 const DRY_RUN = !flag('apply')
 const ASSUME_YES = flag('yes')
 const homeDir = homedir()
-const installDir = resolve(argOf('install-dir', defaultInstallDir(homeDir)))
-const dshHome = resolve(argOf('dsh-home', process.env.DSH_HOME?.trim() || join(homeDir, '.dsh')))
+/**
+ * 目录：命令行**显式**给了就用它（`null` = 没给）。
+ *
+ * 没给的时候要**问用户**（2026-09-13 用户指出："引导程序会不会让用户选择目录进行安装？"）——
+ * 问的地方见下面 `w.ask()` 那一段。这其实是本文件第 6 行本来就写着的目标，此前只是没实现。
+ */
+const installDirArg = argOf('install-dir', null)
+const dshHomeArg = argOf('dsh-home', null)
+const defaultInstallDirPath = resolve(defaultInstallDir(homeDir))
+const defaultDshHomePath = resolve(process.env.DSH_HOME?.trim() || join(homeDir, '.dsh'))
 const port = parsePort(argOf('port', DEFAULT_PORT)) ?? DEFAULT_PORT
 /** 要钉的 DSH 版本：优先命令行，其次已装的那个（避免把用户的 DSH 降级/升级到别处）。 */
 const requestedDshVersion = argOf('dsh-version', null)
@@ -113,6 +121,30 @@ if (approvalFlag !== null && approvalFlag !== 'true' && approvalFlag !== 'false'
 const approvalForWriteOps = approvalFlag === null ? undefined : approvalFlag === 'true'
 
 const w = createWizard({ assumeYes: ASSUME_YES })
+
+/**
+ * 「让用户选择安装目录」—— 用户 2026-09-12 就写进目标、2026-09-13 发现没做。
+ *
+ *   · 命令行给了 `--install-dir` / `--dsh-home` ⇒ 不问（脚本/自动化里让参数说话）；
+ *   · 真终端 ⇒ 各问一句：直接回车用默认值，打 `~/xxx` 也能认；
+ *   · 非交互（管道/CI）或 `--yes` ⇒ `ask()` 立刻返回默认值，**绝不挂住**（wizard.mjs 的契约）。
+ *
+ * 两个目录都不属于"依赖下载"，所以这里只问一次、不再逐项确认；真正会动磁盘的每一步
+ * （mkdir / 复制 / 下载 / 写配置）后面仍然各自 `confirm()` 一次。
+ */
+const expandUserPath = (value) => {
+  const raw = String(value).trim().replace(/^"(.*)"$/u, '$1').replace(/^'(.*)'$/u, '$1')
+  if (raw === '~') return homeDir
+  if (raw.startsWith('~/')) return join(homeDir, raw.slice(2))
+  return raw
+}
+const installDir = installDirArg === null
+  ? resolve(expandUserPath(await w.ask('本程序安装到哪个目录？', defaultInstallDirPath)))
+  : resolve(installDirArg)
+const dshHome = dshHomeArg === null
+  ? resolve(expandUserPath(await w.ask('DSH 数据目录（配对钥匙/凭据放这里）？', defaultDshHomePath)))
+  : resolve(dshHomeArg)
+
 const layout = resolveLayout({ installDir, dshHome, homeDir, port, platform: process.platform, env: process.env, exists: existsSync })
 
 const step = (n, title) => w.step(n, title)

@@ -1,7 +1,7 @@
 {
   "probe": "m2/look-left",
-  "port": "3098",
-  "at": "2026-09-13T03:01:28.879Z",
+  "port": "3099",
+  "at": "2026-09-13T05:28:52.333Z",
   "results": {
     "面板关闭时意图入队并在连接后补发": true,
     "补发的请求 reason=queued / mode=page": true,

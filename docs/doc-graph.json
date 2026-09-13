@@ -159,7 +159,7 @@
       "path": "docs/13-installation.md",
       "title": "Install & deploy (the bootstrapper)",
       "version": null,
-      "lines": 225,
+      "lines": 227,
       "sections": 17,
       "codeRefs": 0,
       "docRefs": 6
@@ -168,7 +168,7 @@
       "path": "docs/13-安装部署.md",
       "title": "安装与部署（引导程序）",
       "version": null,
-      "lines": 219,
+      "lines": 221,
       "sections": 17,
       "codeRefs": 0,
       "docRefs": 1
@@ -177,8 +177,8 @@
       "path": "docs/CHANGELOG.md",
       "title": "变更记录（CHANGELOG）",
       "version": "v3.0",
-      "lines": 2490,
-      "sections": 48,
+      "lines": 2579,
+      "sections": 49,
       "codeRefs": 0,
       "docRefs": 1
     },

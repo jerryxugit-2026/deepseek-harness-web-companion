@@ -1,8 +1,8 @@
 {
   "probe": "m2/look-left-e2e",
-  "port": "3098",
+  "port": "3099",
   "fixturePort": 3998,
-  "at": "2026-09-13T03:04:38.084Z",
+  "at": "2026-09-13T05:32:04.733Z",
   "results": {
     "DSH iframe 已加载": true,
     "面板 agent 通道已连接（无手势）": true,
@@ -24,7 +24,7 @@
     "意图路径不切换会话外壳（switched=false）": true,
     "输入框里出现文件引用（硬要求）": true,
     "落盘文件的引用进了输入框": true,
-    "触发草稿是否保留（观察）: \"看左边\\n\\n@网页捕获/2026-09-12-2304-看左边夹具页-r-a22c.md\"": true,
+    "触发草稿是否保留（观察）: \"看左边\\n\\n@网页捕获/2026-09-13-0132-看左边夹具页-n-c0fb.md\"": true,
     "屏幕上出现 chip": true
   },
   "observations": {},
@@ -32,21 +32,21 @@
     "mode": "page",
     "reason": "look-left",
     "ok": true,
-    "fileRef": "@网页捕获/2026-09-12-2304-看左边夹具页-r-a22c.md",
-    "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-12-2304-看左边夹具页-r-a22c.md"
+    "fileRef": "@网页捕获/2026-09-13-0132-看左边夹具页-n-c0fb.md",
+    "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-13-0132-看左边夹具页-n-c0fb.md"
   },
-  "landedFile": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-12-2304-看左边夹具页-r-a22c.md",
-  "draftAfter": "看左边\n\n@网页捕获/2026-09-12-2304-看左边夹具页-r-a22c.md",
+  "landedFile": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-13-0132-看左边夹具页-n-c0fb.md",
+  "draftAfter": "看左边\n\n@网页捕获/2026-09-13-0132-看左边夹具页-n-c0fb.md",
   "applied": {
-    "captureId": "cap-mtz8df7r-a22c",
+    "captureId": "cap-mtzdn19n-c0fb",
     "inserted": true,
     "status": "inserted",
     "detail": "",
-    "fileRef": "@网页捕获/2026-09-12-2304-看左边夹具页-r-a22c.md",
-    "sessionId": "session-8a89de32-6ce1-415c-be7f-4a08f8a4e4eb",
+    "fileRef": "@网页捕获/2026-09-13-0132-看左边夹具页-n-c0fb.md",
+    "sessionId": "session-e5a839be-2672-4db0-b749-5bbffdc14bba",
     "sessionMode": "current",
     "switched": false
   },
   "deliveries": 1,
-  "chips": "[{\"host\":\"slot\",\"captureId\":\"cap-mtz8df7r-a22c\",\"status\":\"inserted\",\"mode\":\"page\",\"label\":\"📄 网页: 看左边夹具页\"}]"
+  "chips": "[{\"host\":\"slot\",\"captureId\":\"cap-mtzdn19n-c0fb\",\"status\":\"inserted\",\"mode\":\"page\",\"label\":\"📄 网页: 看左边夹具页\"}]"
 }

@@ -1,6 +1,6 @@
 {
   "probe": "m2-capture",
-  "dshPort": "3098",
+  "dshPort": "3099",
   "workspace": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a",
   "extensionId": "idpgkobbblmpmnonlndopijgfmehfmig",
   "results": {
@@ -17,28 +17,24 @@
     "新会话草稿里已写入 @文件（inserted=true）": true
   },
   "observations": {
-    "dshFrameUrl": "http://127.0.0.1:3098/",
-    "sessionsBefore": {
-      "current": null,
-      "ids": [],
-      "count": 0
-    },
+    "dshFrameUrl": "http://127.0.0.1:3099/",
+    "sessionsBefore": null,
     "attachReply": {
       "ok": true,
       "value": {
-        "captureId": "cap-mtz89ksz-7821",
+        "captureId": "cap-mtzdj4ne-d188",
         "result": {
           "ok": true,
-          "captureId": "cap-mtz89ksz-7821",
-          "fileRef": "@网页捕获/2026-09-12-2301-m2-抓取夹具页-z-7821.md",
-          "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-12-2301-m2-抓取夹具页-z-7821.md",
+          "captureId": "cap-mtzdj4ne-d188",
+          "fileRef": "@网页捕获/2026-09-13-0129-m2-抓取夹具页-e-d188.md",
+          "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-13-0129-m2-抓取夹具页-e-d188.md",
           "deliveredTo": [
-            "client:ac0b"
+            "client:bc3b"
           ]
         },
         "meta": {
-          "chars": 593,
-          "cleaner": 4,
+          "chars": 619,
+          "cleaner": 5,
           "description": "用于验证正文抽取的夹具页面",
           "headings": [
             "M2 抓取夹具",
@@ -49,7 +45,7 @@
         }
       }
     },
-    "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-12-2301-m2-抓取夹具页-z-7821.md",
+    "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-13-0129-m2-抓取夹具页-e-d188.md",
     "fileChecks": {
       "hasMarker": true,
       "hasCategoryChips": false,
@@ -64,25 +60,25 @@
       "hasCodeBlock": true,
       "hasAbsoluteLink": true,
       "frontMatter": true,
-      "chars": 788
+      "chars": 792
     },
     "selectionSet": "FIXTURE-ARTICLE-MARKER-77 这是主内容第一段，用于验证抽取与落盘。",
     "selectionReply": {
       "ok": true,
       "value": {
-        "captureId": "cap-mtz89lsv-2bfa",
+        "captureId": "cap-mtzdj54i-1808",
         "result": {
           "ok": true,
-          "captureId": "cap-mtz89lsv-2bfa",
-          "fileRef": "@网页捕获/2026-09-12-2301-m2-抓取夹具页-v-2bfa.md",
-          "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-12-2301-m2-抓取夹具页-v-2bfa.md",
+          "captureId": "cap-mtzdj54i-1808",
+          "fileRef": "@网页捕获/2026-09-13-0129-m2-抓取夹具页-i-1808.md",
+          "filePath": "/Users/mac/ai_tools/dsh project/网页插件/.devhome/workspace-m0a/网页捕获/2026-09-13-0129-m2-抓取夹具页-i-1808.md",
           "deliveredTo": [
-            "client:ac0b"
+            "client:bc3b"
           ]
         },
         "meta": {
-          "chars": 593,
-          "cleaner": 4,
+          "chars": 619,
+          "cleaner": 5,
           "description": "用于验证正文抽取的夹具页面",
           "headings": [
             "M2 抓取夹具",
@@ -124,7 +120,7 @@
       "chips": [
         {
           "host": "slot",
-          "captureId": "cap-mtz89lsv-2bfa",
+          "captureId": "cap-mtzdj54i-1808",
           "status": "inserted",
           "mode": "selection+page",
           "label": "📄 网页: M2 抓取夹具页"
@@ -132,21 +128,21 @@
       ],
       "acks": [
         {
-          "captureId": "cap-mtz89ksz-7821",
+          "captureId": "cap-mtzdj4ne-d188",
           "status": "inserted"
         },
         {
-          "captureId": "cap-mtz89lsv-2bfa",
+          "captureId": "cap-mtzdj54i-1808",
           "status": "inserted"
         }
       ],
       "lastAttach": {
-        "captureId": "cap-mtz89lsv-2bfa",
+        "captureId": "cap-mtzdj54i-1808",
         "inserted": true,
         "status": "inserted",
         "detail": "",
-        "fileRef": "@网页捕获/2026-09-12-2301-m2-抓取夹具页-v-2bfa.md",
-        "sessionId": "session-239cac06-e2c9-493f-8d43-8c804d7a3869",
+        "fileRef": "@网页捕获/2026-09-13-0129-m2-抓取夹具页-i-1808.md",
+        "sessionId": "session-afa0deba-c21c-4717-b186-6649aa2f483a",
         "sessionMode": "new",
         "switched": true
       }
@@ -159,8 +155,101 @@
       ]
     },
     "sessionsAfter": {
-      "current": "session-239cac06-e2c9-493f-8d43-8c804d7a3869",
+      "current": "session-afa0deba-c21c-4717-b186-6649aa2f483a",
       "ids": [
+        "session-afa0deba-c21c-4717-b186-6649aa2f483a",
+        "session-24280441-e861-47ea-a618-f5bbb49aee3d",
+        "session-9b6017e1-1451-4fca-bca1-7f321c7eafbe",
+        "session-f68a072e-d984-4198-b83d-eea31795b11c",
+        "session-553cdb05-985e-4e8c-97fc-e3d7ff683034",
+        "session-1aaf04a0-aceb-4400-8513-ea67ef94e614",
+        "session-b21ed77b-441c-479e-9f76-cb5dee6cb272",
+        "session-fe9f2e8f-5396-40d4-b55e-0f44c22ee54f",
+        "session-8ab10c4b-78a6-41d4-8aa2-d7cc1698fbe4",
+        "session-06a725fe-4e24-4c53-85f7-b293d2ba5a87",
+        "session-9e0a7a1d-822a-4a0f-862d-abbee3ee9009",
+        "session-5ead1ba4-61ea-42a2-85ef-49fd45d7d38e",
+        "session-c305336a-c5e8-4086-8b8e-60b4f9e8b4d7",
+        "session-c5aa45a2-65b9-40d1-8dfb-075f1dffce57",
+        "session-1a430fc9-6851-46b9-af66-d8bfe8381e9f",
+        "session-b44afe5c-f324-4b5f-8566-5195ec2ccc2d",
+        "session-56738e33-fbee-4580-8190-7a0669d548d5",
+        "session-999dcb17-2a8b-48fc-97dd-aaf5c1433575",
+        "session-94bc526b-d779-49c2-aa3a-1e2bce55dfde",
+        "session-43f1d78f-7766-4e40-9161-406c0e1896b7",
+        "session-eff536a2-ae6d-4834-a8fb-4072d8a00660",
+        "session-cf657c4e-2900-47fb-8fff-f35626e3c0f5",
+        "session-34d7e626-b4fe-4ef5-bdbc-effb6683ce23",
+        "session-6e5a7729-ce6e-4e3d-b73f-8440d58e6e97",
+        "session-d5035c08-579d-495d-bd38-ce3550510d1e",
+        "session-856e9389-b0c8-494a-a70d-7604c035f929",
+        "session-7ac3c48a-aaae-4f1f-bb6f-9b72784383f6",
+        "session-97d13fa8-3b08-4419-91cb-2fac2a997171",
+        "session-f82d3d53-5e7b-4b22-9c76-30043cd180ce",
+        "session-09e624aa-62b2-434c-ada1-d1b294c7ff39",
+        "session-9ecc3bfd-dfe9-4f9e-9b80-4d0a424a0011",
+        "session-5e35dbeb-23a0-4ba1-a3cf-7cd2c78f81a6",
+        "session-518d3147-6e62-4eb8-9749-001d78fea529",
+        "session-69e1a02b-b094-4ec3-acb7-8424cc929d89",
+        "session-357e5ba8-377a-4032-8cd3-7952e4015af5",
+        "session-8e8f39d1-f8a1-457d-bf75-5401cb6903fe",
+        "session-4092258a-8606-4c25-b5d6-3af2272bec32",
+        "session-420727b5-0b34-4d2e-987c-63f13c5d5796",
+        "session-d856d33e-7ac4-4f17-ba02-b4ead7d11960",
+        "session-8d723792-35b2-440c-868b-4b0422e5b56e",
+        "session-c11b2094-339b-4725-973b-ea43b02c0f29",
+        "session-7a3686be-a753-456f-8814-2b06b9be85fe",
+        "session-4fd88a73-d876-42db-a122-37534a5f9686",
+        "session-3513d375-ecb5-4a5d-b27e-4134bc64d45c",
+        "session-f6debf96-5e51-403b-acad-040071c72d0a",
+        "session-a4216d48-4cc4-4df4-adf6-47f701faee1e",
+        "session-53f9e66c-b094-4f8f-8a82-de3cc6ef5913",
+        "session-1904e66a-1128-48ee-8161-75db6d83d265",
+        "session-afc75e7b-931f-4d16-9389-3b2e0da1cab1",
+        "session-5200835d-5699-47f9-92ff-72a1dbff8fd3",
+        "session-b9848aec-43b3-46a4-96f4-e4230074737c",
+        "session-6ee67fa4-7a88-46b7-8fdd-5b889e6f951e",
+        "session-c7782431-5104-4048-be11-4f518a4c0644",
+        "session-0800b403-fed5-4425-a0a3-eb052d5f7977",
+        "session-1b9b2142-2b51-427e-aa7f-b0095604b578",
+        "session-597357b8-e9d4-4957-a39e-00adbbb951fd",
+        "session-08de4b68-2927-4172-b010-13e8b45bc7cc",
+        "session-19cf100d-ff14-49f7-8ca7-9ee0733c20ea",
+        "session-797ef2bb-72a6-4606-8f32-3954e857c1f8",
+        "session-7fe202a4-02d0-4e63-a576-711cc75fb3e2",
+        "session-10658a72-4427-4c0e-adb5-d4e3f2e09447",
+        "session-d28b8583-ac53-4a50-9f13-d215e539abc2",
+        "session-78849b17-f6ef-499a-ab7b-2c791271b736",
+        "session-d5a26ceb-6ef8-478e-9c34-ff4c1f1a7296",
+        "session-fba643d7-dd59-455a-af4b-2e7874237851",
+        "session-07ede87b-38c4-489a-bc1d-467fa02c7d7b",
+        "session-fcdcdbe6-c82d-4c11-80bf-58d25da7a176",
+        "session-3615f199-52e7-4193-90a3-28cd9e7a0b50",
+        "session-2d5ed66f-dd4b-474a-94b2-e17fd7b76787",
+        "session-4b1775d9-dd60-4752-81d3-4b7994382380",
+        "session-83ccbd5f-355c-4b8c-9902-a9d9a968be2f",
+        "session-b9570dfc-9747-4aae-9297-22df1ee6c407",
+        "session-68a72032-30c8-4095-aba0-8e47f78604d5",
+        "session-e1087f21-7210-43a9-8401-1cc0224953a4",
+        "session-a62f1623-4ed1-4b4b-83f9-0f50f8abd6ff",
+        "session-435034d1-46fa-4e7c-b8a9-f3791af47751",
+        "session-371e6d2d-1b26-4c4e-bb92-65ad91a9e0ff",
+        "session-fbc93bb1-7ba4-4125-b12b-0d31e70b5155",
+        "session-ae627b5c-a93f-4a63-83c7-088072653084",
+        "session-1de03356-e52d-4a38-9e92-903483d4d7fc",
+        "session-c22c242e-dd15-487c-a7ed-8a4a02a3bcf9",
+        "session-e67d6b9b-7373-4a81-b54d-f5f6bac1dca5",
+        "session-d29f8a89-12ba-425c-bfcf-52f244295a68",
+        "session-3ca47f07-c7f4-4003-b8c3-17499d293940",
+        "session-a3fe250a-5261-4911-9fe5-7decc04dd455",
+        "session-ddbef400-aa5c-401e-a445-379313dbbdc1",
+        "session-edeb3921-f993-4b8f-812c-c4329a36e36c",
+        "session-b7a6585a-133c-4b50-b31e-2ac5de3c0530",
+        "session-8a89de32-6ce1-415c-be7f-4a08f8a4e4eb",
+        "session-248c1812-398d-4546-b505-b4c0ab9fb59c",
+        "session-26e9c7b0-107d-4a60-a9eb-027b2f34bdca",
+        "session-44be0be8-b659-4ac7-bd3c-714622416005",
+        "session-d9952ad0-6b21-4b07-8367-33a1ee3b43d3",
         "session-239cac06-e2c9-493f-8d43-8c804d7a3869",
         "session-0c6d5225-0d0c-41c8-9838-faa2afe4b526",
         "session-f1371b82-7265-4261-b9e7-38d772eb23d9",
@@ -303,8 +392,8 @@
         "session-8f279461-10c5-41b1-9860-0514f426618e",
         "session-8f510a38-612d-47b4-999f-095cbe112247",
         "session-39e91427-e5da-4373-a4a6-b1d8d43464cb",
-        "session-3a651dc5-813f-4733-9ae3-6a0e21cf67ed",
         "session-0fc19505-4cda-436c-b765-307bc5f29af1",
+        "session-3a651dc5-813f-4733-9ae3-6a0e21cf67ed",
         "session-f53c2434-00ff-4beb-b596-a1f2f810e6ae",
         "session-0479f28c-d9b3-435a-8838-00800fad5f2f",
         "session-066bf021-9cf0-4f3a-ac95-cd1bdfec9fe4",
@@ -326,8 +415,8 @@
         "session-7c1d6649-4817-442f-9be4-246e78eb6d87",
         "session-4c4da6cb-4fef-491d-a6fd-c4b4141d22fc",
         "session-65cc250f-5815-4c73-bc06-e1541daaeb6d",
-        "session-639a43d3-ea0c-4fd9-a3ca-f96121161508",
         "session-024f1d44-d095-43e2-8767-1eea7665f028",
+        "session-639a43d3-ea0c-4fd9-a3ca-f96121161508",
         "session-3036b523-72f6-44fc-a18f-b68d5b2d7fac",
         "session-aa48d558-caf8-4d1b-86e1-de3d937dcc54",
         "session-ae9b9a2c-5200-4caa-b3d2-4de5a196f518",
@@ -548,7 +637,7 @@
         "session-af4d394f-aeb1-4b76-850b-267a190e00dd",
         "session-6b8a1366-8e2f-422b-93c5-3d778059a7cc"
       ],
-      "count": 386
+      "count": 479
     },
     "sessionMode": "new"
   }

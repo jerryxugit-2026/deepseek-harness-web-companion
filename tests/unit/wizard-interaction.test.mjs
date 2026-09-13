@@ -85,6 +85,16 @@ console.log('\n2. --yes：确认类问题不再询问；但"粘贴 key"不是是
   // 故意不喂输入：如果 confirm 去等 stdin，这里就会得到 TIMEOUT 而不是 true
   record('★ confirm 不喂输入也立刻 → true', await tryAnswer(w.confirm('要装吗'), stdin, null) === true)
   record('输出里标明是 --yes 生效', out.text.includes('--yes'))
+  /*
+   * 2026-09-13 追加：`ask()` 也必须认 `--yes`。
+   *
+   * 背景：安装器新增了"问你装到哪个目录"（`w.ask()`）。而 `ask()` 原来**只看 `rl`**，
+   * 于是 `--apply --yes` 会**照样弹一句问句然后永久等输入** —— `--yes` 的语义被破坏，
+   * 而且这正是"自动化里最糟的失败形态：不是报错，是僵住"。这里不喂输入，
+   * 退回旧实现就会 TIMEOUT。
+   */
+  record('★ ask 在 --yes 下不喂输入也立刻回落默认值（退回旧实现 ⇒ TIMEOUT）', await tryAnswer(w.ask('装到哪', '/opt/x'), stdin, null) === '/opt/x')
+  record('ask 用的默认值被打出来了（不静默决定路径）', out.text.includes('/opt/x'))
   // secret 是"要内容"的提问，不是是非题 ⇒ 仍等用户粘贴；回车表示跳过
   record('★ secret 仍是提问：回车 → 空串（跳过）', await tryAnswer(w.secret('key'), stdin, '\n') === '')
   w.close()
@@ -162,6 +172,40 @@ console.log('\n7. close() 之后不抛（收尾要干净）')
   let threw2 = false
   try { w2.close() } catch { threw2 = true }
   record('非交互 wizard 的 close 也不抛', threw2 === false)
+}
+
+console.log('\n8. ★ stdin 被关掉（Ctrl-D / EOF）不许崩，也不许挂')
+{
+  /*
+   * 2026-09-13 用 pty 实测发现的真缺陷：安装器新增"问你装到哪个目录"之后，
+   * 两个问句之间喂 EOF（用户按 Ctrl-D）会崩在 `rl.question()` 上：
+   *   Error [ERR_USE_AFTER_CLOSE]: readline was closed
+   * 所以这里三条都试：**提问中**被关（promise 可能永不 settle ⇒ 挂）、
+   * 关掉之后再问（同步抛）。退回旧实现，前两条会 TIMEOUT、第三条会抛。
+   */
+  const settle = (p) => Promise.race([p, new Promise((resolve) => { setTimeout(() => { resolve(TIMEOUT) }, 2000) })])
+
+  const s1 = fakeTty(); const o1 = fakeOut(); const w1 = createWizard({ stdin: s1, stdout: o1 })
+  const p1 = w1.confirm('要装吗')
+  await sleep(10); s1.end()                     // 提问进行中，用户按了 Ctrl-D
+  record('★ 提问中被关：confirm → false（不抛、不挂）', await settle(p1) === false)
+  record('并说明原因（不是静默改主意）', o1.text.includes('输入已关闭'))
+
+  const s2 = fakeTty(); const o2 = fakeOut(); const w2 = createWizard({ stdin: s2, stdout: o2 })
+  const p2 = w2.ask('装到哪', '/def')
+  await sleep(10); s2.end()
+  record('★ 提问中被关：ask → 默认值', await settle(p2) === '/def')
+
+  const s3 = fakeTty(); const o3 = fakeOut(); const w3 = createWizard({ stdin: s3, stdout: o3 })
+  s3.end(); await sleep(10)                     // 先关掉，**再**提问
+  record('★ 已关掉后再问：confirm → false（旧实现这里同步抛 ERR_USE_AFTER_CLOSE）', await settle(w3.confirm('要装吗')) === false)
+  record('已关掉后再问：ask → 默认值', await settle(w3.ask('装到哪', '/def')) === '/def')
+
+  const s4 = fakeTty(); const o4 = fakeOut(); const w4 = createWizard({ stdin: s4, stdout: o4 })
+  const p4 = w4.pause('好了吗')
+  await sleep(10); s4.end()
+  record('★ 提问中被关：pause → false（不再等）', await settle(p4) === false)
+  for (const w of [w1, w2, w3, w4]) w.close()
 }
 
 const failed = Object.entries(results).filter(([, v]) => v !== true).map(([k]) => k)

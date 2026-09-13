@@ -124,6 +124,15 @@ const CASES = [
       name: '标签不粘连（不含 nameOwner 这种拼接，也不含 ).大写字母）',
       test: (body) => /nameOwner/u.test(String(body)) === false && /\)\.[A-Z]/u.test(String(body)) === false,
     }, {
+      /*
+       * 2026-09-13 追加（第二例）：**文本节点紧邻内联元素**也要补空格。
+       * 真机 github.com/new 抓出 `Owner(required) *` —— `Owner` 是裸文本节点、`(required)`
+       * 是紧跟的 span；浏览器 innerText 与旧渲染器都不补空格。第一版夹具只放了
+       * "三个相邻 span"那种形状（那份 markup 是从渲染文字反推的）⇒ 线上仍粘连而断言全绿。
+       */
+      name: '文本+内联元素不粘连（不许出现 Owner(required)，应为 Owner (required)）',
+      test: (body) => /Owner\(required\)/u.test(String(body)) === false && /Owner \(required\)/u.test(String(body)),
+    }, {
       name: '每个字段标签独立成行（Repository name / Description / 仓库名称 都在行首）',
       // 注意：中文后面不能加 \b —— JS 的 \b 是 ASCII 词边界，`仓库名称\b` 恒不匹配（第一版就错在这）
       test: (body) => /^Repository name/mu.test(String(body)) && /^Description/mu.test(String(body)) && /^仓库名称/mu.test(String(body)),

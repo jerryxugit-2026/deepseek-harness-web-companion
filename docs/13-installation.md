@@ -41,7 +41,9 @@ The paths above are relative to the folder you downloaded/unpacked, so `cd` into
 | Pairing key | `~/.dsh/dsh-web-companion.json` | shared secret between extension and plugin (**idempotent: reused, never rotated**) |
 | Plugin mount line | `~/.dsh/profiles/web/cordis.patch.yml` | tells DSH to load the plugin (**only our entry is touched; backed up first**) |
 
-Default install directory: `~/.dsh/plugins/dsh-web-companion/` (change with `--install-dir`).
+Default install directory: `~/.dsh/plugins/dsh-web-companion/`; default DSH data directory: `~/.dsh/`.
+**If you do not pass `--install-dir` / `--dsh-home`, the wizard asks you for both** before printing the plan
+(press Enter to accept the default; a leading `~/` is expanded). Piped/CI runs and `--yes` never block — they take the default.
 
 ---
 
