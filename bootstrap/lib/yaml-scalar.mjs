@@ -17,12 +17,19 @@ export function yamlScalar(value) {
    * `.credentials.yaml` 可能直接解析不了。双引号风格是 YAML 里能安全表达控制字符的写法。
    */
   if (/[\u0000-\u001f\u007f]/u.test(s)) {
-    const escaped = s
-      .replaceAll('\\', '\\\\')
-      .replaceAll('"', '\\"')
-      .replaceAll('\n', '\\n')
-      .replaceAll('\r', '\\r')
-      .replaceAll('\t', '\\t')
+    /*
+     * ★ 兜底转义**所有** C0/DEL 控制字符（2026-09-13 修；PiMoa 片 A 第 10 条 / 片 C 第 10 条）：
+     * 原来只转 `\n \r \t " \\`，判据却匹配整段 `[\u0000-\u001f\u007f]` ⇒ `\u0007`、`\u007f`
+     * 这类会被**原样**写进双引号标量，仍是非法 YAML。
+     */
+    const escaped = s.replace(/[\u0000-\u001f\u007f"\\]/gu, (ch) => {
+      if (ch === '\n') return '\\n'
+      if (ch === '\r') return '\\r'
+      if (ch === '\t') return '\\t'
+      if (ch === '"') return '\\"'
+      if (ch === '\\') return '\\\\'
+      return `\\x${ch.codePointAt(0).toString(16).padStart(2, '0')}`
+    })
     return `"${escaped}"`
   }
   /*
@@ -33,6 +40,9 @@ export function yamlScalar(value) {
   const looksNumeric = /^[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?$/u.test(s)
     || /^0[xXoObB][0-9a-fA-F_]+$/u.test(s)
     || /^[+-]?\.(inf|nan)$/iu.test(s)
+    // ★ 日期/时间外观也要加引号（2026-09-13 修，PiMoa 片 B 第 14 条）：`2024-01-15` 的字符
+    //   全在白名单里、也过不了上面那几条数字判据 ⇒ 会被写成裸标量，而 YAML 解析器读成日期。
+    || /^\d{4}-\d{1,2}-\d{1,2}([Tt ].*)?$/u.test(s)
   const plain = /^[A-Za-z0-9_./+-]+$/u.test(s)
     && !/^(true|false|null|yes|no|on|off|~)$/iu.test(s)
     && !looksNumeric

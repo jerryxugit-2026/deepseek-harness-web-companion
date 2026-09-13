@@ -185,7 +185,14 @@ function readBlockConfig(lines) {
     if (indent <= baseIndent) break
     const m = /^\s*([A-Za-z0-9_.-]+):\s*(.*?)\s*$/u.exec(line)
     if (m === null) continue
-    out[m[1]] = rehydrate(parseScalar(m[2]))
+    /*
+     * ★ **带引号的来源不做类型还原**（2026-09-13 修，PiMoa 片 B 第 5 条）：
+     * `parseScalar` 已经把引号剥掉了，再按"长得像数字"还原，就会把上一轮刻意写成
+     * `key: '1.0'` / `'007'` 的**字符串**变回数字 `1` / `7` —— 正是这条改动要防的两轮漂移。
+     */
+    const raw = m[2]
+    const wasQuoted = /^['"]/u.test(raw)
+    out[m[1]] = wasQuoted ? parseScalar(raw) : rehydrate(parseScalar(raw))
   }
   return out
 }
@@ -198,8 +205,13 @@ function readBlockConfig(lines) {
  */
 function rehydrate(text) {
   const t = String(text ?? '').trim()
-  if (/^[+-]?\d+$/u.test(t)) return Number(t)
-  if (/^[+-]?(\d+\.\d*|\.\d+)$/u.test(t)) return Number(t)
+  /*
+   * 判据必须与 `yamlScalar()` 的"像数字"**对齐**（2026-09-13 修；PiMoa 片 A 第 8 条）：
+   * 那边已经把 `1e5` / `0x10` / `.5` 也算作数字外观、写出时加引号；这边如果只认十进制，
+   * 旧块里的 `x: 1e5` 会被读回成字符串、再写成 `x: '1e5'` ⇒ 配置两轮之间自己漂。
+   */
+  if (/^[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?$/u.test(t)) return Number(t)
+  if (/^[+-]?0[xX][0-9a-fA-F]+$/u.test(t)) return Number(t)
   if (t === 'true') return true
   if (t === 'false') return false
   return t
@@ -325,7 +337,15 @@ export function removeCompanion(text, { id, dropLeadingComment = true } = {}) {
   if (segment !== null && siblings.length === 0) {
     all.splice(segmentStart, segment.end - segmentStart)
   } else {
-    all.splice(start, span.end - start)
+    /*
+     * ★ 还有邻居时**只从我们自己这一条开始删**（2026-09-13 修，PiMoa 片 B 第 1 条）。
+     *
+     * 原来这里删的是 `start` —— 而 `start` 可能已被上面的"配套注释"逻辑拉到**段头之上**。
+     * 于是"段头上方恰好有一行提到本插件的注释"＋"段里还有邻居"这两个条件同时成立时，
+     * `splice(start, …)` 会把 `- insert:` 段头和**排在我们前面的邻居**一起删掉 ——
+     * 跟这条改动本来要消灭的数据丢失是同一类，只是触发条件更窄。
+     */
+    all.splice(span.start, span.end - span.start)
   }
   return { text: `${trimTrailingBlanks(all).join('\n')}\n`, action: 'removed' }
 }

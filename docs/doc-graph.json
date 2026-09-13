@@ -426,6 +426,42 @@
       "docRefs": 0
     },
     {
+      "path": "docs/reviews/pimoa-wizard-4a-judgement.md",
+      "title": "PiMoa 对抗性审核结果",
+      "version": null,
+      "lines": 70,
+      "sections": 5,
+      "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
+      "path": "docs/reviews/pimoa-wizard-4b-orchestration.md",
+      "title": "PiMoa 对抗性审核结果",
+      "version": null,
+      "lines": 64,
+      "sections": 5,
+      "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
+      "path": "docs/reviews/pimoa-wizard-4c-data-safety.md",
+      "title": "PiMoa 对抗性审核结果",
+      "version": null,
+      "lines": 62,
+      "sections": 5,
+      "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
+      "path": "docs/reviews/pimoa-wizard-5-tests.md",
+      "title": "PiMoa 对抗性审核结果",
+      "version": null,
+      "lines": 57,
+      "sections": 4,
+      "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
       "path": "docs/reviews/probe-autostart-manual-verification.md",
       "title": "M2 · 自动拉起（H4①）实测验证 —— 用户真实 Chrome",
       "version": null,
@@ -543,6 +579,15 @@
       "docRefs": 0
     },
     {
+      "path": "scripts/review-prompts/wizard-5-tests.md",
+      "title": "Prompt：审查**刚补的一批测试改动**（行为测试 + 修无效断言 + 去硬编码）",
+      "version": null,
+      "lines": 54,
+      "sections": 4,
+      "codeRefs": 5,
+      "docRefs": 0
+    },
+    {
       "path": "详细设计文档.md",
       "title": "DSH Web Companion · 详细设计规范说明书",
       "version": "v3.37",
@@ -590,6 +635,7 @@
         "scripts/review-prompts/wizard-2-wiring.md",
         "scripts/review-prompts/wizard-3-interaction.md",
         "scripts/review-prompts/wizard-4-changes.md",
+        "scripts/review-prompts/wizard-5-tests.md",
         "详细设计文档.md"
       ],
       "tests/e2e": [

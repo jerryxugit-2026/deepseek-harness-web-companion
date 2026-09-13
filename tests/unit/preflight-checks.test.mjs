@@ -127,6 +127,26 @@ console.log('\n6. 汇总与渲染')
   record('missing 用 ❌', lines.some((l) => l.startsWith('❌')))
   record('有 fix 的项渲染出 ↳ 修法', lines.some((l) => l.includes('↳')))
   record('ok 的项不渲染 ↳（没毛病就别啰嗦）', lines.filter((l) => l.startsWith('✅')).some((l) => l.includes('↳')) === false)
+
+  /*
+   * ★ 2026-09-13 追加（PiMoa 片 B 第 8/16 条）：`summarize` 的「未知 status 当阻断」与
+   * `renderChecks` 的 `❓` 当时**没有任何断言** —— 退回旧写法不会变红。
+   * 未知状态是"将来有人拼错枚举"的入口：一旦静默通过，就是又一处假绿。
+   */
+  const mixed = [
+    { id: 'a', label: 'ok 项', status: 'ok', detail: 'd', fix: null },
+    { id: 'b', label: 'warn 项', status: 'warn', detail: 'd', fix: null },
+    { id: 'c', label: 'missing 项', status: 'missing', detail: 'd', fix: null },
+    { id: 'x', label: '拼错的状态', status: 'blocked', detail: 'd', fix: null },
+  ]
+  const sum = summarize(mixed)
+  // missing 1 条 + 未知 1 条 = 2 条阻断（未知必须被算进去，这正是本断言要钉的）
+  record('★ 未知 status 必须算阻断（退回旧写法 ⇒ 这里红）', sum.ok === false && sum.blockers.length === 2)
+  const mixedLines = renderChecks(mixed)
+  record('★ 未知 status 渲染成 ❓，不许隐身成空白行（退回 ?? "  " ⇒ 这里红）',
+    mixedLines.some((l) => l.startsWith('❓')))
+  record('合法状态照旧渲染（ok/warn/missing 都在）',
+    mixedLines.some((l) => l.startsWith('✅')) && mixedLines.some((l) => l.startsWith('⚠️')) && mixedLines.some((l) => l.startsWith('❌')))
 }
 
 const failed = Object.entries(results).filter(([, v]) => v !== true).map(([k]) => k)

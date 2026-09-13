@@ -11,7 +11,7 @@
  * 历史包袱（本轮修掉的）：老的 `native-host/install.mjs` 把 Chrome 目录写死成 macOS 的，
  * 并且把生成物 `run-host.sh`（内含**本机** node 与仓库绝对路径）提交进了 git。
  */
-import { mkdirSync, writeFileSync, chmodSync, rmSync, existsSync } from 'node:fs'
+import { mkdirSync, writeFileSync, chmodSync, rmSync, existsSync, renameSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { HOST_NAME, chromeNativeMessagingCandidates, pickChromeTarget } from './layout.mjs'
 
@@ -99,7 +99,14 @@ export function applyNativeHostInstall(plan) {
   chmodSync(plan.runnerPath, 0o755)
   written.push(plan.runnerPath)
   mkdirSync(dirname(plan.manifestPath), { recursive: true })
-  writeFileSync(plan.manifestPath, `${JSON.stringify(plan.manifest, null, 2)}\n`)
+  /*
+   * ★ 清单走 `.tmp` + rename（2026-09-13 修，PiMoa 片 B 第 13 条）：直接 `writeFileSync`
+   * 到最终路径时，一旦抛异常（磁盘满/权限），留下的状态是"拉起器在、Chrome 找不到清单"——
+   * 半截安装。rename 在同一文件系统上是原子的。
+   */
+  const manifestTmp = `${plan.manifestPath}.tmp`
+  writeFileSync(manifestTmp, `${JSON.stringify(plan.manifest, null, 2)}\n`)
+  renameSync(manifestTmp, plan.manifestPath)
   written.push(plan.manifestPath)
   return written
 }

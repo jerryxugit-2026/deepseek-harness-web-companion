@@ -7,7 +7,7 @@
 > 2. 每个里程碑（M1–M4）收尾必须执行一次，并把 `--check` 纳入交付前检查；
 > 3. `--check` 发现 broken-doc-link / missing-code-ref 时以非零码退出，作为质量门。
 
-## 1. 文档清单（61 份 / 220 个代码与配置文件）
+## 1. 文档清单（66 份 / 220 个代码与配置文件）
 
 | 文档 | 标题 | 版本 | 行数 | 二级标题数 | 代码引用数 |
 |---|---|---|---|---|---|
@@ -58,6 +58,10 @@
 | `docs/reviews/pimoa-wizard-1-orchestration.md` | PiMoa 对抗性审核结果 | — | 60 | 4 | 0 |
 | `docs/reviews/pimoa-wizard-2-wiring.md` | PiMoa 对抗性审核结果 | — | 69 | 5 | 0 |
 | `docs/reviews/pimoa-wizard-3-interaction.md` | PiMoa 对抗性审核结果 | — | 67 | 5 | 0 |
+| `docs/reviews/pimoa-wizard-4a-judgement.md` | PiMoa 对抗性审核结果 | — | 70 | 5 | 0 |
+| `docs/reviews/pimoa-wizard-4b-orchestration.md` | PiMoa 对抗性审核结果 | — | 64 | 5 | 0 |
+| `docs/reviews/pimoa-wizard-4c-data-safety.md` | PiMoa 对抗性审核结果 | — | 62 | 5 | 0 |
+| `docs/reviews/pimoa-wizard-5-tests.md` | PiMoa 对抗性审核结果 | — | 57 | 4 | 0 |
 | `docs/reviews/probe-autostart-manual-verification.md` | M2 · 自动拉起（H4①）实测验证 —— 用户真实 Chrome | — | 26 | 4 | 0 |
 | `docs/reviews/probe-chip.md` | M0b 探针报告 · E2E-0 完整闭环（probe-chip） | — | 42 | 6 | 0 |
 | `docs/reviews/probe-composer.md` | M0a 探针报告 · composer / client 插件契约（probe-composer） | — | 46 | 3 | 0 |
@@ -71,6 +75,7 @@
 | `scripts/review-prompts/wizard-2-wiring.md` | Prompt：安装/升级向导（片 2／共 3）—— 环境探测、路径规划与"接线" | — | 82 | 5 | 14 |
 | `scripts/review-prompts/wizard-3-interaction.md` | Prompt：安装/升级向导（片 3／共 3）—— 交互、预检与"健康判定"（假绿重灾区） | — | 66 | 4 | 5 |
 | `scripts/review-prompts/wizard-4-changes.md` | Prompt：审查**刚做完的这批改动**（引导程序修复 + 依赖兜底） | — | 52 | 4 | 1 |
+| `scripts/review-prompts/wizard-5-tests.md` | Prompt：审查**刚补的一批测试改动**（行为测试 + 修无效断言 + 去硬编码） | — | 54 | 4 | 5 |
 | `详细设计文档.md` | DSH Web Companion · 详细设计规范说明书 | v3.37 | 930 | 16 | 44 |
 
 ## 2. 文档 ↔ 代码 覆盖矩阵
@@ -81,7 +86,7 @@
 | `dsh-plugin/` | DSH 进程内插件（host 桥接 + client composer 注入） | `docs/01-protocol.md` `docs/HANDOFF.md` `scripts/review-prompts/code-adversarial.md` `详细设计文档.md` |
 | `native-host/` | native messaging 宿主（拉起 dsh web，M2） | `docs/01-protocol.md` `docs/HANDOFF.md` |
 | `protocol/` | 单源消息 schema + codegen | `docs/01-protocol.md` `docs/06-test-plan.md` `详细设计文档.md` |
-| `scripts/` | 安装 / 配对 / 工具脚本 | `docs/05-native-host.md` `docs/06-test-plan.md` `docs/07-implementation-plan.md` `docs/11-台账.md` `docs/HANDOFF.md` `scripts/review-prompts/code-adversarial.md` `scripts/review-prompts/code-review.md` `scripts/review-prompts/design-adversarial.md` `scripts/review-prompts/wizard-1-orchestration.md` `scripts/review-prompts/wizard-2-wiring.md` `scripts/review-prompts/wizard-3-interaction.md` `scripts/review-prompts/wizard-4-changes.md` `详细设计文档.md` |
+| `scripts/` | 安装 / 配对 / 工具脚本 | `docs/05-native-host.md` `docs/06-test-plan.md` `docs/07-implementation-plan.md` `docs/11-台账.md` `docs/HANDOFF.md` `scripts/review-prompts/code-adversarial.md` `scripts/review-prompts/code-review.md` `scripts/review-prompts/design-adversarial.md` `scripts/review-prompts/wizard-1-orchestration.md` `scripts/review-prompts/wizard-2-wiring.md` `scripts/review-prompts/wizard-3-interaction.md` `scripts/review-prompts/wizard-4-changes.md` `scripts/review-prompts/wizard-5-tests.md` `详细设计文档.md` |
 | `tests/e2e/` | E2E harness 与用例 | `docs/06-test-plan.md` |
 | `spike/` | 可行性实验（回归基线） | `docs/06-test-plan.md` `详细设计文档.md` |
 

@@ -139,9 +139,19 @@ console.log('\n7. 防御：夹具是假的，本测试绝不碰用户真实的�
   const SELF_SOURCE = readFileSync(fileURLToPath(import.meta.url), 'utf8')
   // needle 拆成两段写，否则这一行自己就命中自己
   record('本测试源码里不含真实凭据路径字面量', SELF_SOURCE.includes('.dsh/' + '.credentials.yaml') === false)
-  const fixtureKeys = FIXTURE.match(/sk-[A-Za-z0-9-]+/gu) ?? []
+  /*
+   * ★ 只查"连续字面量"还不够（2026-09-13 修；PiMoa 片 5 第 4 条）：改成用**家目录函数做动态拼接**
+   * （`join(<家目录>, '.dsh', 'credentials.yaml')`）一样能绕过上面那条，而它才是真正危险的写法。
+   * 所以再钉一条：本测试根本不碰真实 home。（注意：本注释与断言名都**不能**写出那个函数名，
+   * 否则这条自检会命中自己 —— 我已经在这上面栽过两次。）
+   */
+  // 关键字拼开写，否则这一行（以及上面那条断言的名字）自己就会命中自己 —— 又踩了一次
+  const HOME_CALL = 'home' + 'dir'
+  record('本测试不碰真实 home（没有动态拼接的真实家目录）', SELF_SOURCE.includes(HOME_CALL) === false)
+  // 正则要覆盖所有 key 前缀（夹具里还有 CLIPROXY_API_KEY: cp-FAKE…，只捞 sk- 会漏检）
+  const fixtureKeys = FIXTURE.match(/\b(?:sk|cp)-[A-Za-z0-9-]+/gu) ?? []
   record('夹具里的 key 全是明显假值（都带 FAKE，没有真 key）',
-    fixtureKeys.length > 0 && fixtureKeys.every((k) => k.includes('FAKE')))
+    fixtureKeys.length >= 2 && fixtureKeys.every((k) => k.includes('FAKE')))
   record('三个键名与真实文件一致', readRefKeys(FIXTURE).join(',') === `${DEEPSEEK_KEY_REF},ANTHROPIC_API_KEY,CLIPROXY_API_KEY`)
 }
 

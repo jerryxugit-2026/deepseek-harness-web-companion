@@ -205,7 +205,20 @@ console.log('\n8. ★ stdin 被关掉（Ctrl-D / EOF）不许崩，也不许挂'
   const p4 = w4.pause('好了吗')
   await sleep(10); s4.end()
   record('★ 提问中被关：pause → false（不再等）', await settle(p4) === false)
-  for (const w of [w1, w2, w3, w4]) w.close()
+  /*
+   * ★ 2026-09-13 追加（PiMoa 片 B 第 15 条）：`secret()` 的 EOF 守卫是本批当 BLOCKER 修的，
+   * 但上面三组只覆盖了 `confirm` / `ask` / `pause` ⇒ `secret()` **零回归保护**。
+   * 补两条：已关掉后再问、提问中被关 —— 两种都必须立刻返回空串。
+   * 退回旧实现（只看构造时的 `interactive`）⇒ 这里 TIMEOUT。
+   */
+  const s5 = fakeTty(); const o5 = fakeOut(); const w5 = createWizard({ stdin: s5, stdout: o5 })
+  s5.end(); await sleep(10)
+  record('★ 已关掉后再问：secret → 空串（退回旧实现 ⇒ 这里超时）', await settle(w5.secret('key')) === '')
+  const s6 = fakeTty(); const o6 = fakeOut(); const w6 = createWizard({ stdin: s6, stdout: o6 })
+  const p6 = w6.secret('key')
+  await sleep(10); s6.end()
+  record('★ 提问中被关：secret → 空串（不挂、不崩）', await settle(p6) === '')
+  for (const w of [w1, w2, w3, w4, w5, w6]) w.close()
 }
 
 const failed = Object.entries(results).filter(([, v]) => v !== true).map(([k]) => k)

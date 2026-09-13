@@ -46,7 +46,7 @@ import { checkChrome, checkDirectory, checkDshCli, checkMount, checkNode, checkP
 import { dirStatus, dshVersion as readDshVersion, pingPlugin, portListening, readPairingKey, which } from './lib/probe.mjs'
 import { applyNativeHostInstall, describeNativeHostPlan, planNativeHostInstall } from './lib/native-host-install.mjs'
 import { buildMountConfig, describeCompanion, upsertCompanion } from './lib/profile-patch.mjs'
-import { finishBanner, overallOk, pendingHard, probeHealth, renderHealth } from './lib/health.mjs'
+import { finishBanner, probeHealth, renderHealth } from './lib/health.mjs'
 import { DEEPSEEK_KEY_REF, readRef, upsertRef } from './lib/credentials.mjs'
 import { createWizard } from './lib/wizard.mjs'
 
@@ -74,7 +74,8 @@ if (flag('help') || flag('h')) {
   --dsh-version <版本>   要钉的 DSH 版本（默认用你已装的那个；**不要用 latest**）
 
 退出码：
-  0 成功   2 参数/前置条件不满足（含 dry-run 有阻断项）   3 中途失败   4 关键步骤被你拒绝   130 Ctrl-C
+  0 成功   2 参数/前置条件不满足（含 dry-run 有阻断项）   3 中途失败   4 关键步骤被你拒绝
+  5 步骤全跑完、但复检没过（常见于刚装完还没重启 DSH —— 见收尾提示）   130 Ctrl-C
 `)
   process.exit(0)
 }
@@ -92,8 +93,10 @@ const homeDir = homedir()
  * 没给的时候要**问用户**（2026-09-13 用户指出："引导程序会不会让用户选择目录进行安装？"）——
  * 问的地方见下面 `w.ask()` 那一段。这其实是本文件第 6 行本来就写着的目标，此前只是没实现。
  */
-const installDirArg = argOf('install-dir', null)
-const dshHomeArg = argOf('dsh-home', null)
+// `|| null`：`--install-dir=` 这种**空值**会被 argOf 返回 `''`，而 `resolve('')` 会落到 cwd
+// （2026-09-13 修；PiMoa 片 A 第 15 条）—— 空值必须当成"没给"，才会走"问你一次"。
+const installDirArg = argOf('install-dir', null) || null
+const dshHomeArg = argOf('dsh-home', null) || null
 const defaultInstallDirPath = resolve(defaultInstallDir(homeDir))
 const defaultDshHomePath = resolve(process.env.DSH_HOME?.trim() || join(homeDir, '.dsh'))
 const port = parsePort(argOf('port', DEFAULT_PORT)) ?? DEFAULT_PORT
@@ -182,23 +185,35 @@ const run = (cmd, args, opts = {}) => {
  */
 const die = (code) => {
   /*
-   * 管道下 stdout 是**异步**的：`process.exit()` 会把它截断 —— 而本程序的全部价值就在那几行
-   * （dry-run 的计划、失败时"停在哪一步/怎么回滚"）。所以先 flush 再退（2026-09-13）。
+   * ★ 必须**同步**退出（2026-09-13 实测踩到的坑，`install-behavior` 用例 B 当场咬出来）。
+   *
+   * 我第一版写成 `process.stdout.write('', () => process.exit(code))`（想"先 flush 再退"）——
+   * 但它是**异步**的：调用点后面的代码会在回调之前照常往下跑。于是 dry-run 的提前退出失效，
+   * `--yes` 之下真把安装目录创建了出来，正面打掉用户那条「默认只打印…不动真格」的硬约束。
+   *
+   * 代价（明知）：管道下 stdout 是异步的，`process.exit()` 可能截掉最后几行输出；
+   * 真终端（本程序的正常用法）下 stdout 是同步的，不受影响。**正确性优先于完整性**。
    */
-  try { process.stdout.write('', () => process.exit(code)) } catch { process.exit(code) }
+  process.exit(code)
 }
 let currentStepTitle = '（还没开始）'
 /*
  * 兜底：任何没被接住的异常/拒绝，都要说清"停在哪一步"，而不是甩一段裸栈给用户。
  * 退出码统一 3（中途失败），与 `must()` 一致。
  */
+let dying = false
 process.on('uncaughtException', (error) => {
+  // 哨兵：处理器自己抛（例如流已关时 w.warn 失败）会**再次进入**同一处理器 ⇒ 死循环
+  if (dying) return
+  dying = true
   w.warn(`在「${currentStepTitle}」崩了：${String(error?.message ?? error)}`)
   w.warn('已完成的步骤是幂等的；修掉原因后重跑本程序即可。')
   console.error(error)
   die(3)
 })
 process.on('unhandledRejection', (reason) => {
+  if (dying) return
+  dying = true
   w.warn(`在「${currentStepTitle}」崩了（未处理的 Promise 拒绝）：${String(reason?.message ?? reason)}`)
   w.warn('已完成的步骤是幂等的；修掉原因后重跑本程序即可。')
   console.error(reason)
@@ -228,11 +243,25 @@ const must = (res, what) => {
 async function linkDownloadablePluginDeps(names) {
   const stage = join(layout.installDir, '.plugin-deps')
   const staged = (name) => join(stage, 'node_modules', name)
-  const needing = names.filter((name) => !existsSync(staged(name)))
+  // ★ 判"装过了"要看 **`package.json` 在不在**，不能只看目录（2026-09-13 修，PiMoa 片 B 第 9 条）：
+  //   上一次 `npm install` 中途崩掉会留下半截目录，只判目录就会把它当成"已有，不重复下载"。
+  const installed = (name) => existsSync(join(staged(name), 'package.json'))
+  const needing = names.filter((name) => !installed(name))
 
   if (needing.length > 0) {
     w.detail(`暂存区：${stage}`)
-    if (!(await w.confirm(`DSH 里没有 ${needing.join('、')} —— 现在下载到暂存区？`))) return
+    if (!(await w.confirm(`DSH 里没有 ${needing.join('、')} —— 现在下载到暂存区？`))) {
+      /*
+       * ★ 拒答不能静默 `return`（2026-09-13 修，PiMoa 片 B 第 2 条）：`ws` 既没下也没链，
+       * 交互式拒绝又**不计入** `autoDeclined`，于是后面第 6.5 步会以 `ERR_MODULE_NOT_FOUND`
+       * 失败 —— 用户看到的是一个莫名其妙的"模块找不到"，而不是"你刚才拒绝了下载那一步"。
+       * 用显式 `die(2)`（前置条件不满足），不再借道 `must({status:1})` 编一个假的 exit 1。
+       */
+      w.warn(`你拒绝了下载 ${needing.join('、')} —— 没有它插件加载不起来，就此停下。`)
+      w.warn('想继续就重跑本程序并在这一步选 y（或先把包装进你的 DSH）。')
+      w.close()
+      die(2)
+    }
     must(
       run('npm', ['install', '--no-audit', '--no-fund', '--no-save', '--prefix', stage, ...needing]),
       `下载 ${needing.join('、')}`,
@@ -353,14 +382,14 @@ w.blank()
 if (DRY_RUN) {
   w.info('（dry-run 结束。确认无误后加 --apply 真装。）')
   w.close()
-  process.exit(verdict.blockers.length > 0 ? 2 : 0)
+  die(verdict.blockers.length > 0 ? 2 : 0)
 }
 
 /* ─────────────────────────── 执行 ─────────────────────────── */
 
 if (verdict.blockers.length > 0 && !ASSUME_YES) {
   const go = await w.confirm('仍有阻断项，仍要继续吗？（不推荐）')
-  if (!go) { w.close(); process.exit(2) }
+  if (!go) { w.close(); die(4) }
 }
 
 /** 第 8 步被拒 ⇒ 插件不会被 DSH 加载，收尾时必须如实标成"没装成"（2026-09-13）。 */
@@ -372,7 +401,7 @@ if (await w.confirm('创建这个目录？')) {
 } else {
   w.warn('用户拒绝创建目录 —— 无法继续。')
   w.close()
-  process.exit(1)
+  die(4)
 }
 
 step(2, '复制源码（依赖不复制，稍后下载）')
@@ -434,7 +463,7 @@ step(3, '准备 DSH 与插件依赖（DSH 缺了才装；插件依赖链接过�
       if (dshPath === null) {
         w.warn('装完了但找不到 `dsh` 可执行文件 —— 请把 npm 全局 bin 目录加进 PATH 后重跑本程序。')
         w.close()
-        process.exit(3)
+        die(3)
       }
       w.info(`   ✅ DSH 可用：${dshPath}`)
     } else {
@@ -443,9 +472,10 @@ step(3, '准备 DSH 与插件依赖（DSH 缺了才装；插件依赖链接过�
        * ★ 当场停下（2026-09-13 修，PiMoa 片 1 第 16 条）：没有 DSH 就没有"同源子包"，
        * 第 4/5/6 步会白下载约 11MB、白构建一次，最后到第 6.5 步才以模块找不到失败。
        */
-      w.warn('就此停下（这一轮什么都没装成）。装好 DSH 后重跑本程序即可。')
+      w.warn('就此停下。注意：安装目录在第 1/2 步**已经创建/覆盖过了**，只是依赖不完整 ⇒ 插件现在跑不起来；')
+      w.warn('把 DSH 装好之后重跑本程序即可补齐（已完成的步骤是幂等的）。')
       w.close()
-      die(3)
+      die(2)
     }
   } else {
     w.detail(`DSH 已装：${dshPath}${installedDshVersion === null ? '' : ` (${installedDshVersion})`} —— 跳过安装`)
@@ -477,9 +507,14 @@ step(3, '准备 DSH 与插件依赖（DSH 缺了才装；插件依赖链接过�
     if (await w.confirm('建立这些链接？')) {
       const made = applyPluginLinks({ pluginDir: layout.pluginDir, plan })
       w.info(`   ✅ 链接了 ${String(made.length)} 个包`)
-      // ★ 必须在 applyPluginLinks 之后：它开头就 rm -rf node_modules，先下载会被删掉
-      if (gaps.downloadable.length > 0) await linkDownloadablePluginDeps(gaps.downloadable)
     }
+    /*
+     * ★ 可下载依赖的处理放在**这个 confirm 之外**（2026-09-13 修；PiMoa 片 A 第 3 条）：
+     * 原来它嵌在"建立这些链接？"里面 ⇒ 用户拒绝建链接时，缺 `ws` 这件事被整段跳过，
+     * 而隔壁 fatal 分支却在 confirm **之前**就硬失败 —— 两条路的守卫位置不对称。
+     * 注意顺序：`applyPluginLinks()` 开头会 `rm -rf node_modules`，所以这一段必须在它之后。
+     */
+    if (gaps.downloadable.length > 0) await linkDownloadablePluginDeps(gaps.downloadable)
   }
 }
 
@@ -494,9 +529,16 @@ step(4, '准备扩展构建依赖（esbuild —— 这一个要下载）')
    * 将来改一处就会漂（构建脚本用 A、引导程序下载 B）。
    */
   const esbuildRange = (() => {
-    try {
-      return JSON.parse(readFileSync(join(layout.installDir, 'extension', 'package.json'), 'utf8')).devDependencies?.esbuild ?? '^0.25.0'
-    } catch { return '^0.25.0' }   // 读不到就退回已知可用的范围（installPayload 里必然含这个文件）
+    const readRange = (file) => {
+      try {
+        return JSON.parse(readFileSync(file, 'utf8')).devDependencies?.esbuild ?? null
+      } catch { return null }
+    }
+    // ★ 优先读**安装目录里**那份；第 2 步被拒时它还不存在 ⇒ 退回读仓库里那份
+    //   （2026-09-13 修，PiMoa 片 B 第 10 条：原来只读安装目录那份，"单一真源"只做了一半）。
+    return readRange(join(layout.installDir, 'extension', 'package.json'))
+      ?? readRange(join(ROOT, 'extension', 'package.json'))
+      ?? '^0.25.0'
   })()
   if (existsSync(localEsbuild) && resolve(localEsbuild) !== resolve(join(targetDir, 'esbuild'))) {
     w.detail(`复用本机已有的 esbuild：${localEsbuild}`)
@@ -545,7 +587,7 @@ if (await w.confirm('生成/复用配对钥匙？')) {
       w.warn('这会让 Chrome 里已装的扩展与配对文件／native host 清单全部对不上（2026-09-12 踩过的真实回归）。')
       w.warn(`已停止。可回滚配对文件：cp ${layout.pairingFile}.bak-before-install ${layout.pairingFile}`)
       w.close()
-      process.exit(3)
+      die(3)
     }
     w.info(`   ✅ 扩展 ID 未变（${String(afterId)}）`)
   }
@@ -572,7 +614,7 @@ if (!DRY_RUN) {
     w.warn(`插件加载失败，**不改动你的 DSH 挂载**：${(probeImport.stderr ?? '').split('\n').slice(0, 4).join(' / ')}`)
     w.warn('多半是第 3 步的依赖没装全。修好后重跑本程序。')
     w.close()
-    process.exit(3)
+    die(3)
   }
 }
 
@@ -714,4 +756,17 @@ w.info(` 卸载：node ${join(layout.installDir, 'bootstrap', 'uninstall.mjs')}`
 w.info(' 试试：打开侧边栏，在输入框写「看左边」')
 w.blank()
 w.close()
-die(banner.ok ? 0 : 3)
+/*
+ * ★ 退出码要分清"装坏了"与"装好了但还没跑起来"（2026-09-13 修；PiMoa 片 A 第 14 条 / 片 C 第 3 条）。
+ *
+ * 复检不再被 `pause()` gate 之后，**全新安装**必然复检不过（挂载刚写进 profile，而 DSH 是启动时
+ * 读那份配置的 ⇒ 插件要等 DSH 重启才会应答）。原来一律退 3（"中途失败"），于是**一次正确的安装
+ * 稳定给自动化一个红灯** —— 那是把旧的假绿换成了新的假红。现在：
+ *   0 = 复检全过 / 4 = 用户拒绝了关键步骤（或非交互全按否）/ 5 = 步骤跑完但复检没过 / 3 = 中途失败
+ */
+const exitCode = banner.ok ? 0 : (mountSkipped || w.autoDeclined > 0 ? 4 : 5)
+if (exitCode === 5 && health.length > 0) {
+  w.info(' 💡 步骤都跑完了。若这是**首次安装**，DSH 还没重启 ⇒ 插件尚未加载，复检当然不过：')
+  w.info('    重启 DSH（dsh web）后再跑一次 `node <安装目录>/bootstrap/doctor.mjs` 即可复验。')
+}
+die(exitCode)

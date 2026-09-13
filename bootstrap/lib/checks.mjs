@@ -11,6 +11,9 @@
  */
 import { MIN_NODE_MAJOR, PLUGIN_ID } from './layout.mjs'
 
+/** 状态 → 图标。**唯一真源**：`summarize()` 的"合法状态集"也从它派生，免得两处枚举漂移。 */
+export const STATUS_ICON = { ok: '✅', warn: '⚠️ ', missing: '❌' }
+
 /** 建议安装的 DSH 版本（不写死具体号，由调用方传，见目标里"必须钉版本"那条）。 */
 export const INSTALLABLE = 'installable'
 export const MANUAL = 'manual'
@@ -182,7 +185,9 @@ export function checkMount({ exists, entryPath, expectedPath }) {
  * **整行隐身** ⇒ 静默假绿。
  */
 export function summarize(checks) {
-  const known = new Set(['ok', 'warn', 'missing'])
+  // 合法状态集从渲染表派生（2026-09-13 修，PiMoa 片 B 第 8 条）：两处各写一份枚举，
+  // 任一方加了键就会"判定与渲染不一致" —— 那正是这条改动要消灭的毛病。
+  const known = new Set(Object.keys(STATUS_ICON))
   const blockers = checks.filter((c) => c.status === 'missing' || !known.has(c.status))
   const warnings = checks.filter((c) => c.status === 'warn')
   return { blockers, warnings, ok: blockers.length === 0 }
@@ -190,7 +195,7 @@ export function summarize(checks) {
 
 /** 渲染成终端表格（等宽对齐；不引第三方库）。 */
 export function renderChecks(checks) {
-  const icon = { ok: '✅', warn: '⚠️ ', missing: '❌' }
+  const icon = STATUS_ICON
   const width = Math.max(...checks.map((c) => c.label.length), 0)
   const lines = []
   for (const c of checks) {
