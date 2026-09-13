@@ -266,6 +266,34 @@ DOM 与文案表不一致 —— 这些在**任何一种**语言下都会红。*
 `globalThis.__AG_PANEL__`（`panel.js` 第 47 行，在 `applyI18n()` 第 20 行**之后**执行）
 ⇒ 见到它就意味着本地化已经填过了。
 
+### 15. ★ 更接近真实的演练：**从"克隆出来的仓库"装机**
+
+上一节的演练用的是**工作区**（有 `node_modules`）。远端拿到的是**从 GitHub 下载的干净副本**，
+所以这轮直接 `git clone` 本仓库到 `/tmp`（= GitHub 上那份），从**克隆**里跑引导程序：
+
+| 检查 | 结果 |
+|---|---|
+| 克隆里有 `node_modules` / `extension/dist` 吗 | **都没有**（正确：发行包只带源码） |
+| 克隆里有语言包吗 | 只有 `extension/_locales/en` ✅ |
+| `node bootstrap/install.mjs`（dry-run） | **exit 0** |
+| `--apply --yes`（装到 scratch 目录） | **exit 0**，15 项源码复制、3 个依赖链接、构建 + `check:dist` OK、插件可加载自证 ✅ |
+| **esbuild 的"下载"分支** | ✅ **首次真跑**：`added 2 packages in 2s`（此前本机一直是链接已有的，没走过这条路） |
+| **全新安装的 `attachDir`** | ✅ `attachDir: captures`（英文目录名） |
+| 扩展 ID | ✅ 未变 |
+| scratch 产物 | `dist/_locales` 只有 `en`；`extension/node_modules/esbuild` 是真下载的目录（不是链接） |
+
+跑完把**真实 Chrome 清单还原成与演练前逐字相同**，`doctor` 四条全绿，scratch 目录已清理。
+
+**至此"远端才会走到"的三条只剩一条没验**：
+
+1. ~~esbuild 下载分支~~ ✅ 本轮已验；
+2. ~~全新安装 `attachDir: captures`~~ ✅ 本轮已验；
+3. **`npm install -g @deepseek-ai/dsh@<版本>`（全局安装本身）仍未跑过** ——
+   本轮只验到"**同一个包用 `--prefix` 装得动**"（522 包 / 59s，且装出来的树里三个依赖都在）。
+   全局安装可能需要 sudo（取决于远端 node 怎么装的）；失败时引导程序会**停下并打印要跑的命令**，
+   不会硬来。若远端真的卡在权限上，可以把第 3 步改成 `--prefix <安装目录>`（已验证可行），
+   代价是要把 `<安装目录>/node_modules/.bin` 加进 PATH —— 否则 native host 的自动拉起会找不到 `dsh`。
+
 ### 14. ★★ 为"远端全新机器"演练抓到的一个真 bug：依赖提升布局认不出来
 
 **背景**：用户计划在**远端 mac（10.0.0.1）**上从 GitHub 下载后做安装测试 —— 那是**全新机器**。
