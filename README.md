@@ -163,6 +163,17 @@ gives you the same thing.)*
 itself, the plugin's dependencies, and the built Chrome extension — is **fetched or built on your machine
 by the installer**, with your own settings. That is why the download is small.
 
+### Do I have to compile anything? — No
+
+**There is no build step for you.** The two commands below do all of it: they check your machine,
+download what is needed, and **build the Chrome extension for you** (a few seconds; the only thing it
+downloads for that is ~11 MB). You never open a compiler, and you do not need Xcode or any developer
+tools — you only need **Node 22 or newer** installed.
+
+**Why is the extension not already built inside the download?** Because the build bakes in **your** DSH
+port and **your** pairing key. A pre-built copy would simply not work on your machine — so the wizard
+builds it locally instead.
+
 ### Step 2 — run the installer
 
 You need **macOS**, **Node 22 or newer** and **Chrome**.
@@ -348,6 +359,15 @@ operations; the two local channels are `/ag/agent` (extension) and `/ag/client` 
 **你下载到的（以及没有下载到的）**：只有项目自己的源码。里面**没有** `node_modules`、**没有**预先构建好的扩展、
 **没有**任何钥匙。其余的一切 —— DeepSeek Harness 本体、插件的依赖、以及构建出来的 Chrome 扩展 ——
 都由**安装器在你的机器上**获取或构建，用的是你自己的设置。所以下载包很小。
+
+### 需要我自己「编译」吗？—— 不需要
+
+**没有需要你做的编译步骤。** 下面那两条命令全包：检查你的机器、下载该下的东西、
+**替你构建 Chrome 扩展**（只要几秒；为此只下载约 11 MB 的一个小工具）。
+你不用打开任何编译器，也不需要 Xcode 或任何开发者工具 —— **只需要装好 Node 22 或更高版本**。
+
+**为什么下载包里不直接放构建好的扩展？** 因为构建会把**你的** DSH 端口和**你的**配对钥匙烤进去；
+预构建的副本在你机器上根本跑不起来，所以由向导在本机替你构建。
 
 ### 第二步：运行安装器
 

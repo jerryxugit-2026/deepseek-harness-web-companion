@@ -42,7 +42,7 @@
       "path": "README.md",
       "title": "DSH Web Companion",
       "version": null,
-      "lines": 392,
+      "lines": 412,
       "sections": 14,
       "codeRefs": 0,
       "docRefs": 2
@@ -213,7 +213,7 @@
       "path": "docs/releases/v3.47.0.md",
       "title": "v3.47.0 — first public release",
       "version": null,
-      "lines": 137,
+      "lines": 139,
       "sections": 10,
       "codeRefs": 1,
       "docRefs": 2

@@ -15,7 +15,7 @@
 | `FINDINGS.md` | dsh-chrome 可行性验证结果（FINDINGS） | — | 81 | 7 | 0 |
 | `PRD_需求定义说明书.md` | DeepSeek Harness Web Companion (DSH 浏览器智能侧伴侣) | v3.0.0 | 138 | 8 | 0 |
 | `README.en.md` | DSH Web Companion | — | 6 | 1 | 0 |
-| `README.md` | DSH Web Companion | — | 392 | 14 | 0 |
+| `README.md` | DSH Web Companion | — | 412 | 14 | 0 |
 | `docs/01-protocol.md` | 01 · 协议契约（Protocol） | — | 246 | 8 | 8 |
 | `docs/02-extension.md` | 02 · Chrome 扩展设计（`extension/`） | — | 296 | 8 | 39 |
 | `docs/03-bridge-plugin.md` | 03 · DSH 桥接插件（host 半）设计：`dsh-plugin/` | — | 375 | 10 | 20 |
@@ -34,7 +34,7 @@
 | `docs/HANDOFF.md` | 交接提示词（新会话从这里开始） | v3.41，两者**不是同一个号**） | 343 | 10 | 23 |
 | `docs/PROGRESS.md` | 进度与续跑规则（durable memory） | — | 97 | 8 | 4 |
 | `docs/REVIEW-v3.0.md` | 详细设计 v3.0 评审报告（Review of v3.0 → 修正为 v3.1） | v3.0 | 68 | 5 | 0 |
-| `docs/releases/v3.47.0.md` | v3.47.0 — first public release | — | 137 | 10 | 1 |
+| `docs/releases/v3.47.0.md` | v3.47.0 — first public release | — | 139 | 10 | 1 |
 | `docs/research/01-dsh-plugin-authoring.md` | 01 — Writing, building, installing and testing a THIRD-PARTY DSH plugin (host half + browser/client half) | — | 1137 | 18 | 0 |
 | `docs/research/02-dsh-client-composer-attach.md` | 02 — DSH Web GUI 客户端插件「插入 composer 内容 + 附件 + 上下文 chip」seam 调研 | — | 1446 | 22 | 0 |
 | `docs/research/03-chrome-extension-constraints.md` | 03 — Chrome (Manifest V3) platform constraints & APIs for the side-panel + local-app extension | — | 591 | 11 | 0 |
