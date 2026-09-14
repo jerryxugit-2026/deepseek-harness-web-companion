@@ -13,14 +13,15 @@
  *   1. **版本永远一致**：插件跑在 DSH 进程里，用的就是 DSH 自己那份子包。
  *      设计文档 §12.4 Q5 担心的"API 漂移"从根上消失 —— 实测 DSH 从 0.1.2-rc.1 升到
  *      0.1.5-rc.2 之后，插件**不用做任何事**就跟着走了（因为链接跟着变）。
- *   2. **不用下载**：符合用户"发行包保持轻量、依赖由引导程序下载"的约束 ——
- *      这里连下载都不需要，DSH 装好就自带这三个包。
+ *   2. **不用下载**：符合"发行包保持轻量"的约束，而且这里连下载都不需要 ——
+ *      DSH 装好就自带这三个包；万一缺了，报告会把命令给用户，由他自己装。
  *   3. **绕开 peer 依赖地狱**：实测 `npm install @deepseek-ai/dsh-tools@0.1.5-rc.2`
  *      在插件目录里**必然失败**（`ERESOLVE`：它 peer 依赖 `@deepseek-ai/dsh-llm` 等 9 个包，
  *      单独装一个子包满足不了）。而链接进 DSH 的树里，peer 天然齐全。
  *   4. **升级 DSH 不需要重装插件**。
  *
- * 注：`esbuild`（构建扩展用）**不在** DSH 里，那一个是真要下载的，见 install.mjs 第 4 步。
+ * 注：`esbuild`（构建扩展用）**不在** DSH 里。从 2026-09-13 起它也不由引导程序下载，
+ * 而是在依赖报告里告诉用户去哪装（见 `checkEsbuild()` 与 install.mjs 第 4 步）。
  */
 import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync, symlinkSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -29,29 +30,20 @@ import { dirname, join } from 'node:path'
 export const PLUGIN_RUNTIME_DEPS = ['@deepseek-ai/dsh-tools', '@deepseek-ai/dsh-credentials', 'ws']
 
 /**
- * 哪些插件依赖**允许**回落到下载。
+ * 哪些插件依赖没找到（纯函数，安装器与单测都读它）。
  *
- *   · `ws` 是普通 npm 包：插件只是拿它起 WS 服务，**没有**"必须与 DSH 同一实例"的约束，缺了可以下载；
+ * ★ 2026-09-13 用户定调：**不再区分"可以下载的"与"必须硬失败的"** —— 因为引导程序
+ * 一个依赖都不下载了。缺什么就在依赖报告里列出来、附上用户该跑的命令（在 DSH 安装
+ * 目录里 `npm install`），由用户自己决定装不装。
+ *
+ * 为什么当初要区分（保留这段知识，它是"为什么不能下载第二份"的唯一记录）：
+ *   · `ws` 是普通 npm 包，插件只是拿它起 WS 服务，没有"必须与 DSH 同一实例"的约束；
  *   · 两个 `@deepseek-ai/*` 是 **DSH 自己的子包**：插件跑在 DSH 进程**内**，必须绑同一份
- *     （版本一致 + 同一模块实例）。缺了只能**硬失败** —— 绝不能下载第二份：
- *     npm 上 `@deepseek-ai/dsh-tools` 的 `latest` 实测是 `0.0.1-rc.1` 那个 stub。
+ *     （版本一致 + 同一模块实例）。下载第二份 = 两个模块实例；
+ *     而且 npm 上 `@deepseek-ai/dsh-tools` 的 `latest` 实测是 `0.0.1-rc.1` 那个 stub。
  */
-export const DOWNLOADABLE_PLUGIN_DEPS = ['ws']
-
-/**
- * 把计划里"不可用"的依赖分成两类：**可以下载的** 与 **必须硬失败的**。
- *
- * 纯函数：安装器的两个分支都读它，不再各写一份 `if`。这条知识（"哪些包必须与 DSH 同源"）
- * 只该有一处 —— 上一版只在 `describePluginLinks()` 里写了一句"（需要单独下载）"，
- * 而安装器**压根没实现下载**：缺包时只 `warn` 一句就继续，要等第 6.5 步导入自检才
- * 以"模块找不到"失败（而那时已经写了一堆文件）。2026-09-13 补上兜底并抽出这个判据。
- */
-export function classifyMissingPluginDeps(plan) {
-  const missing = plan.filter((item) => !item.available).map((item) => item.name)
-  return {
-    downloadable: missing.filter((name) => DOWNLOADABLE_PLUGIN_DEPS.includes(name)),
-    fatal: missing.filter((name) => !DOWNLOADABLE_PLUGIN_DEPS.includes(name)),
-  }
+export function missingPluginDeps(plan) {
+  return plan.filter((item) => !item.available).map((item) => item.name)
 }
 
 /**
@@ -154,5 +146,5 @@ export function applyPluginLinks({ pluginDir, plan, io = {} }) {
 export function describePluginLinks(plan) {
   return plan.map((i) => (i.available
     ? `${i.name} → ${i.target}`
-    : `${i.name} ⚠️ DSH 里没有（需要单独下载）`))
+    : `${i.name} ⚠️ 你的 DSH 里没有（见下面的依赖报告）`))
 }

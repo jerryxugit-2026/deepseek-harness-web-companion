@@ -42,8 +42,8 @@
       "path": "README.md",
       "title": "DSH Web Companion",
       "version": null,
-      "lines": 482,
-      "sections": 14,
+      "lines": 523,
+      "sections": 22,
       "codeRefs": 3,
       "docRefs": 2
     },
@@ -159,7 +159,7 @@
       "path": "docs/13-installation.md",
       "title": "Install & deploy (the bootstrapper)",
       "version": null,
-      "lines": 227,
+      "lines": 249,
       "sections": 17,
       "codeRefs": 0,
       "docRefs": 6
@@ -168,7 +168,7 @@
       "path": "docs/13-安装部署.md",
       "title": "安装与部署（引导程序）",
       "version": null,
-      "lines": 221,
+      "lines": 239,
       "sections": 17,
       "codeRefs": 0,
       "docRefs": 1
@@ -177,8 +177,8 @@
       "path": "docs/CHANGELOG.md",
       "title": "变更记录（CHANGELOG）",
       "version": "v3.0",
-      "lines": 2818,
-      "sections": 54,
+      "lines": 2895,
+      "sections": 55,
       "codeRefs": 0,
       "docRefs": 1
     },
@@ -243,6 +243,15 @@
       "lines": 49,
       "sections": 4,
       "codeRefs": 1,
+      "docRefs": 0
+    },
+    {
+      "path": "docs/releases/v3.48.0.md",
+      "title": "v3.48.0 — the wizard reports dependencies instead of installing them",
+      "version": null,
+      "lines": 89,
+      "sections": 8,
+      "codeRefs": 0,
       "docRefs": 0
     },
     {

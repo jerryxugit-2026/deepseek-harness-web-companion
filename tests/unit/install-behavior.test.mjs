@@ -18,7 +18,7 @@
  * 用法：node tests/unit/install-behavior.test.mjs
  */
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdtempSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -154,7 +154,13 @@ console.log('\n4. ★ 缺省安装目录 = 你解压出来的这个文件夹（�
   record('★ 缺省安装目录 == 本包目录（而不是 ~/.dsh/plugins/...）', inPlace.out.includes(`安装目录   ${ROOT}`))
   record('★ 计划如实说"沿用本目录（原地安装）"', inPlace.out.includes('沿用本目录'))
   record('★ 计划如实说"复制源码          跳过"', inPlace.out.includes('复制源码          跳过'))
-  record('dry-run 下临时 HOME / DSH 数据目录都没被创建', existsSync(inPlace.home) === false && existsSync(inPlace.dshHome) === false)
+  /*
+   * ★ 只断言**有意义**的东西（2026-09-13 自测发现）：原来这里断言"隔离 HOME 里一个文件都没有"，
+   * 但探测 npm 全局前缀时 `npm prefix -g` 会创建 `$HOME/.npm`（它连 HOME 本身都会建）——
+   * 那是 npm 自己的缓存目录，不是我们写的东西。断言工具的行为会把门禁变成假红。
+   */
+  record('dry-run 下 DSH 数据目录没被创建', existsSync(inPlace.dshHome) === false)
+  record('dry-run 下没有 ~/.dsh', existsSync(join(inPlace.home, '.dsh')) === false)
 
   /*
    * ★ 反向断言（防硬编码骗过上面几条）：显式给**别的**目录时，必须走
@@ -165,6 +171,64 @@ console.log('\n4. ★ 缺省安装目录 = 你解压出来的这个文件夹（�
   record('★ 显式 --install-dir 时不说"沿用本目录"', elsewhere.out.includes('沿用本目录') === false)
   record('★ 显式 --install-dir 时计划为"创建安装目录"', elsewhere.out.includes('创建安装目录'))
   record('★ 显式 --install-dir 时计划为"复制源码 N 项"', /复制源码\s+\d+ 项/.test(elsewhere.out))
+}
+
+console.log('\n5. ★ 依赖层只报告（2026-09-13 用户定调）：缺 DSH 时一个文件都不写、绝不调用 npm')
+{
+  /*
+   * 在一个**隔离的"干净机器"**里跑 --apply --yes：
+   *   · HOME 指向临时目录（这样 ~/.local/bin/dsh 之类的候选都不存在）；
+   *   · PATH 只有 /usr/bin:/bin（没有 dsh、没有 node_modules），前面再塞一个**只会记账的假 npm**；
+   *   · 显式给 --install-dir，这样"有没有偷偷先建目录"可以被断言到。
+   * 期望：拦在写文件之前（exit 2），并把该跑的命令告诉用户。
+   *
+   * 这组断言会咬的地方：谁把"自己判断 + 自己下载/自己装 DSH"加回来，
+   * 假 npm 的记账文件里就会出现 install，或者隔离目录被创建 ⇒ 立刻红。
+   */
+  const sandbox = join(BASE, 'nodeps')
+  const fakeBin = join(sandbox, 'bin')
+  mkdirSync(fakeBin, { recursive: true })
+  const npmLog = join(sandbox, 'npm-calls.log')
+  // 假 npm：只把参数记下来，什么都不做（真 npm 不该在这个场景里被调用到 install）
+  writeFileSync(join(fakeBin, 'npm'), `#!/bin/sh\necho "$@" >> "${npmLog}"\nexit 0\n`, { mode: 0o755 })
+  const home = join(sandbox, 'home')
+  mkdirSync(home, { recursive: true })
+  const installDir = join(sandbox, 'install')
+  const dshHome = join(sandbox, 'dsh')
+
+  let out = ''
+  let code = 0
+  let spawnFailed = false
+  try {
+    out = execFileSync(process.execPath, [INSTALLER, '--apply', '--yes', '--install-dir', installDir, '--dsh-home', dshHome], {
+      cwd: ROOT,
+      env: { ...process.env, HOME: home, DSH_HOME: dshHome, PATH: `${fakeBin}:/usr/bin:/bin` },
+      input: '',
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+      timeout: 180000,
+    })
+  } catch (error) {
+    spawnFailed = typeof error?.status !== 'number'
+    code = error?.status ?? 1
+    out = `${String(error?.stdout ?? '')}${String(error?.stderr ?? '')}`
+  }
+
+  record('干净机器：进程真的跑起来了（不是 spawn/超时失败）', spawnFailed === false)
+  record('★ 缺 DSH ⇒ 退出码 2（前置条件不满足，不是"中途失败"）', code === 2)
+  record('★ 报告里给出可复制的安装命令（是"告诉用户"，不是"替用户装"）', /npm install -g @deepseek-ai\/dsh@\S+/u.test(out))
+  record('★ 报告里明说本程序不下载、不安装任何依赖', out.includes('本程序不下载、不安装任何依赖'))
+  record('★ 报告里告诉用户可以用 --dsh 点路径（源码安装的情形）', out.includes('--dsh'))
+  record('★ 安装目录没被创建（依赖门禁拦在"第 1 步"之前）', existsSync(installDir) === false)
+  record('★ DSH 数据目录没被创建', existsSync(dshHome) === false)
+  record('★ 隔离 HOME 里没有留下任何东西', existsSync(join(home, '.dsh')) === false)
+  /*
+   * 假 npm 的记账：允许出现 `prefix -g`（那是**只读探测**，用它找全局安装位置），
+   * 但**绝不能**出现 install —— 出现了就说明又在自己下载/自己装了。
+   */
+  const calls = existsSync(npmLog) ? readFileSync(npmLog, 'utf8') : ''
+  record('★ 全程没调用过 npm install（假 npm 记账里没有 install）', calls.includes('install') === false)
+  record('探测 npm 全局前缀是只读的（记账里只有 prefix -g）', calls.split('\n').filter((l) => l.trim() !== '').every((l) => l.trim() === 'prefix -g'))
 }
 
 rmSync(BASE, { recursive: true, force: true })

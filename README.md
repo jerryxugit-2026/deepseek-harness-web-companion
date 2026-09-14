@@ -169,16 +169,20 @@ exactly this: **Releases**. Here is what to click.
 gives you the same thing.)*
 
 **What you are downloading (and what you are not)**: only the project's own source. There is **no**
-`node_modules`, **no** pre-built extension, and **no** keys inside. Everything else — DeepSeek Harness
-itself, the plugin's dependencies, and the built Chrome extension — is **fetched or built on your machine
-by the installer**, with your own settings. That is why the download is small.
+`node_modules`, **no** pre-built extension, and **no** keys inside. That is why the download is small.
 
 ### Do I have to compile anything? — No
 
-**There is no build step for you.** The two commands below do all of it: they check your machine,
-download what is needed, and **build the Chrome extension for you** (a few seconds; the only thing it
-downloads for that is ~11 MB). You never open a compiler, and you do not need Xcode or any developer
-tools — you only need **Node 22 or newer** installed.
+**There is no build step for you, and nothing gets downloaded behind your back.** You install the two
+prerequisites yourself with copy-paste commands (below); the wizard then checks them, tells you exactly
+what is missing if anything is, and **builds the Chrome extension for you** (a few seconds). You never
+open a compiler, and you do not need Xcode or any developer tools.
+
+**The installer deliberately does not download or install anything.** It used to decide by itself and
+pull things in; that turned out to be wrong in practice — on a machine that already had DeepSeek Harness
+installed from source, the check only looked at `PATH`, did not see it, and would have installed a
+second copy. So now it **reports**: what is missing, where it goes, and the exact command to run. One
+exception: if a dependency is missing it stops **before writing a single file**.
 
 **Why is the extension not already built inside the download?** Because the build bakes in **your** DSH
 port and **your** pairing key. A pre-built copy would simply not work on your machine — so the wizard
@@ -187,6 +191,23 @@ builds it locally instead.
 ### Step 2 — run the installer
 
 You need **macOS**, **Node 22 or newer** and **Chrome**.
+
+**Two things you install yourself first.** The wizard checks them and tells you the exact command if one
+is missing — but it will not install them for you:
+
+```bash
+# 1. DeepSeek Harness — the host program the plugin lives inside.
+#    Pin the version: npm's `latest` for its sub-packages is a broken stub.
+npm install -g @deepseek-ai/dsh@0.1.5-rc.2
+
+# 2. esbuild — used once, to build the Chrome extension (~11 MB).
+#    The wizard prints the exact command for your folder if it is missing.
+npm install --prefix "<the folder you unzipped>/extension" esbuild
+```
+
+Already have DeepSeek Harness from a **source checkout** (a `git clone` with no `node_modules`)? That is
+source, not a working install — build it first, or leave it alone and install the published package as
+above. If you run it from a custom location, point the wizard at its launcher: `--dsh <path-to-dsh>`.
 
 **Getting the Terminal into the right folder (the part everyone gets stuck on):**
 
@@ -403,14 +424,18 @@ operations; the two local channels are `/ag/agent` (extension) and `/ag/client` 
 拿到的是同一份东西。）*
 
 **你下载到的（以及没有下载到的）**：只有项目自己的源码。里面**没有** `node_modules`、**没有**预先构建好的扩展、
-**没有**任何钥匙。其余的一切 —— DeepSeek Harness 本体、插件的依赖、以及构建出来的 Chrome 扩展 ——
-都由**安装器在你的机器上**获取或构建，用的是你自己的设置。所以下载包很小。
+**没有**任何钥匙。所以下载包很小。
 
 ### 需要我自己「编译」吗？—— 不需要
 
-**没有需要你做的编译步骤。** 下面那两条命令全包：检查你的机器、下载该下的东西、
-**替你构建 Chrome 扩展**（只要几秒；为此只下载约 11 MB 的一个小工具）。
-你不用打开任何编译器，也不需要 Xcode 或任何开发者工具 —— **只需要装好 Node 22 或更高版本**。
+**没有需要你做的编译步骤，也不会有东西在你不知情时被下载。** 两个前置依赖由你自己用一条可复制的
+命令装好（见下），向导只负责检查它们、缺什么就明确告诉你、然后**替你构建 Chrome 扩展**（只要几秒）。
+你不用打开任何编译器，也不需要 Xcode 或任何开发者工具。
+
+**安装器是故意不下载、不安装任何东西的。** 它原来会自己判断、自己去下 —— 实测下来这是错的：
+有台机器上 DeepSeek Harness 是用**源码**装的，而检查只看 `PATH`，没看见它，于是差点又装一份全局的。
+所以现在它只**报告**：缺什么、装到哪、跑哪条命令。唯一的例外是：一旦发现关键依赖缺失，它会
+**在写任何一个文件之前就停下来**。
 
 **为什么下载包里不直接放构建好的扩展？** 因为构建会把**你的** DSH 端口和**你的**配对钥匙烤进去；
 预构建的副本在你机器上根本跑不起来，所以由向导在本机替你构建。
@@ -418,6 +443,22 @@ operations; the two local channels are `/ag/agent` (extension) and `/ag/client` 
 ### 第二步：运行安装器
 
 需要 **macOS**、**Node 22 或更高**、**Chrome**。
+
+**有两个东西要你自己先装好。** 向导会检查它们、缺了就告诉你确切的命令 —— 但它**不会替你装**：
+
+```bash
+# 1. DeepSeek Harness —— 插件寄宿的那个宿主程序。
+#    版本要钉死：它在 npm 上的 `latest` 子包是个跑不起来的 stub。
+npm install -g @deepseek-ai/dsh@0.1.5-rc.2
+
+# 2. esbuild —— 只在构建 Chrome 扩展时用一次（约 11 MB）。
+#    缺了的话，向导会连你的路径一起把确切命令打出来。
+npm install --prefix "<你解压出来的那个文件夹>/extension" esbuild
+```
+
+已经有一份**源码**形式的 DeepSeek Harness（`git clone` 下来、没有 `node_modules`）？那是源码，
+不是能跑的安装 —— 先把它装起来，或者干脆不管它、按上面装官方发布的包。如果你的 DSH 跑在自定位置，
+用 `--dsh <dsh 的路径>` 点给向导。
 
 **怎么让终端进到那个文件夹（大多数人卡在这一步）：**
 

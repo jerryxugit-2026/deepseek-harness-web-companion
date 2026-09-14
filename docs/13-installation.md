@@ -69,7 +69,7 @@ so it only prints the plan and changes nothing.
 | 1 | create the install directory | `<install-dir>` |
 | 2 | copy **our own sources** | `<install-dir>/…` (**no `node_modules`, no `dist`**) |
 | 3 | hook up plugin dependencies (**link** to your DSH, no download) | `<install-dir>/dsh-plugin/node_modules/…` (symlinks) |
-| 4 | prepare `esbuild` (the only thing that gets downloaded, ~11MB) | `<install-dir>/extension/node_modules/` |
+| 4 | prepare `esbuild` (**no longer downloaded by the wizard**; a missing one is reported with its command) | `<install-dir>/extension/node_modules/` |
 | 5 | generate/reuse the pairing key | `~/.dsh/dsh-web-companion.json` (+ `.bak-before-install`) |
 | 6 | build the extension and verify its port | `<install-dir>/extension/dist/` |
 | 7 | install the native messaging host | Chrome manifest + `<install-dir>/native-host/run-host.sh` |
@@ -81,6 +81,28 @@ so it only prints the plan and changes nothing.
 ---
 
 ## 4. Why dependencies are *linked*, not downloaded
+
+> **Changed 2026-09-13: the wizard no longer downloads or installs any dependency.**
+> The user's verdict after testing it: deciding by ourselves and pulling things in "looks clever, and is
+> probably wrong". On his machine DeepSeek Harness is a **source checkout** at
+> `/Volumes/Ex/ai_workspace/deepseek-harness` (no `node_modules`, root package named
+> `@deepseek-ai/dsh-root`); the old check only ran `command -v dsh`, never mentioned it, and was about
+> to install a second, global copy.
+>
+> What the wizard does now:
+>   1. **multi-source detection**: `--dsh <path>` → `PATH` → npm global prefix and common locations,
+>      printing every candidate it found;
+>   2. a **dependency report**: what is missing, where it belongs, and the exact command to copy;
+>   3. **a missing required dependency stops it before it writes any file** (exit code 2). The old order
+>      copied the sources first and only discovered the missing DSH at step 3, leaving a half-install
+>      that could not run.
+>
+> The commands you run yourself (only the ones the report flags):
+> ```bash
+> npm install -g @deepseek-ai/dsh@0.1.5-rc.2                                  # DeepSeek Harness itself
+> cd "<your DSH install dir>" && npm install ws                               # plugin runtime deps (if reported missing)
+> npm install --prefix "<install-dir>/extension" esbuild                      # extension build tool (if reported missing)
+> ```
 
 This is the single most important design decision in the installer, and it came from **reading a working
 deployment** rather than guessing.

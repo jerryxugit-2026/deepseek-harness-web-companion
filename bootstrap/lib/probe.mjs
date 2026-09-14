@@ -5,7 +5,7 @@
  */
 import { execFileSync } from 'node:child_process'
 import { accessSync, constants, existsSync, readFileSync, statSync } from 'node:fs'
-import { dirname } from 'node:path'
+import { dirname, join } from 'node:path'
 import { PLUGIN_ID } from './layout.mjs'
 
 /** `command -v <cmd>` —— 自己实现，避免依赖 shell 类型。 */
@@ -16,6 +16,43 @@ export function which(cmd) {
   } catch {
     return null
   }
+}
+
+/**
+ * 找 `dsh` 可执行文件 —— **多源**，不是只问 PATH。
+ *
+ * ★ 为什么（2026-09-13 用户实测否掉旧做法）：原来只做 `command -v dsh`，于是
+ *   · 从**源码**跑起来的 DSH（自己 clone + 自己 build，例如 `/Volumes/Ex/.../deepseek-harness`）、
+ *   · 装了但全局 bin 目录不在 PATH 上、
+ *   · 装在自定路径的 DSH
+ * 一律"看不见" ⇒ 报告说"没装 DSH"，然后引导程序**自己再装一份全局的** ——
+ * 机器上出现两个 DSH，用户根本不知道哪个在跑。这正是"用代码猜"最典型的坏结果。
+ *
+ * 现在改为：`--dsh <路径>` 点名优先 → PATH → npm 全局前缀与几个常见位置。
+ * 返回**全部候选及来源**，让调用方如实报告"我找到了什么、准备用哪一个"，
+ * 而不是只回一个布尔值。
+ */
+export function findDshCandidates({ homeDir, exists = existsSync, pathLookup = which, npmPrefix = null, argv = process.argv } = {}) {
+  const out = []
+  const push = (p, source) => {
+    if (typeof p === 'string' && p !== '' && !out.some((c) => c.path === p)) out.push({ path: p, source })
+  }
+  // ① 用户点名 —— 最高优先，也顺便解决了"我们的猜测看不见你那个安装"这个问题
+  const at = argv.indexOf('--dsh')
+  if (at !== -1 && typeof argv[at + 1] === 'string') push(argv[at + 1], '你用 --dsh 点名的')
+  // ② PATH
+  push(pathLookup('dsh'), 'PATH')
+  // ③ npm 全局前缀 + 常见安装位置（都是**显式**候选，不做全盘扫描）
+  const guesses = []
+  if (typeof npmPrefix === 'string' && npmPrefix !== '') guesses.push(join(npmPrefix, 'bin', 'dsh'))
+  guesses.push(
+    join(homeDir, '.local', 'bin', 'dsh'),
+    '/opt/homebrew/bin/dsh',
+    '/usr/local/bin/dsh',
+    join(homeDir, '.hermes', 'node', 'bin', 'dsh'),
+  )
+  for (const g of guesses) if (exists(g)) push(g, '常见安装位置')
+  return out
 }
 
 /** 跑 `dsh -V` 取版本；失败返回 null。 */

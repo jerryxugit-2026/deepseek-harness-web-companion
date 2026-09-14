@@ -15,7 +15,7 @@
  *
  * 用法：node tests/unit/dsh-root.test.mjs
  */
-import { DOWNLOADABLE_PLUGIN_DEPS, PLUGIN_RUNTIME_DEPS, applyPluginLinks, candidateNodeModules, classifyMissingPluginDeps, describePluginLinks, findDshRoot, planPluginLinks } from '../../bootstrap/lib/dsh-root.mjs'
+import { PLUGIN_RUNTIME_DEPS, applyPluginLinks, candidateNodeModules, describePluginLinks, findDshRoot, missingPluginDeps, planPluginLinks } from '../../bootstrap/lib/dsh-root.mjs'
 
 const results = {}
 const record = (name, value) => {
@@ -139,39 +139,37 @@ console.log('\n5. applyPluginLinks：先清空再链接（幂等，且清掉上�
  * DSH 里缺包时的兜底判据（2026-09-13）。
  *
  * 真实现场：`describePluginLinks()` 早就写着"（需要单独下载）"，但安装器**没有实现下载** ——
- * 缺包只 `warn` 一句就继续，要等第 6.5 步导入自检才以"模块找不到"失败（那时已经写了一堆文件）。
- * 现在分两路：能下载的（`ws`）下载，必须与 DSH 同源的（两个 `@deepseek-ai/*`）当场停下。
+ * 缺包现在**只报告、不代装**：引导程序一个依赖都不下载（用户 2026-09-13 定调：
+ * 「我们用代码去检查依赖, 然后去下载, 看起来聪明, 很可能不对」）。
  *
- * 这组断言咬的是"分类别退回去"：把 `DOWNLOADABLE_PLUGIN_DEPS` 改成三个包全可下载
- * （即"缺啥都下载"）⇒ `fatal` 变空，第 3、5 条断言立刻红。
+ * 这组断言咬的是"别偷偷自己处理"：任何缺的包都必须出现在返回值里 ——
+ * 只要有人给某类包加上"能下载就自己下"的旁路，对应的断言立刻红。
  */
-console.log('\n5. classifyMissingPluginDeps：缺包时分「能下载」与「必须硬失败」')
+console.log('\n5. missingPluginDeps：缺什么就报什么（不许再有"能下载就自己下"的旁路）')
 {
   const full = PLUGIN_RUNTIME_DEPS.map((name) => ({ name, available: true }))
-  const none = classifyMissingPluginDeps(full)
-  record('都不缺时两路都空', none.downloadable.length === 0 && none.fatal.length === 0)
+  record('都不缺 → 空数组', missingPluginDeps(full).length === 0)
 
-  const missingWs = classifyMissingPluginDeps([
+  const onlyWs = missingPluginDeps([
     { name: '@deepseek-ai/dsh-tools', available: true },
     { name: '@deepseek-ai/dsh-credentials', available: true },
     { name: 'ws', available: false },
   ])
-  record('★ 只缺 ws ⇒ 走「可下载」（ws 是普通 npm 包，没有实例同一性要求）', missingWs.downloadable.join() === 'ws' && missingWs.fatal.length === 0)
+  record('★ 只缺 ws 也要报出来（ws 是普通 npm 包，但"要不要装"由用户决定）', onlyWs.join() === 'ws')
 
-  const missingTools = classifyMissingPluginDeps([
+  const onlyTools = missingPluginDeps([
     { name: '@deepseek-ai/dsh-tools', available: false },
     { name: '@deepseek-ai/dsh-credentials', available: true },
     { name: 'ws', available: true },
   ])
-  record('★ 缺 @deepseek-ai/dsh-tools ⇒ 走「硬失败」（插件跑在 DSH 进程内，必须同一实例）', missingTools.fatal.join() === '@deepseek-ai/dsh-tools' && missingTools.downloadable.length === 0)
+  record('★ 缺 @deepseek-ai/dsh-tools 也要报出来（它必须与 DSH 同源，更不能偷偷装第二份）', onlyTools.join() === '@deepseek-ai/dsh-tools')
 
-  const both = classifyMissingPluginDeps([
+  const all = missingPluginDeps([
     { name: '@deepseek-ai/dsh-tools', available: false },
     { name: '@deepseek-ai/dsh-credentials', available: false },
     { name: 'ws', available: false },
   ])
-  record('★ 全缺时两路各自正确（不许把 @deepseek-ai/* 混进可下载）', both.downloadable.join() === 'ws' && both.fatal.length === 2)
-  record('可下载集合恰好是 ws（写死在这里，防止悄悄放宽）', DOWNLOADABLE_PLUGIN_DEPS.join() === 'ws')
+  record('★ 三个全缺 → 三个都报，一个都不许漏', all.length === 3)
 }
 
 const failed = Object.entries(results).filter(([, v]) => v !== true).map(([k]) => k)

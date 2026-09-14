@@ -5,6 +5,83 @@
 
 ---
 
+## v3.48.0 — 2026-09-13（依赖层改成"只报告，不代装"）
+
+**触发**：用户在自己那台 Mac mini 上实测后定调 ——「dsh 没装 → 第 3 步会真的执行 npm install -g …这个就是错的,
+远端装了, 但版本旧」「我现在觉得, 我们用代码去检查依赖, 然后去下载, 看起来聪明, 很可能不对。
+我们应该告诉用户, 需要安装哪些依赖, 去哪里下载, 就够了。」
+
+### 1. 探测：多源 + 如实报告（新增 `--dsh <路径>`）
+
+旧探测只有一句 `command -v dsh`（`bootstrap/lib/probe.mjs`），于是**源码形态**、自定路径、装了但 bin 不在
+PATH 上的 DSH 一律看不见。实测现场：`/Volumes/Ex/ai_workspace/deepseek-harness` 是一份 **git checkout**
+（`master`、tag `dsh-v0.1.0-rc.8`、**没有 `node_modules`**、根包名是 `@deepseek-ai/dsh-root`），
+旧探测一个字都没提，还准备再装一份全局的 —— 机器上会出现两个 DSH。
+
+现在 `findDshCandidates()`：`--dsh <路径>` 点名 → `PATH` → npm 全局前缀与常见位置（`~/.local/bin`、
+`/opt/homebrew/bin`、`/usr/local/bin`、`~/.hermes/node/bin`）；候选全部打印出来。
+
+### 2. 新增"依赖报告"，并把它放在**写任何文件之前**
+
+```
+ 依赖怎么装（本程序不下载、不安装任何依赖；下面是可直接复制的命令）
+   ✅/❌ DeepSeek Harness（dsh 命令）  …
+   ❌ 插件运行时依赖                  你的 DSH 里缺 …
+   ✅ esbuild（构建扩展用）            …
+```
+
+三类依赖（DSH / 插件运行时依赖 / esbuild）各带一条**可复制的命令**。缺任何一项关键依赖 ⇒
+**在执行段之前停下**（退出码 2），一个文件都不写。旧顺序是第 1/2 步先把源码拷了、到第 3 步才发现缺依赖，
+留下一个跑不起来的半成品 —— 用户实测踩到的就是这个。
+
+### 3. 删掉全部下载/安装动作
+
+| 原来 | 现在 |
+|---|---|
+| 第 3 步 `npm install -g @deepseek-ai/dsh@<版本>` | 只报告命令 |
+| `linkDownloadablePluginDeps()`：把 `ws` 下到 `<安装目录>/.plugin-deps` 再链进插件 | **整套函数删除**；缺 `ws` 就报告 `cd "<DSH 安装根>" && npm install ws` |
+| 第 4 步 `npm install --prefix <安装目录>/extension esbuild@<范围>` | 只报告命令；本机已有就**链接**（不下载） |
+
+### 4. 修掉两处假绿/假话（自测发现）
+
+- **没有 DSH 时说"三个包都在"**：`checkPluginDeps()` 原来只看 `missing.length === 0`，而找不到 DSH 时链接计划
+  是空数组 ⇒ 打成 ✅。现在 `dshRoot === null` 一律 missing："还没找到 DSH，无法确认…在不在"。
+- **点名一个不存在的路径，它说"在"**：`--dsh /tmp/nope/dsh` 之前走"版本读不出来"分支，打印
+  "`/tmp/nope/dsh` 在，但 `dsh -V` 读不出版本" —— 文件压根不存在。现在如实说"你点名的路径不存在"。
+
+### 5. 惰性 npm 探测
+
+`npm prefix -g` 会顺手创建 `$HOME/.npm`（连 `$HOME` 本身都会建）。只有前面所有来源都没找到 `dsh` 时才去问 npm，
+"正常路径"不产生任何副作用。
+
+### 6. 清掉旧设计的残骸
+
+删除 `installable` 字段与 `INSTALLABLE`/`MANUAL` 常量（它们表达的正是被否掉的"引导程序代装"），
+删除 `DOWNLOADABLE_PLUGIN_DEPS` 与 `classifyMissingPluginDeps()`，改为 `missingPluginDeps()`。
+
+### 7. 门禁
+
+- `tests/unit/install-behavior.test.mjs` 第 5 节（新增 9 条）：在**隔离的"干净机器"**里跑 `--apply --yes`
+  （HOME 指临时目录、PATH 只有 `/usr/bin:/bin`、前面塞一个**只会记账的假 npm**），断言：
+  退出码 2、报告里给出 `npm install -g @deepseek-ai/dsh@…`、说明"不下载不安装"、给 `--dsh` 提示、
+  **安装目录/DSH 数据目录都没被创建**、**假 npm 记账里没有 `install`**（只有只读的 `prefix -g`）。
+  **验真**：把依赖门禁改成 `if (false)` ⇒ "安装目录没被创建"立刻红；恢复后 36 条全绿。
+- `tests/unit/preflight-checks.test.mjs`：缺 DSH 从 warn 反转为 **missing（阻断）**，新增第 2b 节覆盖
+  `checkPluginDeps`/`checkEsbuild`（含"找不到 DSH 不许报绿"），共 **63** 条。
+- `tests/unit/dsh-root.test.mjs` 第 5 节重写为 `missingPluginDeps()`（缺什么报什么，29 条）。
+
+### 8. 文档
+
+`README.md` 中英文两段原本写着依赖"由安装器在你的机器上获取或构建"（现在是假的）—— 改成
+"**安装器故意不下载、不安装任何东西**"，并在"第二步"里给出用户自己要跑的两条命令。
+`docs/13-安装部署.md` / `docs/13-installation.md` 的步骤表与第 4 节同步。
+
+### 9. 版本号 3.48.0（5 处）
+
+行为变更 ⇒ 次版本号 +1。由 `tests/unit/version-consistency.test.mjs` 守住（它会连 CHANGELOG 最新条目一起校）。
+
+---
+
 ## v3.47.3 — 2026-09-13（原地安装的"计划"说真话 + 回归门禁）
 
 **背景**：v3.47.2 把缺省安装目录改成了"你解压出来的那个文件夹"，并加了原地安装跳过复制的保护。

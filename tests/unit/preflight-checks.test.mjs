@@ -8,16 +8,7 @@
  *
  * 用法：node tests/unit/preflight-checks.test.mjs
  */
-import {
-  checkChrome,
-  checkDirectory,
-  checkDshCli,
-  checkMount,
-  checkNode,
-  checkPort,
-  renderChecks,
-  summarize,
-} from '../../bootstrap/lib/checks.mjs'
+import { checkChrome, checkDirectory, checkDshCli, checkEsbuild, checkMount, checkNode, checkPluginDeps, checkPort, renderChecks, summarize } from '../../bootstrap/lib/checks.mjs'
 import { readFileSync } from 'node:fs'
 // ★ 端口从 `layout.mjs` 导（2026-09-13 修；PiMoa 片 3 第 17 条）：原来逐字写死 3080，
 //   于是改默认端口**不会让任何测试变红**。
@@ -37,24 +28,32 @@ console.log('1. Node：唯一的"引导程序装不了"的依赖，且必须给�
   const old = checkNode({ nodeVersion: 'v18.20.0' })
   record('太老 → missing（阻断）', old.status === 'missing')
   record('太老时给了安装指引（不是只说"缺"）', typeof old.fix === 'string' && old.fix.includes('nodejs.org'))
-  record('Node 标成装不了（不该假装能代装）', old.installable === 'manual' && old.command === null)
+  record('Node 没有"代装"命令（本程序不装依赖）', old.command === null)
   record('取不到版本 → missing', checkNode({ nodeVersion: 'garbage' }).status === 'missing')
 }
 
-console.log('\n2. dsh 命令：缺了要给出**钉版本**的安装命令（不能用 latest）')
+console.log('\n2. dsh 命令：缺了给命令，但**本程序不代装**（2026-09-13 用户定调）')
 {
   const missing = checkDshCli({ dshCliPath: null, dshVersion: null, targetDshVersion: '0.1.5-rc.2' })
   /*
-   * ★ 缺 DSH 是 **warn 而不是 missing（阻断）** —— 因为引导程序自己会装它（第 3 步）。
-   * 全新机器上缺 DSH 是**正常**状态；把它当阻断会误导用户看到
-   * "仍有阻断项，仍要继续吗？（不推荐）"。阻断只留给引导程序办不到的事。
+   * ★ 语义**反转**（2026-09-13）：原来缺 DSH 是 warn、理由是"引导程序自己会装"。
+   * 现在引导程序**不再替任何人装 DSH**（用户实测：机器上有源码树/自定路径的 DSH，
+   * 只看 PATH 的探测看不见它，于是又装一份全局的）⇒ 缺 DSH 就是**做不成**，是阻断项。
    */
-  record('★ 缺 → warn（不是阻断，因为引导程序会代装）', missing.status === 'warn')
-  record('★ 缺的时候不会被算成阻断项', summarize([missing]).blockers.length === 0)
-  record('但仍然是"可代装"类', missing.installable === 'installable')
+  record('★ 缺 → missing（阻断，因为本程序不再代装）', missing.status === 'missing')
+  record('★ 缺的时候必须被算成阻断项', summarize([missing]).blockers.length === 1)
   record('★ 指引里带钉死的版本', missing.fix.includes('@0.1.5-rc.2'))
   record('★ 指引里明说不要用 latest', missing.fix.includes('不要用 latest'))
-  record('给出可执行命令（引导程序可代装）', Array.isArray(missing.command) && missing.command[1].includes('@deepseek-ai/dsh@0.1.5-rc.2'))
+  record('★ 指引里告诉用户可以用 --dsh 点路径（源码安装的情形）', missing.fix.includes('--dsh'))
+  record('给出可复制的命令（字符串，报告直接打印）', typeof missing.command === 'string' && missing.command.includes('@deepseek-ai/dsh@0.1.5-rc.2'))
+
+  /*
+   * ★ 点名的路径不存在时**不许说"在"**（2026-09-13 自测发现）：
+   * 原来会打印"`/nope/dsh` 在，但 `dsh -V` 读不出版本" —— 文件压根不存在。
+   */
+  const bogus = checkDshCli({ dshCliPath: '/nope/dsh', dshVersion: null, targetDshVersion: '0.1.5-rc.2', dshCliExists: false })
+  record('★ 点名的路径不存在 → missing', bogus.status === 'missing')
+  record('★ 且如实说"路径不存在"，不许说它"在"', bogus.detail.includes('不存在') && !bogus.detail.includes('在，但'))
 
   const match = checkDshCli({ dshCliPath: '/usr/local/bin/dsh', dshVersion: '0.1.5-rc.2', targetDshVersion: '0.1.5-rc.2' })
   record('版本一致 → ok', match.status === 'ok')
@@ -64,6 +63,30 @@ console.log('\n2. dsh 命令：缺了要给出**钉版本**的安装命令（不
   record('★ 版本漂移 → warn（实测跨小版本可用，不该硬拦）', drift.status === 'warn')
   record('漂移时把两个版本都写出来', drift.detail.includes('0.1.2-rc.1') && drift.detail.includes('0.1.5-rc.2'))
   record('漂移不是阻断（status 不是 missing）', drift.status !== 'missing')
+}
+
+console.log('\n2b. 插件运行时依赖 / esbuild：只判缺不缺，缺了给命令（不代装、不代下）')
+{
+  const names = ['@deepseek-ai/dsh-tools', '@deepseek-ai/dsh-credentials', 'ws']
+  const okdeps = checkPluginDeps({ names, missing: [], dshRoot: '/opt/dsh' })
+  record('都在 → ok', okdeps.status === 'ok')
+
+  const gap = checkPluginDeps({ names, missing: ['ws'], dshRoot: '/opt/dsh' })
+  record('★ 缺 ws → missing（阻断）', gap.status === 'missing')
+  record('★ 命令是"在 DSH 安装目录里装"（可复制）', typeof gap.command === 'string' && gap.command.includes('cd "/opt/dsh"') && gap.command.includes('npm install ws'))
+
+  /*
+   * ★ 没有 DSH 时**不许报绿**（2026-09-13 自测发现）：原来只看 missing 是否为空，
+   * 而找不到 DSH 时链接计划是空的 ⇒ 打成"你的 DSH 里都有 ✅" —— 纯假绿。
+   */
+  const noDsh = checkPluginDeps({ names, missing: [], dshRoot: null })
+  record('★ 找不到 DSH 时不许说"都有"（假绿）', noDsh.status === 'missing' && !noDsh.detail.includes('都有'))
+  record('★ 并给出下一步（先把 DSH 装好 / --dsh 指路径）', noDsh.fix.includes('--dsh'))
+
+  const esb = checkEsbuild({ path: '/x/node_modules/esbuild', command: 'npm install --prefix "/x" esbuild@^0.25.0' })
+  record('esbuild 在 → ok', esb.status === 'ok')
+  const noEsb = checkEsbuild({ path: null, command: 'npm install --prefix "/x" esbuild@^0.25.0' })
+  record('★ esbuild 缺 → missing，且命令里带版本范围（构建脚本用哪个就写哪个）', noEsb.status === 'missing' && noEsb.command.includes('esbuild@^0.25.0'))
 }
 
 console.log('\n3. 端口：三种情形必须分得清（这是最容易卡住用户的地方）')

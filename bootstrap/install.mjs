@@ -40,10 +40,10 @@ import {
   parsePort,
   resolveLayout,
 } from './lib/layout.mjs'
-import { applyPluginLinks, classifyMissingPluginDeps, describePluginLinks, findDshRoot, planPluginLinks } from './lib/dsh-root.mjs'
+import { PLUGIN_RUNTIME_DEPS, applyPluginLinks, describePluginLinks, findDshRoot, missingPluginDeps, planPluginLinks } from './lib/dsh-root.mjs'
 import { extensionIdFromKey } from './lib/extension-id.mjs'
-import { checkChrome, checkDirectory, checkDshCli, checkMount, checkNode, checkPort, renderChecks, summarize } from './lib/checks.mjs'
-import { dirStatus, dshVersion as readDshVersion, pingPlugin, portListening, readPairingKey, which } from './lib/probe.mjs'
+import { checkChrome, checkDirectory, checkDshCli, checkEsbuild, checkMount, checkNode, checkPluginDeps, checkPort, renderChecks, summarize } from './lib/checks.mjs'
+import { dirStatus, dshVersion as readDshVersion, findDshCandidates, pingPlugin, portListening, readPairingKey } from './lib/probe.mjs'
 import { applyNativeHostInstall, describeNativeHostPlan, planNativeHostInstall } from './lib/native-host-install.mjs'
 import { buildMountConfig, describeCompanion, upsertCompanion } from './lib/profile-patch.mjs'
 import { finishBanner, probeHealth, renderHealth } from './lib/health.mjs'
@@ -67,11 +67,15 @@ if (flag('help') || flag('h')) {
   node bootstrap/install.mjs --apply          # 真的安装（每一处改动都会先问你）
   node bootstrap/install.mjs --apply --yes    # 真的安装，不再逐项询问
 
+★ 本程序**不下载、不安装任何依赖**（不装 DSH、不装 esbuild、不装任何 npm 包）：
+  它只体检 + 告诉你"缺什么、装到哪、跑哪条命令"。缺关键依赖时**一个文件都不会写**。
+
 可选：
+  --dsh <路径>          你的 dsh 可执行文件（源码安装 / 自定路径时点给我们；不给就查 PATH 与常见位置）
   --install-dir <路径>   安装到哪（默认：**你运行它的这个文件夹**；不给就会问你一次，直接回车即可）
   --dsh-home <路径>      DSH 数据目录（默认 $DSH_HOME 或 ${join(homedir(), '.dsh')}；**不给就会问你一次**）
   --port <端口>          DSH 端口（默认 ${String(DEFAULT_PORT)}）
-  --dsh-version <版本>   要钉的 DSH 版本（默认用你已装的那个；**不要用 latest**）
+  --dsh-version <版本>   报告里建议你装的 DSH 版本（默认你已装的那个或我们验证过的那个；**不要用 latest**）
 
 退出码：
   0 成功   2 参数/前置条件不满足（含 dry-run 有阻断项）   3 中途失败   4 关键步骤被你拒绝
@@ -235,63 +239,62 @@ const must = (res, what) => {
   die(3)
 }
 
-/**
- * 把"DSH 里没有、但允许下载"的插件依赖装到**安装目录内的暂存区**，再链进 `dsh-plugin/node_modules`。
- *
- * 为什么不直接 `npm install --prefix <安装目录>/dsh-plugin ws`：npm 会按
- * `dsh-plugin/package.json` 把**整棵树** reify ⇒ 连带装出**第二份** `@deepseek-ai/dsh-tools`，
- * 而那个包在 npm 上的 `latest` 是 `0.0.1-rc.1` 的 stub（见第 3 步上面的注释）——
- * 等于用一个跑不起来的副本顶掉"必须与 DSH 同源"的那一条。
- *
- * 暂存区放在**安装目录里**（不是 /tmp）：重跑与升级时已有就不重复下载。
- * ⚠️ 调用点必须在 `applyPluginLinks()` **之后** —— 它开头就 `rm -rf node_modules`。
- * 本函数只在 apply 路径上可达（见上方 `if (DRY_RUN) { … }` 的提前退出），所以不需要 `DRY_RUN` 分支。
+/*
+ * ★ 2026-09-13 删除 `linkDownloadablePluginDeps()`（原来会把 `ws` 下到
+ * `<安装目录>/.plugin-deps` 再链进插件）：用户实测后定调「我们用代码去检查依赖, 然后去下载,
+ * 看起来聪明, 很可能不对」—— 缺依赖现在只进"依赖报告"，命令交给用户自己跑（见 `checkPluginDeps()`）。
  */
-async function linkDownloadablePluginDeps(names) {
-  const stage = join(layout.installDir, '.plugin-deps')
-  const staged = (name) => join(stage, 'node_modules', name)
-  // ★ 判"装过了"要看 **`package.json` 在不在**，不能只看目录（2026-09-13 修，PiMoa 片 B 第 9 条）：
-  //   上一次 `npm install` 中途崩掉会留下半截目录，只判目录就会把它当成"已有，不重复下载"。
-  const installed = (name) => existsSync(join(staged(name), 'package.json'))
-  const needing = names.filter((name) => !installed(name))
-
-  if (needing.length > 0) {
-    w.detail(`暂存区：${stage}`)
-    if (!(await w.confirm(`DSH 里没有 ${needing.join('、')} —— 现在下载到暂存区？`))) {
-      /*
-       * ★ 拒答不能静默 `return`（2026-09-13 修，PiMoa 片 B 第 2 条）：`ws` 既没下也没链，
-       * 交互式拒绝又**不计入** `autoDeclined`，于是后面第 6.5 步会以 `ERR_MODULE_NOT_FOUND`
-       * 失败 —— 用户看到的是一个莫名其妙的"模块找不到"，而不是"你刚才拒绝了下载那一步"。
-       * 用显式 `die(2)`（前置条件不满足），不再借道 `must({status:1})` 编一个假的 exit 1。
-       */
-      w.warn(`你拒绝了下载 ${needing.join('、')} —— 没有它插件加载不起来，就此停下。`)
-      w.warn('想继续就重跑本程序并在这一步选 y（或先把包装进你的 DSH）。')
-      w.close()
-      // ★ 用户**主动拒绝**关键步骤 ⇒ 按 --help 的约定是 4（片 6a 第 9 条），不是 2
-      die(4)
-    }
-    must(
-      run('npm', ['install', '--no-audit', '--no-fund', '--no-save', '--prefix', stage, ...needing]),
-      `下载 ${needing.join('、')}`,
-    )
-  } else {
-    w.detail(`复用暂存区里已有的 ${names.join('、')}（不重复下载）`)
-  }
-
-  for (const name of names) {
-    const linkPath = join(layout.pluginDir, 'node_modules', name)
-    w.detail(`链接 ${staged(name)} → ${linkPath}`)
-    mkdirSync(dirname(linkPath), { recursive: true })   // 带 scope 的包要先建 @scope/ 目录
-    rmSync(linkPath, { recursive: true, force: true })
-    symlinkSync(staged(name), linkPath, 'dir')
-  }
-}
-
 /* ─────────────────────── 探测事实 → 体检 ─────────────────────── */
 
-let dshPath = which('dsh')
+/*
+ * ★ DSH 定位：**多源**，而且把"我找到了什么"如实打印出来。
+ *
+ * 2026-09-13 用户实测否掉旧做法（只 `command -v dsh`）：他机器上有一份源码树
+ * （`/Volumes/Ex/ai_workspace/deepseek-harness`：没有 node_modules、根包名是
+ * `@deepseek-ai/dsh-root`），旧探测一个字都没提，然后引导程序还要自己 `npm i -g` 再装一份 ——
+ * 机器上会同时存在两份 DSH，用户不知道哪个在跑。
+ * 现在：`--dsh <路径>` 点名 → PATH → npm 全局前缀与常见位置；候选全部打印。
+ */
+const probeDsh = (npmPrefix) => findDshCandidates({ homeDir, exists: existsSync, npmPrefix, argv })
+let dshCandidates = probeDsh(null)
+if (dshCandidates.length === 0) {
+  /*
+   * ★ **惰性**探测 npm 全局前缀（2026-09-13 自测发现）：`npm prefix -g` 会顺手创建
+   * `$HOME/.npm`（连 HOME 本身都会建出来）。PATH 上已经有 `dsh` 时没必要付这个代价 ——
+   * 只有前面所有来源都没找到时才去问 npm，让"正常路径"不产生任何副作用。
+   */
+  const prefix = (() => {
+    try { return execFileSync('npm', ['prefix', '-g'], { encoding: 'utf8' }).trim() } catch { return null }
+  })()
+  if (prefix !== null && prefix !== '') dshCandidates = probeDsh(prefix)
+}
+const dshPath = dshCandidates.length > 0 ? dshCandidates[0].path : null
 const installedDshVersion = readDshVersion(dshPath)
 const targetDshVersion = requestedDshVersion ?? installedDshVersion ?? '0.1.5-rc.2'
+const dshRoot = findDshRoot(dshPath)
+const linkPlan = dshRoot === null ? [] : planPluginLinks({ dshRoot, pluginDir: layout.pluginDir, exists: existsSync })
+const missingDeps = missingPluginDeps(linkPlan)
+/**
+ * esbuild：**安装目录里那份**（上次装过）或**本包里那份**（开发机 / 原地安装）都算就绪。
+ * 从 2026-09-13 起我们不再下载它，缺了只报告命令。
+ */
+const esbuildTarget = join(layout.installDir, 'extension', 'node_modules', 'esbuild')
+const esbuildReady = [esbuildTarget, join(ROOT, 'extension', 'node_modules', 'esbuild')].find((x) => existsSync(x)) ?? null
+/**
+ * esbuild 版本范围的**单一真源**：构建脚本用哪个版本，报告里的命令就写哪个版本。
+ * （原来这段在"第 4 步"内部；现在报告要在计划阶段就用它，所以提到这里。
+ *   优先读**安装目录**里那份 package.json —— 第 2 步被拒时它还不存在，退回读包里那份。）
+ */
+const esbuildRange = (() => {
+  const readRange = (file) => {
+    try {
+      return JSON.parse(readFileSync(file, 'utf8')).devDependencies?.esbuild ?? null
+    } catch { return null }
+  }
+  return readRange(join(layout.installDir, 'extension', 'package.json'))
+    ?? readRange(join(ROOT, 'extension', 'package.json'))
+    ?? '^0.25.0'
+})()
 const listening = portListening(port)
 const pairingKey = readPairingKey(layout.pairingFile)
 const ping = listening ? await pingPlugin(port, pairingKey) : { paired: false, reachable: false }
@@ -336,7 +339,9 @@ const mount = describeCompanion(existsSync(layout.profilePatch) ? readFileSync(l
 
 const checks = [
   checkNode({ nodeVersion: process.version }),
-  checkDshCli({ dshCliPath: dshPath, dshVersion: installedDshVersion, targetDshVersion }),
+  checkDshCli({ dshCliPath: dshPath, dshVersion: installedDshVersion, targetDshVersion, dshCliExists: dshPath === null ? true : existsSync(dshPath) }),
+  checkPluginDeps({ names: PLUGIN_RUNTIME_DEPS, missing: missingDeps, dshRoot }),
+  checkEsbuild({ path: esbuildReady, command: `npm install --prefix "${join(layout.installDir, 'extension')}" esbuild@${esbuildRange}` }),
   checkPort({ port, listening, paired: ping.paired }),
   checkDirectory({ id: 'dsh-home', label: 'DSH 数据目录', path: dshHome, status: dirStatus(dshHome), createHint: `确认能创建 ${dshHome}（引导程序会用 mkdir -p）` }),
   checkDirectory({ id: 'install-dir', label: '安装目录', path: installDir, status: dirStatus(installDir), createHint: '换一个可写的位置：--install-dir <路径>' }),
@@ -371,6 +376,18 @@ w.info(' 依赖体检')
 for (const line of renderChecks(checks)) w.info(`  ${line}`)
 w.blank()
 
+/*
+ * ★ 依赖报告（2026-09-13 用户定调）：引导程序**不下载、不安装任何依赖** ——
+ * 只说清"缺什么、装到哪、跑哪条命令"。这两条判据的 command 就是要复制的那条命令。
+ */
+const depChecks = checks.filter((c) => c.id === 'dsh' || c.id === 'plugin-deps' || c.id === 'esbuild')
+const depBlockers = depChecks.filter((c) => c.status === 'missing')
+w.info(' 依赖怎么装（本程序不下载、不安装任何依赖；下面是可直接复制的命令）')
+for (const line of renderChecks(depChecks)) w.info(`  ${line}`)
+w.info('   · DSH 的下载地址：https://www.npmjs.com/package/@deepseek-ai/dsh')
+w.info('   · 从源码跑 DSH 的话，用 --dsh <路径> 把它的可执行文件点给我们（源码树不能直接跑，需先装依赖）')
+w.blank()
+
 if (verdict.blockers.length > 0) {
   w.warn(`有 ${String(verdict.blockers.length)} 项阻断，先解决它们再装：`)
   for (const b of verdict.blockers) w.info(`   · ${b.label}：${b.fix ?? b.detail}`)
@@ -380,9 +397,9 @@ if (verdict.blockers.length > 0) {
 w.info(' 将要写入 / 改动的东西')
 w.info(inPlace ? '   ① 安装目录          沿用本目录（原地安装）' : `   ① 创建安装目录      ${layout.installDir}`)
 w.info(inPlace ? '   ② 复制源码          跳过（源码已在本目录，不复制也不删除）' : `   ② 复制源码          ${String(installPayload().length)} 项（不含 node_modules、不含 dist —— 发行包保持轻）`)
-w.info(`   ③ 准备 DSH          ${dshPath === null ? `**缺** ⇒ 将安装 @deepseek-ai/dsh@${targetDshVersion}（钉版本，不用 latest）` : `已装，跳过（${dshPath}）`}`)
-w.info(`      接上插件依赖      ${layout.pluginDir}/node_modules → 你的 DSH（优先链接、版本自动一致；DSH 里真缺了才下载 ws）`)
-w.info(`   ④ 准备 esbuild      ${join(layout.installDir, 'extension')}（只有它要下载，约 11MB）`)
+w.info(`   ③ 准备 DSH          ${dshPath === null ? '**缺** ⇒ 见下面的依赖报告（本程序不代装）' : `用 ${dshPath}`}`)
+w.info(`      接上插件依赖      ${layout.pluginDir}/node_modules → 你的 DSH（链接过去，版本自动一致；缺了见依赖报告）`)
+w.info(`   ④ 准备 esbuild      ${esbuildReady === null ? '**缺** ⇒ 见下面的依赖报告（本程序不代下载）' : `用 ${esbuildReady}`}`)
 w.info(`   ⑤ 生成配对钥匙      ${layout.pairingFile}（幂等：已存在则复用，不轮换）`)
 w.info(`   ⑥ 构建扩展产物      ${layout.extensionDist}（端口=${String(port)}）`)
 for (const line of describeNativeHostPlan(chromePlan)) w.info(`   ⑦ ${line}`)
@@ -404,6 +421,17 @@ if (DRY_RUN) {
 }
 
 /* ─────────────────────────── 执行 ─────────────────────────── */
+
+/*
+ * ★ 依赖门禁：缺依赖时**拦在这里**，一个文件都不写。
+ * 2026-09-13 用户实测踩到过旧顺序的后果 —— 第 1/2 步先把源码拷了/覆盖了，到第 3 步才发现
+ * 缺 DSH，留下一个跑不起来的半成品。这里也不接受"仍要继续"：缺依赖不是"不推荐"，是**做不成**。
+ */
+if (depBlockers.length > 0) {
+  w.warn(`缺 ${String(depBlockers.length)} 项依赖，就此停下（命令见上面的依赖报告）。本程序**没有改动任何文件**。`)
+  w.close()
+  die(2)
+}
 
 if (verdict.blockers.length > 0 && !ASSUME_YES) {
   const go = await w.confirm('仍有阻断项，仍要继续吗？（不推荐）')
@@ -452,137 +480,55 @@ step(2, inPlace ? '复制源码（原地安装：源码已在本目录，跳过�
   }
 }
 
-step(3, '准备 DSH 与插件依赖（DSH 缺了才装；插件依赖链接过去，不下载）')
+step(3, '接上插件依赖（链接到你 DSH 里那份 —— 本程序不下载）')
 {
-  /*
-   * ★ 第一步：**DSH 本身缺了就装**。
-   *
-   * 这一条是给"全新机器"补的（用户要在一台远端 Mac 上从 GitHub 下载后实测）：
-   * 之前本安装器只做"链接到**已装**的 DSH"，在那台机器上会直接卡住 ——
-   * `findDshRoot()` 拿不到 DSH 根 ⇒ 依赖链不上 ⇒ 第 6.5 步自检失败。
-   *
-   * 版本**必须钉死**：实测 `@deepseek-ai/dsh-tools` 的 npm `latest` 是 `0.0.1-rc.1` 这个 stub，
-   * 用 latest 会装出一个跑不起来的东西。默认钉我们验证过的那个版本。
-   */
-  if (dshPath === null) {
-    w.warn(`PATH 里没有 \`dsh\` —— 需要安装 @deepseek-ai/dsh@${targetDshVersion}`)
-    w.info('   （为什么钉版本：`@deepseek-ai/dsh-tools` 的 npm `latest` 实测是 0.0.1-rc.1 的 stub）')
-    if (await w.confirm(`现在用 npm 全局安装 @deepseek-ai/dsh@${targetDshVersion}？`)) {
-      must(run('npm', ['install', '-g', `@deepseek-ai/dsh@${targetDshVersion}`]), '安装 DSH')
-      // 装完重新定位：全局 bin 可能不在当前 PATH 上，退一步用 `npm prefix -g` 拼出来
-      dshPath = which('dsh')
-      if (dshPath === null && !DRY_RUN) {
-        try {
-          const prefix = execFileSync('npm', ['prefix', '-g'], { encoding: 'utf8' }).trim()
-          const candidate = join(prefix, 'bin', 'dsh')
-          if (existsSync(candidate)) {
-            dshPath = candidate
-            w.warn(`\`dsh\` 还不在 PATH 上；已直接使用 ${candidate}`)
-            w.warn(`建议把这一行加进你的 shell 配置：export PATH="${join(prefix, 'bin')}:$PATH"`)
-          }
-        } catch { /* 下面统一报错 */ }
-      }
-      if (dshPath === null) {
-        w.warn('装完了但找不到 `dsh` 可执行文件 —— 请把 npm 全局 bin 目录加进 PATH 后重跑本程序。')
-        w.close()
-        die(3)
-      }
-      w.info(`   ✅ DSH 可用：${dshPath}`)
-    } else {
-      w.warn('未安装 DSH。后面的依赖链接与自检会失败 —— 建议先装完再重跑。')
-      /*
-       * ★ 当场停下（2026-09-13 修，PiMoa 片 1 第 16 条）：没有 DSH 就没有"同源子包"，
-       * 第 4/5/6 步会白下载约 11MB、白构建一次，最后到第 6.5 步才以模块找不到失败。
-       */
-      w.warn('就此停下。注意：安装目录在第 1/2 步**已经创建/覆盖过了**，只是依赖不完整 ⇒ 插件现在跑不起来；')
-      w.warn('把 DSH 装好之后重跑本程序即可补齐（已完成的步骤是幂等的）。')
-      w.close()
-      die(2)
-    }
-  } else {
-    w.detail(`DSH 已装：${dshPath}${installedDshVersion === null ? '' : ` (${installedDshVersion})`} —— 跳过安装`)
-  }
-
-  const dshRoot = findDshRoot(dshPath)
   if (dshRoot === null) {
-    w.warn('定位不到已安装的 DSH 包根目录 —— 无法链接依赖。先确认 `dsh` 可用。')
+    // 门禁已保证 dsh 缺失时不会走到这里；真走到说明探测与判定不一致，宁可停下
+    w.warn('定位不到 DSH 的包根目录（找不到 @deepseek-ai/dsh 那个 package.json）—— 无法链接依赖，就此停下。')
+    w.close()
+    die(2)
+  }
+  w.detail(`DSH 安装根：${dshRoot}`)
+  w.detail('插件跑在 DSH 进程里，所以直接用它自己那份子包 —— 版本永远一致、不用下载：')
+  for (const line of describePluginLinks(linkPlan)) w.detail(`  ${line}`)
+  if (missingDeps.length > 0) {
+    w.warn(`你的 DSH 里缺 ${missingDeps.join('、')} —— 命令在上面依赖报告里，装完重跑本程序。`)
+    w.close()
+    die(2)
+  }
+  if (await w.confirm('建立这些链接？')) {
+    const made = applyPluginLinks({ pluginDir: layout.pluginDir, plan: linkPlan })
+    w.info(`   ✅ 链接了 ${String(made.length)} 个包`)
   } else {
-    const plan = planPluginLinks({ dshRoot, pluginDir: layout.pluginDir, exists: existsSync })
-    w.detail(`DSH 安装根：${dshRoot}`)
-    w.detail('插件跑在 DSH 进程里，所以直接用它自己那份子包 —— 版本永远一致、不用下载：')
-    for (const line of describePluginLinks(plan)) w.detail(`  ${line}`)
-    /*
-     * DSH 里缺包时的兜底（2026-09-13）。
-     *
-     * 此前这里只 `warn` 一句就继续 ⇒ 要等第 6.5 步导入自检才以"模块找不到"失败，而那时
-     * 已经写了一堆文件。现在按"这个包能不能下载"分两路，判据在
-     * `classifyMissingPluginDeps()`（纯函数 + 单测）：能下载的（`ws`）下载到暂存区，
-     * 必须与 DSH 同源的（两个 `@deepseek-ai/*`）**当场停下**（dry-run 时只警告，见下）。
-     */
-    const gaps = classifyMissingPluginDeps(plan)
-    if (gaps.fatal.length > 0) {
-      w.warn(`DSH 里缺 ${gaps.fatal.join('、')} —— 这三个包正常随 DSH 一起来。`)
-      w.warn('它们是 DSH 自己的子包，插件必须与 DSH 用同一份；下载第二份会变成两个模块实例，所以这里不下载。')
-      w.warn('先把 DSH 装好（例如重装 `@deepseek-ai/dsh`）再重跑本程序。')
-      // 与隔壁"拒下载"分支统一：显式 die(2)（前置条件不满足），不再借道 must 编一个假的 exit 1
-      w.close()
-      die(2)
-    }
-    const linkOk = await w.confirm('建立这些链接？')
-    if (linkOk) {
-      const made = applyPluginLinks({ pluginDir: layout.pluginDir, plan })
-      w.info(`   ✅ 链接了 ${String(made.length)} 个包`)
-    }
-    if (gaps.downloadable.length > 0) {
-      /*
-       * ★ 用户拒绝建链接时**不能再自动去链 `ws`**（2026-09-13 修；PiMoa 片 6b 第 2 条 MAJOR）：
-       * 把它提到 confirm 之外是为了修"整段跳过"，但那样会把 `ws` 无条件 `symlinkSync` 进去 ——
-       * **绕过用户刚刚的"否"**，还留下半截依赖树（`@deepseek-ai/*` 没链）。拒绝就是拒绝，停下。
-       */
-      if (!linkOk) {
-        w.warn('你拒绝了建立依赖链接 —— 缺的依赖也不再处理（不绕过你的拒绝），就此停下。')
-        w.warn('想继续就重跑本程序并在这一步选 y。')
-        w.close()
-        die(2)
-      }
-      await linkDownloadablePluginDeps(gaps.downloadable)
-    }
+    w.warn('你拒绝了建立依赖链接 —— 插件加载不起来，就此停下。')
+    w.close()
+    die(4)
   }
 }
 
-step(4, '准备扩展构建依赖（esbuild —— 这一个要下载）')
+step(4, '准备扩展构建依赖（esbuild —— 本程序不下载，缺了报告里给你命令）')
 {
-  // 本机如果已经有（开发机的 extension/node_modules），直接链接，省一次下载。
-  const localEsbuild = join(ROOT, 'extension', 'node_modules', 'esbuild')
-  const targetDir = join(layout.installDir, 'extension', 'node_modules')
-  /*
-   * esbuild 的版本范围从 `extension/package.json` 读 —— **单一真源**（2026-09-13 修，PiMoa 片 1 第 12 条）。
-   * 此前这里另写死一份 `esbuild@^0.25.0`，与 `extension/package.json` 的声明**只是碰巧一致**；
-   * 将来改一处就会漂（构建脚本用 A、引导程序下载 B）。
-   */
-  const esbuildRange = (() => {
-    const readRange = (file) => {
-      try {
-        return JSON.parse(readFileSync(file, 'utf8')).devDependencies?.esbuild ?? null
-      } catch { return null }
-    }
-    // ★ 优先读**安装目录里**那份；第 2 步被拒时它还不存在 ⇒ 退回读仓库里那份
-    //   （2026-09-13 修，PiMoa 片 B 第 10 条：原来只读安装目录那份，"单一真源"只做了一半）。
-    return readRange(join(layout.installDir, 'extension', 'package.json'))
-      ?? readRange(join(ROOT, 'extension', 'package.json'))
-      ?? '^0.25.0'
-  })()
-  if (existsSync(localEsbuild) && resolve(localEsbuild) !== resolve(join(targetDir, 'esbuild'))) {
-    w.detail(`复用本机已有的 esbuild：${localEsbuild}`)
+  if (esbuildReady === null) {
+    // 门禁已保证不会走到这里
+    w.warn('没找到 esbuild，就此停下。')
+    w.close()
+    die(2)
+  }
+  if (resolve(esbuildReady) === resolve(esbuildTarget)) {
+    w.detail(`用安装目录里已有的 esbuild：${esbuildTarget}`)
+  } else {
+    w.detail(`复用本机已有的 esbuild：${esbuildReady}`)
     if (await w.confirm('链接它（不下载）？')) {
-      rmSync(targetDir, { recursive: true, force: true })
-      mkdirSync(targetDir, { recursive: true })
-      symlinkSync(localEsbuild, join(targetDir, 'esbuild'), 'dir')
-      const scope = join(dirname(localEsbuild), '@esbuild')
-      if (existsSync(scope)) symlinkSync(scope, join(targetDir, '@esbuild'), 'dir')
+      rmSync(esbuildTarget, { recursive: true, force: true })
+      mkdirSync(esbuildTarget, { recursive: true })
+      symlinkSync(esbuildReady, join(esbuildTarget, 'esbuild'), 'dir')
+      const scope = join(dirname(esbuildReady), '@esbuild')
+      if (existsSync(scope)) symlinkSync(scope, join(esbuildTarget, '@esbuild'), 'dir')
+    } else {
+      w.warn('没链接 esbuild —— 扩展构建会失败，就此停下。')
+      w.close()
+      die(4)
     }
-  } else if (await w.confirm('现在下载 esbuild（约 11MB，只有扩展构建需要它）？')) {
-    must(run('npm', ['install', '--no-audit', '--no-fund', '--no-save', '--prefix', join(layout.installDir, 'extension'), `esbuild@${esbuildRange}`]), '下载 esbuild')
   }
 }
 
