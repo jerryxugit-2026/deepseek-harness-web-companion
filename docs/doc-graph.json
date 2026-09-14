@@ -42,9 +42,9 @@
       "path": "README.md",
       "title": "DSH Web Companion",
       "version": null,
-      "lines": 431,
+      "lines": 453,
       "sections": 14,
-      "codeRefs": 0,
+      "codeRefs": 3,
       "docRefs": 2
     },
     {
@@ -733,6 +733,10 @@
       }
     ],
     "bare": [
+      {
+        "doc": "README.md",
+        "ref": "bootstrap.install.mjs"
+      },
       {
         "doc": "docs/02-extension.md",
         "ref": "agent-bridge.test.js"

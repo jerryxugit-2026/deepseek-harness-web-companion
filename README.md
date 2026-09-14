@@ -200,6 +200,17 @@ node bootstrap/install.mjs          # dry run: it only prints what it *would* ch
 node bootstrap/install.mjs --apply  # the real thing: it asks you before every step
 ```
 
+**The one typo nearly everybody makes:** the file is `bootstrap/install.mjs` — with a **slash**,
+because `install.mjs` sits *inside* the `bootstrap` folder. `bootstrap.install.mjs` (a dot) is not a
+file, and Node answers `Cannot find module`. Let it type itself instead: type `node boot`, press
+**Tab** (it completes to `bootstrap/`), type `in`, press **Tab** again, then Enter.
+
+An absolute path also works from any directory:
+
+```bash
+node /full/path/to/deepseek-harness-web-companion-3.47.1/bootstrap/install.mjs
+```
+
 Then, once:
 
 1. In Chrome, open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked**, and choose
@@ -402,6 +413,17 @@ operations; the two local channels are `/ag/agent` (extension) and `/ag/client` 
 ```bash
 node bootstrap/install.mjs          # dry run：只打印"打算"改哪些文件
 node bootstrap/install.mjs --apply  # 真装：每一步都会先问你
+```
+
+**几乎所有人都会打错的一个地方**：是 `bootstrap/install.mjs` —— 中间是**斜杠**，因为 `install.mjs`
+在 `bootstrap` **文件夹里面**。写成 `bootstrap.install.mjs`（点）就不是文件了，node 会回你
+`Cannot find module`。省事的办法是让终端替你补全：输入 `node boot`，按 **Tab**（自动补成 `bootstrap/`），
+再输入 `in`，再按 **Tab**，回车。
+
+用绝对路径也行（在任何目录下都能跑）：
+
+```bash
+node /你的完整路径/deepseek-harness-web-companion-3.47.1/bootstrap/install.mjs
 ```
 
 然后一次性的事：

@@ -15,7 +15,7 @@
 | `FINDINGS.md` | dsh-chrome 可行性验证结果（FINDINGS） | — | 81 | 7 | 0 |
 | `PRD_需求定义说明书.md` | DeepSeek Harness Web Companion (DSH 浏览器智能侧伴侣) | v3.0.0 | 138 | 8 | 0 |
 | `README.en.md` | DSH Web Companion | — | 6 | 1 | 0 |
-| `README.md` | DSH Web Companion | — | 431 | 14 | 0 |
+| `README.md` | DSH Web Companion | — | 453 | 14 | 3 |
 | `docs/01-protocol.md` | 01 · 协议契约（Protocol） | — | 246 | 8 | 8 |
 | `docs/02-extension.md` | 02 · Chrome 扩展设计（`extension/`） | — | 296 | 8 | 39 |
 | `docs/03-bridge-plugin.md` | 03 · DSH 桥接插件（host 半）设计：`dsh-plugin/` | — | 375 | 10 | 20 |
@@ -181,6 +181,7 @@ flowchart LR
 | `attach-store.test.ts` | `docs/04-client-plugin.md` |
 | `attach.ts` | `docs/03-bridge-plugin.md` |
 | `background/service-worker.ts` | `详细设计文档.md` |
+| `bootstrap.install.mjs` | `README.md` |
 | `bridge-client.test.ts` | `docs/04-client-plugin.md` |
 | `capture.test.js` | `docs/02-extension.md` |
 | `chip.test.tsx` | `docs/04-client-plugin.md` |
