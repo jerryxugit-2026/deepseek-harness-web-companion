@@ -29,3 +29,7 @@ extension/dist/
 # 同时被 scripts/doc-graph.mjs 的 LOCAL_ONLY_DOCS 排除 —— 否则凭证会被索引进
 # 被提交的 docs/DOC-GRAPH.md 与 docs/doc-graph.json。
 docs/github experience.md
+
+# macOS 垃圾文件（2026-09-13：发现被提交进发布包里）
+.DS_Store
+**/.DS_Store
