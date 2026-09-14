@@ -1,0 +1,12 @@
+# 发布归档（GitHub 的 Source code zip/tar.gz 就是 `git archive` 生成的）里**不要**这些内部文档。
+# `export-ignore` 只影响归档，不影响仓库里的文件本身 —— 本地照旧保留，远端下载包里看不到。
+# 2026-09-13：用户发现 v3.47.0 的源码包里带着"详细设计文档 / PRD / DESIGN / FINDINGS"等内部材料。
+详细设计文档.md        export-ignore
+PRD_需求定义说明书.md   export-ignore
+DESIGN.md              export-ignore
+FINDINGS.md            export-ignore
+docs/PROGRESS.md       export-ignore
+docs/11-台账.md         export-ignore
+docs/REVIEW-v3.0.md    export-ignore
+docs/reviews/          export-ignore
+docs/research/         export-ignore
