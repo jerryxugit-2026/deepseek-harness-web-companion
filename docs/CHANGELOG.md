@@ -5,6 +5,85 @@
 
 ---
 
+## v3.48.1 — 2026-09-13（Pimoa 复核后的修正：3 条 MAJOR + 若干 MINOR）
+
+**背景**：v3.48.0 的依赖层改动经 Pimoa `moa_verify` 复核（`quorum=2/2`，报告在
+`/Users/mac/ai_tools/dsh project/网页插件/docs/reviews/pimoa-dep-report-v3.48.0.md`）。
+三条 MAJOR 我**逐条实测复现后全部成立**，另采纳若干 MINOR；两条判定为不采纳，理由记录在下面。
+
+### MAJOR-1：`--dsh` 指错路径时，PATH 上可用的 DSH 被静默丢弃
+
+- **复现**：`node bootstrap/install.mjs --dsh /tmp/nope/dsh`（本机 PATH 上有
+  `/Users/mac/.local/bin/dsh`）⇒ 报告只写"你点名的路径不存在"，**候选一个都没打印**
+  （`grep -c '/Users/mac/.local/bin/dsh'` 输出 **0**），整轮被阻断。
+- **修**：`findDshCandidates()` 给点名候选打 `named` 标记并保留；采用"**第一个存在的**候选"而不是
+  "第一个候选"；报告把所有候选（含来源、含"不存在"）全部打印，并明说"你点名的 X 不存在，我改用 Y"。
+- **复验**：同一命令现在打印候选列表 + `· 你点名的 /tmp/nope/dsh 不存在，我改用 /Users/mac/.local/bin/dsh`，
+  DSH 判 ✅、退出 0。
+
+### MAJOR-2：测试有两处咬合漏洞
+
+- **①空集 `every` 恒真**：记账文件不存在时"只有 `prefix -g`"这条**也是绿的** —— 探测根本没发生也算通过。
+  → 先断言记账**非空**。
+- **②假 npm 只挡"经 PATH 调 npm"这一种写法**：改成 `node <npm-cli.js> install` 或直接 fetch tarball 就绕过了。
+  → 对整个**沙箱目录**做前后快照：除 `home/.npm`（npm 自己的缓存）与记账文件外，跑完不许新增任何文件。
+- **复验**：删掉惰性探测那段 ⇒ "记账非空"那条变红。
+
+### MAJOR-3：`--yes` 跳过阻断项 ⇒ 退出码 3 而不是 2
+
+- **复现**：`--apply --yes --install-dir /System/nope-dsh-test` ⇒ `exit=3`，日志是
+  `EPERM … mkdir '/System/nope-dsh-test'`（第 1 步崩），而语义应为"前置条件不满足"的 **2**。
+- **修**：`--yes` **不能**跳过阻断项（`--yes` 的含义是"别问我"，不是"别管阻断项"）⇒ 直接退 2，
+  并声明没有改动任何文件。
+- **复验**：同命令 `exit=2`，日志 `⚠️ 有 1 项阻断 —— --yes 不能跳过阻断项，就此停下。本程序**没有改动任何文件**。`
+
+### ★ 必须记下来的一个更正（诚实性）
+
+v3.48.0 的说明里我写过"禁用依赖门禁 ⇒ 测试变红"。修掉 MAJOR-3 之后，**这句话不再成立**：
+现在有两道门（执行段的 `verdict.blockers` 那道 + `depBlockers` 这道），任何一道单独都能保证
+"缺依赖不写文件 + 退 2"。
+
+- **实测**：只把 `depBlockers` 注入 `if (false)` ⇒ **0 条变红**；只把执行段的 `verdict.blockers`
+  注入 ⇒ 3 条变红（`--yes` 退 3 而非 2）。
+- **处理**：两道门都保留（纵深防御：`verdict` 那道覆盖脚本化模式，`depBlockers` 那道覆盖
+  "交互式下用户硬要越过阻断项"），并给 `depBlockers` 补一条**明确标注为接线检查**的静态断言
+  （钉住它存在且在 `step(1)` 之前）。补上之后：删 `depBlockers` 门 ⇒ **2 条变红**。
+
+### 采纳的 MINOR
+
+- `checkPluginDeps` 的死分支（`dshRoot === null` 已提前 return）删掉。
+- `fix` 与 `command` 分工：`fix` 说"为什么/怎么办"，`command` 是那条可复制的命令、由报告以 `$ …`
+  单独打印 —— 之前 `command` 写了却没人读。
+- esbuild 报告命令的 `--prefix` 从"安装目录"改成"**包内** extension"：安装目录在第 2 步之前可能
+  还不存在，照旧命令跑会失败；这样也与 README 里写的路径一致。
+- `checkDirectory` 的伪分类 `ok ? 'ok' : missing ? 'ok' : 'missing'` 写成直白判断。
+- `which()` 不再把命令名拼进 shell 串（`['-c','command -v "$1"','sh',cmd]`）。
+- `checkDshCli` 的"版本读不出来"分支点明**源码 checkout 也会这样**。
+- 补上 `checkPort({listening:null})` 的断言（片 3 的核心修复此前零断言 —— 退回 `return false` 不会变红）。
+- README 中英文点明"不下载、不安装"的**唯一例外**：本机已有 `esbuild` 时建符号链接复用。
+
+### 不采纳（记录理由）
+
+- `summarize()` 的合法状态集改回显式枚举：从 `STATUS_ICON` 派生正是上一轮 Pimoa 片 B 第 8 条要求的
+  "单一真源"，退回去会重新引入"判定与渲染两处枚举漂移"。
+- 自写 CLI parser 换 `node:util.parseArgs`：属于重写参数层，与本轮目标无关（`--install-dir=foo` 目前
+  不支持，记录在案）。
+
+### 复核说"未核实"的缺口，我补查了
+
+`extension/build.mjs` 与 `bootstrap/lib/native-host-install.mjs`：`grep -nE "fetch\(|https?://|execFileSync|spawnSync|npm "`
+**无任何网络调用** ⇒ "全链路不联网"现在覆盖到这两处。
+
+### 门禁汇总
+
+- `install-behavior` **42** 条（含快照断言、记账非空、接线检查、`--yes` 退 2）
+- `preflight-checks` **65** 条、`dsh-root` **29** 条
+- `npm run check` exit=0
+
+### 版本号 3.48.1（5 处）
+
+---
+
 ## v3.48.0 — 2026-09-13（依赖层改成"只报告，不代装"）
 
 **触发**：用户在自己那台 Mac mini 上实测后定调 ——「dsh 没装 → 第 3 步会真的执行 npm install -g …这个就是错的,

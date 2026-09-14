@@ -1,6 +1,6 @@
 {
   "name": "dsh-web-companion-bridge",
-  "version": "3.48.0",
+  "version": "3.48.1",
   "private": true,
   "description": "DSH Web Companion bridge: host half (/ag/* routes + browser_* tools) and client half (composer intent sniffing, context chips)",
   "type": "module",

@@ -67,7 +67,7 @@ export function checkDshCli({ dshCliPath, dshVersion, targetDshVersion, dshCliEx
        */
       status: 'missing',
       detail: '没找到 dsh —— 需要你自己装（本程序不下载、不安装任何依赖）',
-      fix: `装它（版本钉我们验证过的，**不要用 latest**）：npm install -g @deepseek-ai/dsh@${String(targetDshVersion)}；如果你是从源码跑的 DSH，用 --dsh <路径> 点给我们`,
+      fix: '本程序不代装 —— 请你自己装（命令见下）。版本要钉死：**不要用 latest**（它的子包是个 stub）。若你的 DSH 是源码 checkout：它没有可执行的 dsh，必须先装依赖，再用 --dsh <路径> 点给我们',
       command: `npm install -g @deepseek-ai/dsh@${String(targetDshVersion)}`,
     }
   }
@@ -81,8 +81,8 @@ export function checkDshCli({ dshCliPath, dshVersion, targetDshVersion, dshCliEx
       id: 'dsh',
       label: 'DeepSeek Harness（dsh 命令）',
       status: 'warn',
-      detail: `${dshCliPath} 在，但 \`dsh -V\` 读不出版本 —— 可能不是真的 DSH`,
-      fix: `先手动确认：${dshCliPath} -V；要重装：npm install -g @deepseek-ai/dsh@${String(targetDshVersion)}`,
+      detail: `${dshCliPath} 在，但 \`dsh -V\` 读不出版本 —— 可能不是真的 DSH（源码 checkout 也会这样：它没有可执行的 dsh）`,
+      fix: `先手动确认它是什么：${dshCliPath} -V，再决定要不要换一个（命令见下）`,
       command: `npm install -g @deepseek-ai/dsh@${String(targetDshVersion)}`,
     }
   }
@@ -130,14 +130,14 @@ export function checkPluginDeps({ names, missing, dshRoot }) {
   if (missing.length === 0) {
     return { id: 'plugin-deps', label: '插件运行时依赖', status: 'ok', detail: `${names.join('、')} —— 你的 DSH 里都有`, fix: null, command: null }
   }
-  const where = dshRoot === null ? '你的 DSH 安装目录' : dshRoot
-  const cmd = `cd "${where}" && npm install ${missing.join(' ')}`
+  // `dshRoot === null` 已在上面 return ⇒ 这里不必再判一次（2026-09-13 PiMoa 复核 MINOR：死分支）
+  const cmd = `cd "${dshRoot}" && npm install ${missing.join(' ')}`
   return {
     id: 'plugin-deps',
     label: '插件运行时依赖',
     status: 'missing',
     detail: `你的 DSH 里缺 ${missing.join('、')}`,
-    fix: `在 DSH 安装目录里装：${cmd}`,
+    fix: '这些包正常随 DSH 一起来；在 DSH 安装目录里装最省事（命令见下），装完重跑本程序',
     command: cmd,
   }
 }
@@ -155,7 +155,7 @@ export function checkEsbuild({ path, command }) {
     label: 'esbuild（构建扩展用）',
     status: 'missing',
     detail: '没找到 —— 扩展要在你机器上现场构建，需要它',
-    fix: `装它：${command}`,
+    fix: '扩展要在你机器上现场构建（端口要烤进去），需要它；装上之后这一步不再需要联网',
     command,
   }
 }
@@ -204,7 +204,8 @@ export function checkDirectory({ id, label, status, path, createHint }) {
   return {
     id,
     label,
-    status: ok ? 'ok' : missing ? 'ok' : 'missing',
+    // 'missing'（不存在但祖先可写）⇒ 视为 ok：向导会 mkdir -p。只有 'unwritable' 才是阻断。
+    status: status === 'unwritable' ? 'missing' : 'ok',
     detail: ok ? `${path}（可写）` : missing ? `${path}（不存在，将创建）` : `${path}（不可写）`,
     fix: missing || ok ? null : createHint ?? `检查这个目录的权限：${path}`,
     command: null,

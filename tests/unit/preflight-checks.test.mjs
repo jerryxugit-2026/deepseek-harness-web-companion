@@ -42,7 +42,7 @@ console.log('\n2. dsh 命令：缺了给命令，但**本程序不代装**（202
    */
   record('★ 缺 → missing（阻断，因为本程序不再代装）', missing.status === 'missing')
   record('★ 缺的时候必须被算成阻断项', summarize([missing]).blockers.length === 1)
-  record('★ 指引里带钉死的版本', missing.fix.includes('@0.1.5-rc.2'))
+  record('★ 命令里带钉死的版本（fix 说理、command 给命令，各司其职）', missing.command.includes('@0.1.5-rc.2') && !missing.fix.includes('npm install -g'))
   record('★ 指引里明说不要用 latest', missing.fix.includes('不要用 latest'))
   record('★ 指引里告诉用户可以用 --dsh 点路径（源码安装的情形）', missing.fix.includes('--dsh'))
   record('给出可复制的命令（字符串，报告直接打印）', typeof missing.command === 'string' && missing.command.includes('@deepseek-ai/dsh@0.1.5-rc.2'))
@@ -93,6 +93,13 @@ console.log('\n3. 端口：三种情形必须分得清（这是最容易卡住�
 {
   const reuse = checkPort({ port: DEFAULT_PORT, listening: true, paired: true })
   record('已有本插件在跑 → ok 且说"会复用"', reuse.status === 'ok' && reuse.detail.includes('复用'))
+  /*
+   * ★ 补上"探测失败"那一支的断言（2026-09-13 PiMoa 复核 MINOR）：这是片 3 的核心修复，
+   * 却零断言 —— 退回 `return false`（把"查不出来"当成"空闲"）不会有任何测试变红。
+   */
+  const unknown = checkPort({ port: DEFAULT_PORT, listening: null, paired: false })
+  record('★ 端口探测失败（listening=null）⇒ warn，不许当成"空闲"', unknown.status === 'warn')
+  record('★ 且给出手动自查命令', typeof unknown.fix === 'string' && unknown.fix.includes('lsof'))
   record('复用时不建议用户去动它（无 fix）', reuse.fix === null)
 
   const stolen = checkPort({ port: DEFAULT_PORT, listening: true, paired: false })

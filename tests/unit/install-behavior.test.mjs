@@ -18,7 +18,7 @@
  * 用法：node tests/unit/install-behavior.test.mjs
  */
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -35,6 +35,26 @@ const record = (name, value) => {
 }
 
 const BASE = mkdtempSync(join(tmpdir(), 'dshwc-behavior-'))
+
+/**
+ * 列出目录树里的**每一条相对路径**（用于前后比对"有没有多出东西"）。
+ *
+ * ★ 为什么需要它（2026-09-13 PiMoa 复核 MAJOR-M4）：假 npm 只能挡住"经 PATH 调用 npm"这一种写法 ——
+ * 如果哪天改成 `node <npm-cli.js> install` 或直接 fetch tarball，记账断言照样全绿。
+ * 对整个沙箱做前后快照，"偷偷写了/下了任何东西"就一定露出来。
+ */
+function snapshot(root) {
+  const out = []
+  const walk = (dir, rel) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const r = rel === '' ? entry.name : rel + '/' + entry.name
+      out.push(r)
+      if (entry.isDirectory()) walk(join(dir, entry.name), r)
+    }
+  }
+  walk(root, '')
+  return out
+}
 
 /**
  * 跑一次引导程序。
@@ -195,6 +215,7 @@ console.log('\n5. ★ 依赖层只报告（2026-09-13 用户定调）：缺 DSH 
   mkdirSync(home, { recursive: true })
   const installDir = join(sandbox, 'install')
   const dshHome = join(sandbox, 'dsh')
+  const before = snapshot(sandbox)
 
   let out = ''
   let code = 0
@@ -228,7 +249,70 @@ console.log('\n5. ★ 依赖层只报告（2026-09-13 用户定调）：缺 DSH 
    */
   const calls = existsSync(npmLog) ? readFileSync(npmLog, 'utf8') : ''
   record('★ 全程没调用过 npm install（假 npm 记账里没有 install）', calls.includes('install') === false)
-  record('探测 npm 全局前缀是只读的（记账里只有 prefix -g）', calls.split('\n').filter((l) => l.trim() !== '').every((l) => l.trim() === 'prefix -g'))
+  /*
+   * ★ 非空断言（2026-09-13 PiMoa 复核 MAJOR-M4）：`[].every(...)` 恒真 —— 记账文件不存在时
+   * 这条会"通过"，于是"探测根本没发生"也算绿。必须先要求记账**非空**。
+   */
+  const callLines = calls.split('\n').map((l) => l.trim()).filter((l) => l !== '')
+  record('★ 探测确实发生过（记账非空 —— 空集 every 恒真，不算通过）', callLines.length > 0)
+  record('★ 记账里只有只读的 prefix -g，没有任何别的 npm 调用', callLines.every((l) => l === 'prefix -g'))
+  /*
+   * ★ 【接线检查，不是行为证明】缺依赖的硬门禁必须存在，且位于第 1 步（首次写盘）之前。
+   *
+   * 为什么不只靠上面的行为断言（2026-09-13 实测，必须记下来）：现在有**两道**门 ——
+   *   · `verdict.blockers` 那道（阻断项在脚本化模式下直接退 2），
+   *   · `depBlockers` 这道（缺依赖无条件停下，连"交互式下用户硬要越过"也拦住）。
+   * 任何一道单独都能保证"缺依赖 ⇒ 不写文件 + 退 2"，所以把其中一道注入 `if (false)` 变异之后，
+   * 本节的行为断言**仍然全绿**（实测 0 条变红）。两道门是刻意的纵深防御，不是冗余 bug；
+   * 但"删掉其中一道"这件事必须有人看着 —— 这条静态断言就是那个看守，名字里也写清楚了它是什么。
+   */
+  const installerSrc = readFileSync(INSTALLER, 'utf8')
+  const atDepGate = installerSrc.indexOf('if (depBlockers.length > 0) {')
+  const atStep1 = installerSrc.indexOf('step(1, ')
+  record('★ 【接线检查】缺依赖的硬门禁存在，且位于第 1 步（首次写盘）之前',
+    atDepGate !== -1 && atStep1 !== -1 && atDepGate < atStep1)
+
+  const added = snapshot(sandbox).filter((p) => !before.includes(p))
+  record('★ 沙箱里没有新增任何文件（唯一允许的是 npm 自己的缓存目录 home/.npm）',
+    added.every((p) => p.startsWith('home/.npm') || p === 'npm-calls.log'))
+}
+
+console.log('\n6. ★ --yes 不能跳过阻断项：退出码必须是 2（前置条件），不是 3（中途失败）')
+{
+  /*
+   * 造一个"祖先存在但不可写"的安装目录：0o500 的父目录会让 dirStatus 判 unwritable ⇒ 阻断项。
+   * 修复前：`--apply --yes` 会绕过逃生口一路走到 mkdirSync 抛 EACCES，被兜底成 exit 3。
+   */
+  if (typeof process.getuid === 'function' && process.getuid() === 0) {
+    // ★ 不写装饰性断言（字面量 true 永远为绿，被 consistency-check 当场抓到）：
+    //   这里断言的是**真实探测结果**，不是常量 —— 只有真的以 root 运行才会为真。
+    record('★ 以 root 运行 ⇒ 0o500 挡不住 mkdir，本机跳过上面那条（该条仅在非 root 下出现）', process.getuid() === 0)
+  } else {
+    const ro = join(BASE, 'ro')
+    mkdirSync(ro, { recursive: true })
+    chmodSync(ro, 0o500)
+    let out = ''
+    let code = 0
+    let spawnFailed = false
+    try {
+      out = execFileSync(process.execPath, [INSTALLER, '--apply', '--yes', '--install-dir', join(ro, 'install'), '--dsh-home', join(BASE, 'ro-home')], {
+        cwd: ROOT,
+        env: { ...process.env, HOME: join(BASE, 'ro-home') },
+        input: '',
+        encoding: 'utf8',
+        stdio: ['pipe', 'pipe', 'pipe'],
+        timeout: 180000,
+      })
+    } catch (error) {
+      spawnFailed = typeof error?.status !== 'number'
+      code = error?.status ?? 1
+      out = `${String(error?.stdout ?? '')}${String(error?.stderr ?? '')}`
+    }
+    chmodSync(ro, 0o700)
+    record('第6节：进程真的跑起来了', spawnFailed === false)
+    record('★ 退出码 2（前置条件不满足），而不是 3（中途失败）', code === 2)
+    record('★ 说清是阻断项、并声明没有改动任何文件', out.includes('阻断') && out.includes('没有改动任何文件'))
+  }
 }
 
 rmSync(BASE, { recursive: true, force: true })

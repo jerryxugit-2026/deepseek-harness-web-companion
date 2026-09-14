@@ -11,7 +11,12 @@ import { PLUGIN_ID } from './layout.mjs'
 /** `command -v <cmd>` —— 自己实现，避免依赖 shell 类型。 */
 export function which(cmd) {
   try {
-    const out = execFileSync('/bin/sh', ['-c', `command -v ${cmd}`], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+    /*
+     * ★ 不把 `cmd` 拼进 shell 串（2026-09-13 PiMoa 复核 MINOR）：现在唯一的调用方传的是常量
+     * `'dsh'`，没有注入面；但"把变量拼进 shell 命令"这种写法迟早会被别处复用时出事。
+     * 改成把参数作为 `$1` 传，shell 侧不再出现变量内容。
+     */
+    const out = execFileSync('/bin/sh', ['-c', 'command -v "$1"', 'sh', cmd], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
     return out === '' ? null : out
   } catch {
     return null
@@ -39,7 +44,14 @@ export function findDshCandidates({ homeDir, exists = existsSync, pathLookup = w
   }
   // ① 用户点名 —— 最高优先，也顺便解决了"我们的猜测看不见你那个安装"这个问题
   const at = argv.indexOf('--dsh')
-  if (at !== -1 && typeof argv[at + 1] === 'string') push(argv[at + 1], '你用 --dsh 点名的')
+  if (at !== -1 && typeof argv[at + 1] === 'string' && argv[at + 1] !== '') {
+    /*
+     * ★ 打上 `named` 标记、**并且不管它存不存在都留下**（2026-09-13 PiMoa 复核 MAJOR-M1）：
+     * 调用方必须能同时说清两件事 —— "你点名的路径不存在" 和 "不过我在 PATH 上找到了另一个"。
+     * 原来是"谁先谁用"，点错一个路径就把 PATH 上可用的 DSH 整个丢弃了。
+     */
+    out.push({ path: argv[at + 1], source: '你用 --dsh 点名的', named: true })
+  }
   // ② PATH
   push(pathLookup('dsh'), 'PATH')
   // ③ npm 全局前缀 + 常见安装位置（都是**显式**候选，不做全盘扫描）

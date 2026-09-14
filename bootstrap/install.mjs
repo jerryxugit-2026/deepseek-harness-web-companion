@@ -268,7 +268,15 @@ if (dshCandidates.length === 0) {
   })()
   if (prefix !== null && prefix !== '') dshCandidates = probeDsh(prefix)
 }
-const dshPath = dshCandidates.length > 0 ? dshCandidates[0].path : null
+/*
+ * ★ 采用"**第一个存在的**候选"，不是"第一个候选"（2026-09-13 PiMoa 复核 MAJOR-M1，已实测）：
+ * 原来 `candidates[0]` 会被一个打错的 `--dsh` 路径短路 —— PATH 上明明有一个能用的 DSH，
+ * 却因为点名点错而报"没找到"，整轮被阻断。点错要说清，但不该丢掉已经找到的那个。
+ */
+const namedDsh = dshCandidates.find((c) => c.named === true) ?? null
+const namedDshMissing = namedDsh !== null && !existsSync(namedDsh.path)
+const chosenDsh = dshCandidates.find((c) => existsSync(c.path)) ?? null
+const dshPath = chosenDsh === null ? null : chosenDsh.path
 const installedDshVersion = readDshVersion(dshPath)
 const targetDshVersion = requestedDshVersion ?? installedDshVersion ?? '0.1.5-rc.2'
 const dshRoot = findDshRoot(dshPath)
@@ -341,7 +349,12 @@ const checks = [
   checkNode({ nodeVersion: process.version }),
   checkDshCli({ dshCliPath: dshPath, dshVersion: installedDshVersion, targetDshVersion, dshCliExists: dshPath === null ? true : existsSync(dshPath) }),
   checkPluginDeps({ names: PLUGIN_RUNTIME_DEPS, missing: missingDeps, dshRoot }),
-  checkEsbuild({ path: esbuildReady, command: `npm install --prefix "${join(layout.installDir, 'extension')}" esbuild@${esbuildRange}` }),
+  /*
+   * ★ 命令里的 `--prefix` 指向**包内**的 extension（2026-09-13 PiMoa 复核 MINOR）：
+   * 安装目录在第 2 步之前可能还不存在，照旧命令跑会失败；包内那份一定在。装到包内之后，
+   * 第 4 步会把它链接进安装目录（链接 ≠ 下载），与 README 里写的路径也一致了。
+   */
+  checkEsbuild({ path: esbuildReady, command: `npm install --prefix "${join(ROOT, 'extension')}" esbuild@${esbuildRange}` }),
   checkPort({ port, listening, paired: ping.paired }),
   checkDirectory({ id: 'dsh-home', label: 'DSH 数据目录', path: dshHome, status: dirStatus(dshHome), createHint: `确认能创建 ${dshHome}（引导程序会用 mkdir -p）` }),
   checkDirectory({ id: 'install-dir', label: '安装目录', path: installDir, status: dirStatus(installDir), createHint: '换一个可写的位置：--install-dir <路径>' }),
@@ -384,6 +397,20 @@ const depChecks = checks.filter((c) => c.id === 'dsh' || c.id === 'plugin-deps' 
 const depBlockers = depChecks.filter((c) => c.status === 'missing')
 w.info(' 依赖怎么装（本程序不下载、不安装任何依赖；下面是可直接复制的命令）')
 for (const line of renderChecks(depChecks)) w.info(`  ${line}`)
+for (const c of depChecks) {
+  if (c.status !== 'ok' && typeof c.command === 'string') w.info(`     $ ${c.command}`)
+}
+if (dshCandidates.length > 0) {
+  // ★ 候选**全部**打印（2026-09-13 PiMoa 复核 MAJOR-M1）：注释一直宣称"找到了什么都会说"，
+  //   而报告只打过选用那一个 —— 用户没法判断我们是不是看漏了他那份安装。
+  w.info('   · 找到的 dsh（按优先级，第一个**存在**的会被采用）：')
+  for (const c of dshCandidates) w.info(`      - ${c.path}（${c.source}）${existsSync(c.path) ? '' : ' —— 不存在'}`)
+}
+if (namedDshMissing) {
+  w.info(dshPath === null
+    ? `   · 你点名的 ${namedDsh.path} 不存在`
+    : `   · 你点名的 ${namedDsh.path} 不存在，我改用 ${dshPath}`)
+}
 w.info('   · DSH 的下载地址：https://www.npmjs.com/package/@deepseek-ai/dsh')
 w.info('   · 从源码跑 DSH 的话，用 --dsh <路径> 把它的可执行文件点给我们（源码树不能直接跑，需先装依赖）')
 w.blank()
@@ -433,7 +460,19 @@ if (depBlockers.length > 0) {
   die(2)
 }
 
-if (verdict.blockers.length > 0 && !ASSUME_YES) {
+if (verdict.blockers.length > 0) {
+  /*
+   * ★ `--yes` **不能**跳过阻断项（2026-09-13 PiMoa 复核 MAJOR-M3，已实测）：
+   * 原来 `&& !ASSUME_YES` 让 `--apply --yes` 直接绕过这个逃生口 —— 于是"安装目录不可写"这类
+   * 已知阻断项会一路走到第 1 步 `mkdirSync` 抛 EPERM/EACCES，再被兜底成 **exit 3（中途失败）**，
+   * 而它的真实语义是 **2（前置条件不满足）**，自动化会把两者混为一谈。
+   * `--yes` 的含义是"别问我"，不是"别管阻断项"。
+   */
+  if (ASSUME_YES) {
+    w.warn(`有 ${String(verdict.blockers.length)} 项阻断 —— --yes 不能跳过阻断项，就此停下。本程序**没有改动任何文件**。`)
+    w.close()
+    die(2)
+  }
   const go = await w.confirm('仍有阻断项，仍要继续吗？（不推荐）')
   if (!go) { w.close(); die(4) }
 }

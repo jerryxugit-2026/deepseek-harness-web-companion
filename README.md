@@ -182,7 +182,9 @@ open a compiler, and you do not need Xcode or any developer tools.
 pull things in; that turned out to be wrong in practice — on a machine that already had DeepSeek Harness
 installed from source, the check only looked at `PATH`, did not see it, and would have installed a
 second copy. So now it **reports**: what is missing, where it goes, and the exact command to run. One
-exception: if a dependency is missing it stops **before writing a single file**.
+exception — the only thing it ever writes for a dependency is a **symlink** to an `esbuild`
+you already have, instead of downloading one. And if a dependency is missing it stops **before writing a
+single file**.
 
 **Why is the extension not already built inside the download?** Because the build bakes in **your** DSH
 port and **your** pairing key. A pre-built copy would simply not work on your machine — so the wizard
@@ -435,7 +437,8 @@ operations; the two local channels are `/ag/agent` (extension) and `/ag/client` 
 **安装器是故意不下载、不安装任何东西的。** 它原来会自己判断、自己去下 —— 实测下来这是错的：
 有台机器上 DeepSeek Harness 是用**源码**装的，而检查只看 `PATH`，没看见它，于是差点又装一份全局的。
 所以现在它只**报告**：缺什么、装到哪、跑哪条命令。唯一的例外是：一旦发现关键依赖缺失，它会
-**在写任何一个文件之前就停下来**。
+**在写任何一个文件之前就停下来**。依赖层唯一的例外是：本机已经有一份 `esbuild` 时，它建一个**符号链接**过去复用，
+而不是下载。
 
 **为什么下载包里不直接放构建好的扩展？** 因为构建会把**你的** DSH 端口和**你的**配对钥匙烤进去；
 预构建的副本在你机器上根本跑不起来，所以由向导在本机替你构建。

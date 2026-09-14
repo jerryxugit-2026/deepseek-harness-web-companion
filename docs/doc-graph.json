@@ -42,7 +42,7 @@
       "path": "README.md",
       "title": "DSH Web Companion",
       "version": null,
-      "lines": 523,
+      "lines": 526,
       "sections": 22,
       "codeRefs": 3,
       "docRefs": 2
@@ -177,8 +177,8 @@
       "path": "docs/CHANGELOG.md",
       "title": "变更记录（CHANGELOG）",
       "version": "v3.0",
-      "lines": 2895,
-      "sections": 55,
+      "lines": 2974,
+      "sections": 56,
       "codeRefs": 0,
       "docRefs": 1
     },
@@ -251,6 +251,15 @@
       "version": null,
       "lines": 89,
       "sections": 8,
+      "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
+      "path": "docs/releases/v3.48.1.md",
+      "title": "v3.48.1 — fixes from the adversarial review of v3.48.0",
+      "version": null,
+      "lines": 61,
+      "sections": 2,
       "codeRefs": 0,
       "docRefs": 0
     },
@@ -430,6 +439,15 @@
       "title": "PiMoa 对抗性审核结果",
       "version": null,
       "lines": 52,
+      "sections": 4,
+      "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
+      "path": "docs/reviews/pimoa-dep-report-v3.48.0.md",
+      "title": "PiMoa 对抗性审核结果",
+      "version": null,
+      "lines": 58,
       "sections": 4,
       "codeRefs": 0,
       "docRefs": 0
