@@ -114,11 +114,17 @@ export async function pingPlugin(port, key) {
       // 不是我们的服务时，它 body 里的 paired / connectedClients 一个字都不能当真
       paired: isOurs && body?.paired === true,
       plugin: typeof body?.plugin === 'string' ? body.plugin : null,
+      /*
+       * ★ 插件自报的**加载路径**（2026-09-14 新增字段）。机器上装了两份插件时，
+       * 这是唯一能证明"跑的到底是哪一份"的证据；旧版本插件没有这个字段 ⇒ null，
+       * 判定侧必须把"拿不到"和"不一致"分开处理。
+       */
+      pluginEntry: typeof body?.pluginEntry === 'string' ? body.pluginEntry : null,
       connectedClients: isOurs ? body?.connectedClients ?? null : null,
       status: res.status,
     }
   } catch {
-    return { reachable: false, paired: false, plugin: null, connectedClients: null, status: null }
+    return { reachable: false, paired: false, plugin: null, pluginEntry: null, connectedClients: null, status: null }
   }
 }
 

@@ -17,13 +17,13 @@
  *   node bootstrap/uninstall.mjs                 # dry-run：只打印将要做什么
  *   node bootstrap/uninstall.mjs --apply         # 真的卸
  */
-import { existsSync, readFileSync, rmSync, copyFileSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { DEFAULT_PORT, PLUGIN_ID, parsePort, resolveLayout } from './lib/layout.mjs'
-import { removeCompanion, readCompanionEntry } from './lib/profile-patch.mjs'
+import { DEFAULT_PORT, PATCH_FILENAME, PLUGIN_ID, PROFILE_NAME, installDirFromEntry, parsePort, resolveLayout } from './lib/layout.mjs'
+import { readCompanionEntry, removeCompanion } from './lib/profile-patch.mjs'
 import { planNativeHostInstall } from './lib/native-host-install.mjs'
 import { createWizard } from './lib/wizard.mjs'
 
@@ -36,11 +36,29 @@ const argOf = (name, fallback) => {
 
 const DRY_RUN = !flag('apply')
 const homeDir = homedir()
-/* ★ 与安装器同一个缺省值：**本包所在的目录**（不是旧的 ~/.dsh/plugins/...）。
- * 2026-09-14 远端实测：两个缺省值各说各话时，doctor 报假红、uninstall 会去删错的目录。 */
+/*
+ * ★ 缺省安装目录按优先级三选一（2026-09-14；用户实测"本机装了两份插件"之后要求）：
+ *   ① `--install-dir` 显式给；
+ *   ② **从 profile 挂载行反推** —— DSH 就是照那一行加载插件的，这是"实际在用哪一份"的唯一真源；
+ *   ③ 本包所在的目录（原地安装且还没挂载时的情形）。
+ *
+ * 为什么必须有 ②：本机实测装了两份（`~/.dsh/plugins/dsh-web-companion` 一份 0.1.0、项目目录一份
+ * 3.48.2）。缺省值只按"本包目录"猜时，uninstall 会去查**没在跑**的那一份 —— 实测出现过
+ * "自查全绿、实际在跑 0.1.0"的**假绿**。（远端那台没这问题：它就是原地安装，两者同路径。）
+ */
 const HERE = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(HERE, '..')
-const installDir = resolve(argOf('install-dir', ROOT))
+const installDirArg = argOf('install-dir', null)
+const mountEntry = (() => {
+  try {
+    const patchFile = join(dshHome, 'profiles', PROFILE_NAME, PATCH_FILENAME)
+    if (!existsSync(patchFile)) return null
+    return readCompanionEntry(readFileSync(patchFile, 'utf8'), PLUGIN_ID).entryPath ?? null
+  } catch { return null }
+})()
+const installDirFromMount = installDirFromEntry(mountEntry)
+const installDirSource = installDirArg !== null ? 'arg' : installDirFromMount !== null ? 'mount' : 'package'
+const installDir = resolve(installDirArg ?? installDirFromMount ?? ROOT)
 const dshHome = resolve(argOf('dsh-home', process.env.DSH_HOME?.trim() || join(homeDir, '.dsh')))
 const port = parsePort(argOf('port', DEFAULT_PORT)) ?? DEFAULT_PORT
 
@@ -50,7 +68,7 @@ const layout = resolveLayout({ installDir, dshHome, homeDir, port, platform: pro
 w.info('════════════════════════════════════════════════════════════')
 w.info(' DSH Web Companion · 卸载引导程序')
 w.info('════════════════════════════════════════════════════════════')
-w.info(`  安装目录   ${installDir}`)
+w.info(`  安装目录   ${installDir}${installDirSource === 'arg' ? '（--install-dir）' : installDirSource === 'mount' ? '（从 profile 挂载反推）' : '（本包目录）'}`)
 w.info(`  DSH 数据   ${dshHome}`)
 w.info(`  模式       ${DRY_RUN ? '🔎 dry-run —— 只打印，不动文件（真卸请加 --apply）' : '✍️  apply'}`)
 w.blank()

@@ -5,6 +5,57 @@
 
 ---
 
+## v3.49.0 — 2026-09-14（治"doctor 自查全绿、实际在跑旧那份"的假绿）
+
+**触发**：把本机的伴侣插件从旧目录的 **0.1.0** 升级到 3.48.2 时发现 —— 这台机器上**同时存在两份安装**：
+
+| | 路径 | 状态 |
+|---|---|---|
+| 实际被挂载、**正在运行**的那份 | `/Users/mac/.dsh/plugins/dsh-web-companion` | 升级前是 **0.1.0** |
+| `doctor` 从项目目录跑时的缺省值 | `/Users/mac/ai_tools/dsh project/网页插件` | 3.48.2 |
+
+于是"自查全绿"说的是**没在跑**的那一份 —— **假绿**。根因同一族：`doctor` 只能**猜**"你站在哪个包里"，
+而"实际在用哪一份"的真相只有一个地方写着 —— **profile 挂载行**（DSH 就是照它加载的）。
+
+### ① `doctor` / `uninstall` 的缺省安装目录：改为从挂载行反推
+
+优先级：**`--install-dir` 显式给 > profile 挂载行 > 本包目录**。
+新增纯函数 `installDirFromEntry()`（`bootstrap/lib/layout.mjs`）：从挂载条目
+`<安装目录>/dsh-plugin/src/host/index.js` 取回 `<安装目录>`；形态不匹配就返回 `null`（**不硬猜**）。
+`doctor --json` 新增 `installDirSource`（`arg` / `mount` / `package`），人类输出里也标出来源。
+
+本机实测：`安装目录 /Users/mac/.dsh/plugins/dsh-web-companion（从 profile 挂载反推）` —— 正是**在跑**的那份。
+
+### ② `/ag/ping` 新增 `pluginEntry`，health 新增第 5 条判据
+
+光"猜对目录"还不够：**必须能证明跑的到底是哪一份**。所以：
+
+- 插件在 `/ag/ping` 里报出**自己是从哪个文件加载的**（`fileURLToPath(new URL('../index.js', import.meta.url))`），
+  它正好等于 profile 挂载里 `name:` 的那一行；
+- 协议同步：`protocol/messages.schema.json` 加可选字段 + 正向量补值 + `protocol:check` 重新生成校验器。
+  **向后兼容**（旧载荷不带它也仍然合法 —— 已实测两种载荷都通过）；
+- health 新增判据「运行中的插件 == profile 挂载的那份」：**可判时是硬判据**（不一致 ⇒ 总判定失败，
+  修法说"重启 DSH 或重跑本程序"）；三种**判不了**的情形一律 `soft`（⚠️）：插件没应答（隔壁 `dsh-up` 已在报红）、
+  插件是旧版本/还没重启因而不报该字段、profile 里没有挂载行。**判不了就不许报绿，但也不许报红**。
+
+### ③ 门禁
+
+- `install-health` **75** 条：新增 12 条咬新判据（一致/不一致/旧版本不报字段/没有挂载行/插件没应答）。
+- `bootstrap-layout` **68** 条：新增 6 条咬 `installDirFromEntry`（含"路径里恰好还有一层同名目录"与
+  非法形态返回 `null`）。
+- `install-behavior` **50** 条：新增 4 条咬"缺省目录跟着挂载行走"+"`--install-dir` 优先于挂载行"。
+
+### ④ 已知的一步
+
+本机要**再重启一次 DSH**，第 5 条判据才会从 ⚠️（插件还没报这个字段）变成 ✅ —— 字段是新插件才有的。
+远端重启则不受影响（那台不是本会话的运行时）。
+
+### ⑤ 版本号 3.49.0（5 处）
+
+新增协议字段 + 新增硬判据 ⇒ 次版本号 +1。
+
+---
+
 ## v3.48.2 — 2026-09-14（远端实测抓到的真 bug：doctor / uninstall 还指着旧的缺省安装目录）
 
 **触发**：把安装向导当成"人类在真机上装一遍"来测（远端 Mac mini，解压到 `/Volumes/Ex/ai_workspace/`，

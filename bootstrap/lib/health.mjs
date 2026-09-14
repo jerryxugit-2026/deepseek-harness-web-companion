@@ -21,20 +21,31 @@
  * 那会动到协议 schema（`ping` 有正向量、且帧是闭集），本轮**故意不做**，已记入 CHANGELOG。
  */
 import { spawnSync } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync, realpathSync } from 'node:fs'
 import { join } from 'node:path'
+import { PLUGIN_ID, PATCH_FILENAME, PROFILE_NAME } from './layout.mjs'
+import { readCompanionEntry } from './profile-patch.mjs'
 import { pingPlugin as probePing, readPairingKey } from './probe.mjs'
+
+/** 同一个文件的不同写法（软链接/相对路径）算相等；文件不存在时退回字符串比较。 */
+function samePath(a, b) {
+  const norm = (p) => {
+    try { return realpathSync(p) } catch { return p }
+  }
+  return norm(a) === norm(b)
+}
 
 /**
  * @param {object} facts
  * @param {number} facts.port
- * @param {{reachable:boolean, paired:boolean, connectedClients:number|null}} facts.ping
+ * @param {{reachable:boolean, paired:boolean, pluginEntry:string|null, connectedClients:number|null}} facts.ping
+ * @param {string|null} facts.mountEntry       profile 挂载行里的插件入口路径（null = 没挂载行）
  * @param {boolean|null} facts.distOk          `check-dist-config` 是否通过；null = 没跑
  * @param {string} facts.installDir
  * @returns {{id:string, ok:boolean, soft:boolean, label:string, detail:string, fix:string|null}[]}
  */
 export function evaluateHealth(facts) {
-  const { port, ping, distOk, installDir } = facts ?? {}
+  const { port, ping, distOk, installDir, mountEntry = null } = facts ?? {}
   const clients = ping?.connectedClients ?? null
   return [
     {
@@ -59,6 +70,33 @@ export function evaluateHealth(facts) {
       label: '插件已加载并配对（/ag/ping → paired）',
       detail: ping?.paired === true ? '是' : '否',
       fix: ping?.paired === true ? null : '插件没挂上或配对文件不匹配：重跑本程序，或检查 profile 挂载行',
+    },
+    {
+      id: 'run-entry',
+      /*
+       * ★ 新判据（2026-09-14，用户实测"本机装了两份插件"之后要求）：
+       * 机器上可以同时存在多份安装，而 doctor 只检查"它以为的那个目录" ⇒ 实测出现过
+       * **"自查全绿、实际跑的却是 0.1.0"** 的假绿。这里拿**插件自己报的加载路径**
+       * （`/ag/ping → pluginEntry`，本轮新增字段）与 **profile 挂载行**比对。
+       *
+       * 三种"判不了"的情形一律 soft（判不了就不许报绿，但也不该报红 —— 那不是用户的错）：
+       * 插件没应答（隔壁 `dsh-up` 已在报）、插件是旧版本/还没重启因而不报这个字段、找不到挂载行。
+       */
+      soft: ping?.reachable !== true || typeof ping?.pluginEntry !== 'string' || typeof mountEntry !== 'string',
+      ok: typeof ping?.pluginEntry === 'string' && typeof mountEntry === 'string' && samePath(ping.pluginEntry, mountEntry),
+      label: '运行中的插件 == profile 挂载的那份',
+      detail: ping?.reachable !== true
+        ? '插件没应答，无法比对'
+        : typeof ping?.pluginEntry !== 'string'
+          ? '插件没报它从哪加载（旧版本 / 还没重启 DSH）—— 重启后本判据才生效'
+          : typeof mountEntry !== 'string'
+            ? 'profile 里没有我们的挂载行 —— 无法比对'
+            : samePath(ping.pluginEntry, mountEntry)
+              ? `两边一致：${ping.pluginEntry}`
+              : `不一致：挂载指向 ${mountEntry}，实际加载 ${ping.pluginEntry}`,
+      fix: typeof ping?.pluginEntry === 'string' && typeof mountEntry === 'string' && !samePath(ping.pluginEntry, mountEntry)
+        ? '重启 DSH 让它按挂载行加载，或重跑本程序把挂载改到实际要用的那份（挂载行在 $DSH_HOME/profiles/web/cordis.patch.yml）'
+        : null,
     },
     {
       id: 'dist-port',
@@ -201,6 +239,16 @@ export async function probeHealth(o) {
   const pairingFile = join(dshHome, 'dsh-web-companion.json')
   const ping = await pingFn(port, readPairingKey(pairingFile))
 
+  /*
+   * profile 挂载行里的入口路径 —— "DSH 实际会加载哪一份"的唯一真源。
+   * 读不到（文件不存在/没挂载/解析不出）就是 null，判定侧会如实说"无法比对"，绝不猜。
+   */
+  let mountEntry = null
+  try {
+    const patchFile = join(dshHome, 'profiles', PROFILE_NAME, PATCH_FILENAME)
+    if (existsSync(patchFile)) mountEntry = readCompanionEntry(readFileSync(patchFile, 'utf8'), PLUGIN_ID).entryPath ?? null
+  } catch { mountEntry = null }
+
   const checkDistScript = join(installDir, 'scripts', 'check-dist-config.mjs')
   let distOk = null
   if (existsSync(checkDistScript)) {
@@ -211,5 +259,5 @@ export async function probeHealth(o) {
     distOk = res.status === 0
   }
 
-  return evaluateHealth({ port, ping, distOk, installDir })
+  return evaluateHealth({ port, ping, distOk, installDir, mountEntry })
 }

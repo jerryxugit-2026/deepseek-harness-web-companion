@@ -5,6 +5,7 @@
  * whether DSH is up, whether the bridge plugin is loaded, and whether the
  * pairing file still needs to be provisioned. It discloses no secrets.
  */
+import { fileURLToPath } from 'node:url'
 import { isPaired } from '../key-store.js'
 import { validateAs } from '../../shared/protocol.generated.js'
 
@@ -20,6 +21,17 @@ export function pingRoute({ state, protocolVersion }) {
       paired: isPaired(pairing),
       trustedOrigins: pairing.extensionOrigins.length,
       pairingSource: pairing.source,
+      /*
+       * ★ 新增（2026-09-14，用户在一台机器上装了两份插件之后提的）：**"我这份代码是从哪个文件加载的"**。
+       *
+       * 为什么必须有：机器上可以同时存在多份安装（例如 `~/.dsh/plugins/dsh-web-companion` 一份旧的、
+       * 项目目录一份新的）。`doctor` 只能检查"它以为的那个安装目录"，而**真正在跑的**是哪一份，
+       * 从外面完全看不出来 —— 实测出现过"自查全绿、实际跑的是 0.1.0"的假绿。
+       * 报出加载路径之后，doctor 可以拿它跟 profile 挂载行逐字比对，假绿无处可藏。
+       *
+       * 从 `routes/ping.js` 往上一级就是这个入口文件本身，正好等于 profile 挂载里 `name:` 的那一行。
+       */
+      pluginEntry: fileURLToPath(new URL('../index.js', import.meta.url)),
       // always a string|null: the schema is closed, and an omitted optional
       // field must still be explicit rather than `undefined`
       pairingError: pairing.error ?? null,

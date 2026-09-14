@@ -17,20 +17,7 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import {
-  DEFAULT_PORT,
-  HOST_NAME,
-  MIN_NODE_MAJOR,
-  PLUGIN_ID,
-  chromeNativeMessagingCandidates,
-  installPayload,
-  installPayloadFilter,
-  npmInstallTargets,
-  parseNodeMajor,
-  parsePort,
-  pickChromeTarget,
-  resolveLayout,
-} from '../../bootstrap/lib/layout.mjs'
+import { DEFAULT_PORT, HOST_NAME, MIN_NODE_MAJOR, PLUGIN_ID, chromeNativeMessagingCandidates, installDirFromEntry, installPayload, installPayloadFilter, npmInstallTargets, parseNodeMajor, parsePort, pickChromeTarget, resolveLayout } from '../../bootstrap/lib/layout.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(HERE, '..', '..')
@@ -204,6 +191,17 @@ console.log('\n8. ★ 源码门禁：bootstrap/lib 里不许出现绝对路径�
     }
   }
   record(`0 个绝对路径字面量（发现 ${String(offenders.length)} 处）${offenders.length > 0 ? ` → ${offenders.join('；')}` : ''}`, offenders.length === 0)
+}
+
+console.log('\n★ installDirFromEntry：从 profile 挂载行反推安装目录（2026-09-14 新增）')
+{
+  record('标准形态', installDirFromEntry('/Users/x/.dsh/plugins/wc/dsh-plugin/src/host/index.js') === '/Users/x/.dsh/plugins/wc')
+  record('路径带空格', installDirFromEntry('/Volumes/Ex/ai work/my pkg/dsh-plugin/src/host/index.js') === '/Volumes/Ex/ai work/my pkg')
+  record('装在根下一层', installDirFromEntry('/pkg/dsh-plugin/src/host/index.js') === '/pkg')
+  record('不是我们的形态 ⇒ null（不硬猜）', installDirFromEntry('/Users/x/some/other/index.js') === null)
+  record('空/非字符串 ⇒ null', installDirFromEntry('') === null && installDirFromEntry(null) === null)
+  record('取**最后**一个 /dsh-plugin/（路径里恰好还有一层同名目录时也不猜错）',
+    installDirFromEntry('/a/dsh-plugin/b/dsh-plugin/src/host/index.js') === '/a/dsh-plugin/b')
 }
 
 const failed = Object.entries(results).filter(([, v]) => v !== true).map(([k]) => k)

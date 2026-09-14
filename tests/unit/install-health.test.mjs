@@ -28,22 +28,26 @@ const record = (name, value) => {
   console.log(`  ${value === true ? '✅' : value === false ? '❌' : '·'} ${name}: ${JSON.stringify(value).slice(0, 170)}`)
 }
 
+const MOUNT_ENTRY = '/Users/x/.dsh/plugins/dsh-web-companion/dsh-plugin/src/host/index.js'
 const FACTS_OK = {
   port: DEFAULT_PORT,
-  ping: { reachable: true, paired: true, connectedClients: 3 },
+  // 完整健康态：插件自报的加载路径 == 挂载行（第 5 条判据因此可判、且为绿）
+  ping: { reachable: true, paired: true, connectedClients: 3, pluginEntry: MOUNT_ENTRY },
   distOk: true,
   installDir: '/inst',
+  mountEntry: MOUNT_ENTRY,
 }
 const byId = (items, id) => items.find((i) => i.id === id)
 
-console.log('1. 全绿时：三条硬判据 + 一条软判据都对')
+console.log('1. 全绿时：硬判据 + 软判据各自都对（含新增的第 5 条"运行中的插件 == 挂载的那份"）')
 {
   const items = evaluateHealth(FACTS_OK)
-  record('4 条判据', items.length === 4)
+  record('5 条判据（2026-09-14 新增 run-entry）', items.length === 5)
   record('DSH 应答 ok', byId(items, 'dsh-up').ok === true)
   record('已配对 ok', byId(items, 'paired').ok === true)
   record('产物端口 ok', byId(items, 'dist-port').ok === true)
   record('扩展代理判据 ok', byId(items, 'extension-proxy').ok === true)
+  record('★ 运行中的插件 == 挂载的那份 ok（新增第 5 条）', byId(items, 'run-entry').ok === true && byId(items, 'run-entry').soft === false)
   record('总判定为通过', overallOk(items) === true)
   record('没有待处理的硬判据', pendingHard(items).length === 0)
 }
@@ -100,7 +104,7 @@ console.log('\n5. 拿不到 connectedClients 时如实说拿不到（不是"通"
 console.log('\n6. 渲染：❌ 的那条要带上 ↳ 修法；✅ 的不啰嗦；软判据用 ⚠️')
 {
   const okLines = renderHealth(evaluateHealth(FACTS_OK))
-  record('全绿时 4 行', okLines.length === 4)
+  record('全绿时 5 行（新增 run-entry）', okLines.length === 5)
   record('全绿时没有 ↳', okLines.every((l) => !l.includes('↳')))
   record('全绿时每行 ✅', okLines.every((l) => l.startsWith('✅')))
 
@@ -224,6 +228,38 @@ console.log('\n4. finishBanner：没复检 ≠ 复检没过')
 
   const declined = finishBanner([{ id: 'dsh-up', ok: true, soft: false, label: 'A' }], { autoDeclined: 3 })
   record('★ 非交互下全按否 ⇒ 一律不算成功（退回 ⇒ 这里红）', declined.ok === false && declined.text.includes('什么都没装'))
+}
+
+console.log('\n★ 新增：运行中的插件 == profile 挂载的那份（治"自查全绿、实际在跑旧那份"的假绿）')
+{
+  const mount = '/Users/x/.dsh/plugins/dsh-web-companion/dsh-plugin/src/host/index.js'
+  // ① 两边一致 ⇒ 硬判据、绿
+  const same = evaluateHealth({ ...FACTS_OK, mountEntry: mount, ping: { reachable: true, paired: true, connectedClients: 1, pluginEntry: mount } })
+  record('★ 一致 ⇒ ok 且是硬判据', byId(same, 'run-entry').ok === true && byId(same, 'run-entry').soft === false)
+  record('★ 一致时把路径写出来（可核对）', byId(same, 'run-entry').detail.includes(mount))
+
+  // ② 不一致（挂载指向 A、实际加载 B）⇒ 硬失败 + 总判定失败 + 修法说"重启/重跑"
+  const other = '/Users/x/proj/dsh-plugin/src/host/index.js'
+  const mismatch = evaluateHealth({ ...FACTS_OK, mountEntry: mount, ping: { reachable: true, paired: true, connectedClients: 1, pluginEntry: other } })
+  record('★ 不一致 ⇒ ok=false', byId(mismatch, 'run-entry').ok === false)
+  record('★ 不一致是**硬**判据（不许被软判据掩盖）', byId(mismatch, 'run-entry').soft === false)
+  record('★ 不一致会让总判定失败', overallOk(mismatch) === false)
+  record('★ 不一致时把两边都摆出来', byId(mismatch, 'run-entry').detail.includes(mount) && byId(mismatch, 'run-entry').detail.includes(other))
+  record('★ 修法给出下一步（重启 DSH / 重跑本程序）', /重启 DSH/.test(byId(mismatch, 'run-entry').fix) && byId(mismatch, 'run-entry').fix.includes('重跑本程序'))
+
+  // ③ 旧版本插件不报这个字段 ⇒ **不许报红**（那不是用户的错），但也**不许报绿**
+  const old = evaluateHealth({ ...FACTS_OK, mountEntry: mount, ping: { reachable: true, paired: true, connectedClients: 1 } })
+  record('★ 插件没报加载路径（旧版本/未重启）⇒ 软判据', byId(old, 'run-entry').soft === true)
+  record('★ 且明说"重启后本判据才生效"', byId(old, 'run-entry').detail.includes('重启'))
+  record('★ 这种情形不影响总判定（不制造假红）', overallOk(old) === true)
+
+  // ④ 没有挂载行 ⇒ 同样判不了（软），并如实说
+  const noMount = evaluateHealth({ ...FACTS_OK, mountEntry: null, ping: { reachable: true, paired: true, connectedClients: 1, pluginEntry: mount } })
+  record('★ 没有挂载行 ⇒ 软判据且如实说"无法比对"', byId(noMount, 'run-entry').soft === true && byId(noMount, 'run-entry').detail.includes('无法比对'))
+
+  // ⑤ 插件没应答 ⇒ 判不了（隔壁 dsh-up 那条已经在报红，这里不重复报）
+  const down = evaluateHealth({ ...FACTS_OK, mountEntry: mount, ping: { reachable: false, paired: false, connectedClients: null } })
+  record('★ 插件没应答 ⇒ 本条软（由 dsh-up 那条报红，不重复计数）', byId(down, 'run-entry').soft === true)
 }
 
 const failed = Object.entries(results).filter(([, v]) => v !== true).map(([k]) => k)

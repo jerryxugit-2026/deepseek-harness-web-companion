@@ -52,6 +52,26 @@ export function parseNodeMajor(version) {
   return m === null ? null : Number(m[1])
 }
 
+/**
+ * 从 profile 挂载里的 `name:`（插件入口文件的绝对路径）反推**安装目录**。
+ *
+ * ★ 为什么需要（2026-09-14，用户实测"本机装了两份插件"之后）：安装目录有两种来源 ——
+ * "你解压出来的那个文件夹"（安装器的缺省）和"用户用 `--install-dir` 指定的别处"。
+ * 一旦是后者，任何"按包目录猜"的脚本都会去查**另一份**副本，于是出现"自查全绿、实际在跑旧那份"
+ * 的假绿。而**真相只有一处**：profile 挂载里 `name:` 的那一行 —— DSH 就是照它加载的。
+ *
+ * 约定：入口形如 `<安装目录>/dsh-plugin/src/host/index.js`（见 layout.pluginEntry）。
+ * 返回 null 表示这条路径不是我们认识的形态（别硬猜）。
+ */
+export function installDirFromEntry(entryPath) {
+  if (typeof entryPath !== 'string' || entryPath === '') return null
+  const norm = entryPath.split('\\').join('/')
+  const marker = '/dsh-plugin/'
+  const at = norm.lastIndexOf(marker)
+  if (at <= 0) return null
+  return norm.slice(0, at)
+}
+
 /** 把 3080 之类的端口号解析成正整数；非法则 null。 */
 export function parsePort(value) {
   const n = Number(value)

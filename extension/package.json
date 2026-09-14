@@ -1,6 +1,6 @@
 {
   "name": "dsh-web-companion-extension",
-  "version": "3.48.2",
+  "version": "3.49.0",
   "private": true,
   "type": "module",
   "description": "Chrome MV3 side panel that embeds the local DeepSeek Harness agent GUI (build produces dist/ + a size report)",

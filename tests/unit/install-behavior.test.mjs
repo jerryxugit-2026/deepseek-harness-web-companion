@@ -354,6 +354,49 @@ console.log('\n7. ★ doctor / uninstall 的缺省安装目录也必须 == 本�
   record('★ doctor 的缺省安装目录 == 本包目录', parsed !== null && parsed.installDir === ROOT)
   record('★ doctor 不再指向旧的 ~/.dsh/plugins/dsh-web-companion', doctorJson.includes('.dsh/plugins/dsh-web-companion') === false)
 
+  /*
+   * ★ 有挂载行时，缺省安装目录必须**跟着挂载行走**（2026-09-14）：DSH 按那一行加载插件，
+   * 那是"实际在用哪一份"的唯一真源。用一个临时 DSH_HOME 造出挂载行，断言 doctor 报的
+   * 安装目录/来源都跟着变 —— 退回"只按本包目录猜"就会红。
+   */
+  const mountHome = join(BASE, 'mount-home')
+  const mountedDir = join(BASE, 'mounted-install')
+  mkdirSync(join(mountHome, 'profiles', 'web'), { recursive: true })
+  mkdirSync(mountedDir, { recursive: true })
+  writeFileSync(join(mountHome, 'profiles', 'web', 'cordis.patch.yml'), [
+    '# >>> dsh-web-companion (managed by bootstrap/install.mjs — 不要手改这一块) >>>',
+    '- insert:',
+    '    - id: dsh-web-companion-bridge',
+    `      name: ${join(mountedDir, 'dsh-plugin', 'src', 'host', 'index.js')}`,
+    '# <<< dsh-web-companion <<<',
+    '',
+  ].join('\n'))
+  const mountedOut = (() => {
+    try {
+      return execFileSync(process.execPath, [join(ROOT, 'bootstrap', 'doctor.mjs'), '--json'], {
+        cwd: ROOT,
+        env: { ...process.env, HOME: mountHome, DSH_HOME: mountHome },
+        input: '', encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], timeout: 120000,
+      })
+    } catch (error) { return `${String(error?.stdout ?? '')}${String(error?.stderr ?? '')}` }
+  })()
+  let mounted = null
+  try { mounted = JSON.parse(mountedOut) } catch { mounted = null }
+  record('★ 有挂载行 ⇒ doctor 的安装目录跟着挂载行走（不是本包目录）', mounted !== null && mounted.installDir === mountedDir)
+  record('★ 并如实报出来源是 mount', mounted !== null && mounted.installDirSource === 'mount')
+  const explicitOut = (() => {
+    try {
+      return execFileSync(process.execPath, [join(ROOT, 'bootstrap', 'doctor.mjs'), '--json', '--install-dir', join(BASE, 'explicit')], {
+        cwd: ROOT,
+        env: { ...process.env, HOME: mountHome, DSH_HOME: mountHome },
+        input: '', encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], timeout: 120000,
+      })
+    } catch (error) { return `${String(error?.stdout ?? '')}${String(error?.stderr ?? '')}` }
+  })()
+  let explicit = null
+  try { explicit = JSON.parse(explicitOut) } catch { explicit = null }
+  record('★ --install-dir 显式给时优先于挂载行', explicit !== null && explicit.installDirSource === 'arg' && explicit.installDir === join(BASE, 'explicit'))
+
   const uninstallOut = run('uninstall.mjs')
   record('★ uninstall 的缺省安装目录 == 本包目录', uninstallOut.includes(ROOT))
   record('★ uninstall 不再指向旧目录', uninstallOut.includes('.dsh/plugins/dsh-web-companion') === false)
