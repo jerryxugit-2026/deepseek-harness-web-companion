@@ -3,25 +3,25 @@
     "limitBytes": 1048576,
     "metric": "dist/ total, uncompressed"
   },
-  "totalBytes": 159313,
+  "totalBytes": 159293,
   "gzipBytes": 399,
   "pass": true,
   "files": [
     {
       "path": "src/sw/index.js",
-      "bytes": 89243
+      "bytes": 89238
     },
     {
       "path": "src/sidepanel/panel.js",
-      "bytes": 57023
+      "bytes": 57018
     },
     {
       "path": "_locales/en/messages.json",
-      "bytes": 6492
+      "bytes": 6487
     },
     {
       "path": "src/sidepanel/panel.html",
-      "bytes": 2857
+      "bytes": 2852
     },
     {
       "path": "src/sidepanel/panel.css",

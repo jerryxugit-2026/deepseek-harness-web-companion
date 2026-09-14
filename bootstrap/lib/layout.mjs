@@ -232,6 +232,9 @@ export function installPayload() {
     'scripts/init-key.mjs',
     'scripts/check-dist-config.mjs',
     'package.json',
+    // ★ 许可证必须随发行包一起走（2026-09-14 补）：用户在 GitHub 下载的是源码包，
+    //   包里没有 LICENSE 等于没有授权。
+    'LICENSE',
     'package-lock.json',
   ]
 }

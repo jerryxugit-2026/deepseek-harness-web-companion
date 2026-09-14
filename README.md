@@ -1,4 +1,4 @@
-# DSH Web Companion
+# DSH Browser Companion
 
 ![The side panel: DSH connected, the four buttons (attach page / attach selection / browser control / write actions), and a captured page referenced in the chat as @文件](assets/panel.png)
 
@@ -151,7 +151,7 @@ The short version: **it all runs on your computer, and nothing happens without y
 You do **not** need the green `Code` button, and you do **not** need `git`. GitHub has a page made for
 exactly this: **Releases**. Here is what to click.
 
-1. **Open this page** — <https://github.com/jerryxugit-2026/deepseek-harness-web-companion/releases>
+1. **Open this page** — <https://github.com/jerryxugit-2026/dsh-web-companion/releases>
 
    (Or open the project page and click **Releases**, in the right-hand column.)
 
@@ -162,10 +162,10 @@ exactly this: **Releases**. Here is what to click.
    *(Ignore `Source code (tar.gz)` unless you know you want it; ignore everything above `Assets`.)*
 
 4. Find the downloaded file — usually in **Downloads** — and **double-click it** to unzip.
-   You get a folder whose name starts with `deepseek-harness-web-companion`.
+   You get a folder whose name starts with `dsh-web-companion`.
    Move it somewhere you will find again (your home folder is fine).
 
-*(Comfortable with git? `git clone https://github.com/jerryxugit-2026/deepseek-harness-web-companion.git`
+*(Comfortable with git? `git clone https://github.com/jerryxugit-2026/dsh-web-companion.git`
 gives you the same thing.)*
 
 **What you are downloading (and what you are not)**: only the project's own source. There is **no**
@@ -231,14 +231,14 @@ file, and Node answers `Cannot find module`. Let it type itself instead: type `n
 An absolute path also works from any directory:
 
 ```bash
-node /full/path/to/deepseek-harness-web-companion-3.47.3/bootstrap/install.mjs
+node /full/path/to/dsh-web-companion-3.49.1/bootstrap/install.mjs
 ```
 
 **The wizard will ask you two things before it does anything** — where to install the program, and
 where your DSH data lives. Both come with a sensible default, so **just press Enter twice**:
 
 ```
-? 本程序安装到哪个目录？ [/Users/you/Downloads/deepseek-harness-web-companion-3.47.3]   ← press Enter
+? 本程序安装到哪个目录？ [/Users/you/Downloads/dsh-web-companion-3.49.1]   ← press Enter
 ? DSH 数据目录（配对钥匙/凭据放这里）？ [/Users/you/.dsh]                            ← press Enter
 ```
 
@@ -280,7 +280,7 @@ operations; the two local channels are `/ag/agent` (extension) and `/ag/client` 
 ---
 
 <a id="中文"></a>
-# DSH Web Companion（中文）
+# DSH Browser Companion（中文）
 
 **English**（见上） · **中文**（本节） · [安装说明](./docs/13-installation.md) · [安装部署](./docs/13-安装部署.md)
 
@@ -409,7 +409,7 @@ operations; the two local channels are `/ag/agent` (extension) and `/ag/client` 
 **不要**点绿色的 `Code` 按钮，也**不需要** `git`。GitHub 有一个专门给这件事的页面叫 **Releases**。
 你要点的就是下面这几下：
 
-1. **打开这个页面** —— <https://github.com/jerryxugit-2026/deepseek-harness-web-companion/releases>
+1. **打开这个页面** —— <https://github.com/jerryxugit-2026/dsh-web-companion/releases>
 
    （或者打开项目主页，在**右侧栏**点 **Releases**。）
 
@@ -420,9 +420,9 @@ operations; the two local channels are `/ag/agent` (extension) and `/ag/client` 
    *（除非你明确知道自己要，否则**不要**选 `Source code (tar.gz)`；`Assets` 上面那些内容也都不用管。）*
 
 4. 找到刚下载的文件（通常在**下载**文件夹），**双击解压**。你会得到一个名字以
-   `deepseek-harness-web-companion` 开头的文件夹。把它挪到你找得到的地方（比如你的主目录）。
+   `dsh-web-companion` 开头的文件夹。把它挪到你找得到的地方（比如你的主目录）。
 
-*（熟悉 git 的话，`git clone https://github.com/jerryxugit-2026/deepseek-harness-web-companion.git`
+*（熟悉 git 的话，`git clone https://github.com/jerryxugit-2026/dsh-web-companion.git`
 拿到的是同一份东西。）*
 
 **你下载到的（以及没有下载到的）**：只有项目自己的源码。里面**没有** `node_modules`、**没有**预先构建好的扩展、
@@ -483,14 +483,14 @@ node bootstrap/install.mjs --apply  # 真装：每一步都会先问你
 用绝对路径也行（在任何目录下都能跑）：
 
 ```bash
-node /你的完整路径/deepseek-harness-web-companion-3.47.3/bootstrap/install.mjs
+node /你的完整路径/dsh-web-companion-3.49.1/bootstrap/install.mjs
 ```
 
 **向导在动手之前会问你两件事** —— 程序装到哪、DSH 数据目录在哪。两个都有合适的默认值，
 **直接按两次回车就行**：
 
 ```
-? 本程序安装到哪个目录？ [/Users/你/Downloads/deepseek-harness-web-companion-3.47.3]   ← 回车
+? 本程序安装到哪个目录？ [/Users/你/Downloads/dsh-web-companion-3.49.1]   ← 回车
 ? DSH 数据目录（配对钥匙/凭据放这里）？ [/Users/你/.dsh]             ← 回车
 ```
 

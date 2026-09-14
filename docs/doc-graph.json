@@ -40,7 +40,7 @@
     },
     {
       "path": "README.md",
-      "title": "DSH Web Companion",
+      "title": "DSH Browser Companion",
       "version": null,
       "lines": 526,
       "sections": 22,
@@ -177,8 +177,8 @@
       "path": "docs/CHANGELOG.md",
       "title": "变更记录（CHANGELOG）",
       "version": "v3.0",
-      "lines": 3076,
-      "sections": 58,
+      "lines": 3116,
+      "sections": 59,
       "codeRefs": 0,
       "docRefs": 1
     },
@@ -279,6 +279,15 @@
       "lines": 66,
       "sections": 6,
       "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
+      "path": "docs/releases/v3.49.1.md",
+      "title": "v3.49.1 — new name, and a license",
+      "version": null,
+      "lines": 58,
+      "sections": 6,
+      "codeRefs": 1,
       "docRefs": 0
     },
     {

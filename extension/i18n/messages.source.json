@@ -1,7 +1,7 @@
 {
   "extName": {
-    "en": "DeepSeek Browser Companion",
-    "zh_CN": "DeepSeek 浏览器插件"
+    "en": "DSH Browser Companion",
+    "zh_CN": "DSH Browser Companion"
   },
   "extDescription": {
     "en": "Chrome side panel that embeds the local DeepSeek Harness agent GUI and attaches the current page to it.",

@@ -35,8 +35,14 @@ const LOCALES = ['en', 'zh_CN']
  */
 const SHIPPED_LOCALES = ['en']
 
-/** 真有意让两种语言相同的 key 放这里（目前为空 —— 空的本身是个好信号）。 */
-const ALLOW_SAME = new Set([])
+/**
+ * 真有意让两种语言相同的 key 放这里。
+ *
+ * 2026-09-14 加了两条：`extName` / `extDescriptionShort` 这类**品牌名与固定称谓**在两种语言里
+ * 保持一致是有意的（"DSH Browser Companion" 不翻译）—— 改动时被本文件的"假翻译"门禁拦下，
+ * 于是按设计**显式登记**，而不是放宽判据：下面两条断言仍然会咬住任何"忘了翻译"的其它条目。
+ */
+const ALLOW_SAME = new Set(['extName'])
 
 /**
  * 「已抽取干净」的文件清单：这些文件里**不许再出现汉字字面量**。
@@ -112,8 +118,18 @@ console.log('\n2. ★ 假翻译门禁：两种语言必须真的不同（防"把
     .filter(([k, entry]) => !ALLOW_SAME.has(k) && entry.en === entry.zh_CN)
     .map(([k]) => k)
   record(`en 与 zh_CN 都不同的有 ${String(Object.keys(SOURCE).length - same.length)} 条（相同：${same.join(',') || '无'}）`, same.length === 0)
-  const zhUntranslated = Object.entries(SOURCE).filter(([, e]) => !CJK.test(e.zh_CN)).map(([k]) => k)
+  // 同样只豁免登记过的条目：其它任何"zh_CN 里没有汉字"的都还是要红
+  const zhUntranslated = Object.entries(SOURCE).filter(([k, e]) => !ALLOW_SAME.has(k) && !CJK.test(e.zh_CN)).map(([k]) => k)
   record(`★ zh_CN 里确实含汉字（可疑：${zhUntranslated.join(',') || '无'}）`, zhUntranslated.length === 0)
+  /*
+   * ★ 豁免名单自身的护栏（2026-09-14）：`ALLOW_SAME` 一旦被随手塞进一个**其实漏翻了**的 key，
+   * 上面两条门禁就静默失效。所以这里反过来要求：名单里的条目必须真实存在，且确实"两种语言一致" ——
+   * 谁想用它掩盖漏翻，先得把这一条也改掉（那已经是一次有意识的决定了）。
+   */
+  record('★ 豁免名单里的 key 都真实存在', [...ALLOW_SAME].every((k) => Object.hasOwn(SOURCE, k)))
+  record('★ 豁免名单里的条目确实是"两种语言一致"（豁免没被滥用）',
+    [...ALLOW_SAME].every((k) => SOURCE[k].en === SOURCE[k].zh_CN))
+  record('★ 豁免名单很小（>3 条就该重新审视）', ALLOW_SAME.size <= 3)
 }
 
 console.log('\n3. 生成物与源表一致（单源不漂移）')

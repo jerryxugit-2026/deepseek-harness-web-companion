@@ -5,6 +5,46 @@
 
 ---
 
+## v3.49.1 — 2026-09-14（改名去掉完整商标 + 补 MIT LICENSE）
+
+**触发**：要给 DeepSeek 官方写邮件（插件介绍 + 上游性能问题报告），发信前对照了 DSH 仓库里的
+`BRAND_GUIDELINES.zh.md`：描述性文字里可以写"基于 DeepSeek Harness 构建"，但**项目命名建议用缩写
+DSH，应避免在项目名里直接使用完整的 "DeepSeek Harness" 商标**。本仓库原来两处都不合规，先改正再发信。
+
+### 1. 改名
+
+| | 原 | 现 |
+|---|---|---|
+| GitHub 仓库 | `deepseek-harness-web-companion` | **`dsh-web-companion`** |
+| 扩展显示名 | `DeepSeek Browser Companion` | **`DSH Browser Companion`** |
+| README 标题 | `DSH Web Companion` | **`DSH Browser Companion`**（与扩展名统一） |
+
+- 扩展 ID **不变**（由 manifest 里钉死的 `key` 决定，已核对构建产物）⇒ 已加载扩展的用户不用重新配对。
+- GitHub 会对旧仓库地址做 301 跳转（仓库页、release 页、`archive` 下载链接都包括），所以旧链接不会失效。
+- 扩展名走 i18n 单源：改 `extension/i18n/messages.source.json` 后跑 `npm run i18n:codegen`（58 条文案，
+  只发布 `en`）；`extension/src/sidepanel/panel.html` 的 `<title>` 同步。
+
+### 2. 补 MIT LICENSE（与 DSH 一致）
+
+- 新增 `LICENSE`（MIT，Copyright (c) 2026 徐子阳 / jerryxugit-2026）。
+- 三个 `package.json`（根、`dsh-plugin`、`extension`）都加 `license: MIT`；根 package.json 补
+  `repository` / `homepage`（指向新仓库地址）。
+- ★ **`installPayload()` 加上 `LICENSE`**：用户从 GitHub 下载的是源码包，清单是显式白名单 ——
+  不把 LICENSE 放进去，等于发出去的包里没有授权（这是补许可证时最容易漏的一步）。
+- 新增门禁断言：`installPayload()` 必须包含 `LICENSE`（见 v3.49.1 的单测变更）。
+
+### 3. 文档
+
+`README.md` 里 6 处仓库地址、2 处产品名、以及停留在 `3.47.3` 的路径示例（改为 `3.49.1`）已更新；
+`docs/github experience.md`（本地参考，含密钥、不进发行包）同步。**已发布的历史 release 说明不动** ——
+那是历史记录。
+
+### 4. 功能无变化
+
+除名称、许可证与文档外，代码行为零改动。门禁全绿（`npm run check`）。
+
+---
+
 ## v3.49.0 — 2026-09-14（治"doctor 自查全绿、实际在跑旧那份"的假绿）
 
 **触发**：把本机的伴侣插件从旧目录的 **0.1.0** 升级到 3.48.2 时发现 —— 这台机器上**同时存在两份安装**：

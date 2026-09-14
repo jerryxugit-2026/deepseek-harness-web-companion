@@ -1,6 +1,6 @@
 {
   "name": "dsh-web-companion-bridge",
-  "version": "3.49.0",
+  "version": "3.49.1",
   "private": true,
   "description": "DSH Web Companion bridge: host half (/ag/* routes + browser_* tools) and client half (composer intent sniffing, context chips)",
   "type": "module",
@@ -22,5 +22,6 @@
     "@deepseek-ai/dsh-credentials": "0.1.2-rc.1",
     "@deepseek-ai/dsh-tools": "0.1.2-rc.1",
     "ws": "^8.21.0"
-  }
+  },
+  "license": "MIT"
 }

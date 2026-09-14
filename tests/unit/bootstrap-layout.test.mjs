@@ -193,6 +193,21 @@ console.log('\n8. ★ 源码门禁：bootstrap/lib 里不许出现绝对路径�
   record(`0 个绝对路径字面量（发现 ${String(offenders.length)} 处）${offenders.length > 0 ? ` → ${offenders.join('；')}` : ''}`, offenders.length === 0)
 }
 
+console.log('\n★ 发行清单：许可证必须随包走（2026-09-14 补 MIT 时加的护栏）')
+{
+  const payload = installPayload()
+  record('★ 清单里必须有 LICENSE —— 否则用户从 GitHub 下载的源码包里没有授权', payload.includes('LICENSE'))
+  const license = readFileSync(join(ROOT, 'LICENSE'), 'utf8')
+  record('LICENSE 是 MIT 全文', license.includes('MIT License') && license.includes('WITHOUT WARRANTY'))
+  /*
+   * ★ 按**路径段**判断，不用子串（2026-09-14 自己踩到）：`scripts/check-dist-config.mjs`
+   * 的文件名里含 "dist"，用 `includes` 会把它误判成"发行包里带了 dist" —— 假红。
+   * 判据要精确到"某一层目录名恰好是 node_modules / dist"。
+   */
+  record('★ 清单里不许有 node_modules / dist 目录（发行包保持轻）',
+    payload.every((x) => !x.split('/').includes('node_modules') && !x.split('/').includes('dist')))
+}
+
 console.log('\n★ installDirFromEntry：从 profile 挂载行反推安装目录（2026-09-14 新增）')
 {
   record('标准形态', installDirFromEntry('/Users/x/.dsh/plugins/wc/dsh-plugin/src/host/index.js') === '/Users/x/.dsh/plugins/wc')

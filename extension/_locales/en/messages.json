@@ -1,6 +1,6 @@
 {
   "extName": {
-    "message": "DeepSeek Browser Companion"
+    "message": "DSH Browser Companion"
   },
   "extDescription": {
     "message": "Chrome side panel that embeds the local DeepSeek Harness agent GUI and attaches the current page to it."

@@ -10,7 +10,7 @@ export const DEFAULT_LOCALE = 'en'
 /** 全部语言包（key → 文案）。 */
 export const MESSAGES = {
   "en": {
-    "extName": "DeepSeek Browser Companion",
+    "extName": "DSH Browser Companion",
     "extDescription": "Chrome side panel that embeds the local DeepSeek Harness agent GUI and attaches the current page to it.",
     "statusTitle": "DSH status",
     "statusPreparing": "Preparing…",
