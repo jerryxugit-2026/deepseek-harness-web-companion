@@ -177,8 +177,8 @@
       "path": "docs/CHANGELOG.md",
       "title": "变更记录（CHANGELOG）",
       "version": "v3.0",
-      "lines": 2752,
-      "sections": 52,
+      "lines": 2777,
+      "sections": 53,
       "codeRefs": 0,
       "docRefs": 1
     },
@@ -223,6 +223,15 @@
       "title": "v3.47.1 — 发布包更干净，说明更好懂",
       "version": null,
       "lines": 59,
+      "sections": 6,
+      "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
+      "path": "docs/releases/v3.47.2.md",
+      "title": "v3.47.2 — 装在你解压的那个文件夹里",
+      "version": null,
+      "lines": 55,
       "sections": 6,
       "codeRefs": 0,
       "docRefs": 0

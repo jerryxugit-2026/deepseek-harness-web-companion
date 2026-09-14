@@ -68,7 +68,7 @@ if (flag('help') || flag('h')) {
   node bootstrap/install.mjs --apply --yes    # 真的安装，不再逐项询问
 
 可选：
-  --install-dir <路径>   安装到哪（默认 ${defaultInstallDir(homedir())}；**不给就会问你一次**）
+  --install-dir <路径>   安装到哪（默认：**你运行它的这个文件夹**；不给就会问你一次，直接回车即可）
   --dsh-home <路径>      DSH 数据目录（默认 $DSH_HOME 或 ${join(homedir(), '.dsh')}；**不给就会问你一次**）
   --port <端口>          DSH 端口（默认 ${String(DEFAULT_PORT)}）
   --dsh-version <版本>   要钉的 DSH 版本（默认用你已装的那个；**不要用 latest**）
@@ -97,7 +97,12 @@ const homeDir = homedir()
 // （2026-09-13 修；PiMoa 片 A 第 15 条）—— 空值必须当成"没给"，才会走"问你一次"。
 const installDirArg = argOf('install-dir', null) || null
 const dshHomeArg = argOf('dsh-home', null) || null
-const defaultInstallDirPath = resolve(defaultInstallDir(homeDir))
+/*
+ * ★ 缺省安装目录 = **你解压出来的这个文件夹本身**（用户 2026-09-13 明确要求：
+ * 「我解压在哪个目录, 程序就应该缺省安装在哪个目录, 不要你自己设置一个目录」）。
+ * 命令行给了 --install-dir 仍然优先；没给时下面会问你一次，默认值就是这个。
+ */
+const defaultInstallDirPath = ROOT
 const defaultDshHomePath = resolve(process.env.DSH_HOME?.trim() || join(homeDir, '.dsh'))
 const port = parsePort(argOf('port', DEFAULT_PORT)) ?? DEFAULT_PORT
 /** 要钉的 DSH 版本：优先命令行，其次已装的那个（避免把用户的 DSH 降级/升级到别处）。 */
@@ -407,8 +412,18 @@ if (await w.confirm('创建这个目录？')) {
   die(4)
 }
 
-step(2, '复制源码（依赖不复制，稍后下载）')
+/*
+ * ★ 原地安装（安装目录就是本目录）时**整段跳过复制**。
+ * 原因：原来的复制是"先 rm -rf 再把源码拷过去"，源与目标同路径时它会**先删掉源码**、
+ * 再试图从已删掉的路径复制 —— 直接把用户解压出来的包毁掉（默认值改成 ROOT 之后这条是
+ * **安全前提**，不是可选优化）。原地安装时源码本来就在位，无需复制、也无需删除。
+ */
+const inPlace = resolve(layout.installDir) === resolve(ROOT)
+step(2, inPlace ? '复制源码（原地安装：源码已在本目录，跳过）' : '复制源码（依赖不复制，稍后下载）')
 {
+  if (inPlace) {
+    w.detail(`安装目录就是本目录（${ROOT}）—— 源码已在此，不复制、也不删除任何东西`)
+  } else {
   const items = installPayload()
   for (const rel of items) w.detail(`${rel} → ${join(layout.installDir, rel)}`)
   if (await w.confirm(`复制以上 ${String(items.length)} 项？`)) {
@@ -430,6 +445,7 @@ step(2, '复制源码（依赖不复制，稍后下载）')
         filter: (s) => installPayloadFilter(relative(ROOT, s).split(sep).join('/')),
       })
     }
+  }
   }
 }
 

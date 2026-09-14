@@ -1,6 +1,6 @@
 {
   "name": "dsh-web-companion",
-  "version": "3.47.1",
+  "version": "3.47.2",
   "private": true,
   "description": "DSH Web Companion — Chrome side panel that embeds the local DeepSeek Harness agent GUI and attaches pages to it",
   "type": "module",
