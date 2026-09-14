@@ -155,7 +155,7 @@ exactly this: **Releases**. Here is what to click.
 
    (Or open the project page and click **Releases**, in the right-hand column.)
 
-2. You will see an entry titled **v3.47.0 — first public release**. **Click that title.**
+2. You will see the newest entry at the top (currently **v3.47.1**). **Click its title.**
 
 3. On that page, **scroll to the very bottom** — the last section is called **Assets**.
    Under it, click the one that says **`Source code (zip)`**. A `.zip` file starts downloading.
@@ -210,6 +210,19 @@ An absolute path also works from any directory:
 ```bash
 node /full/path/to/deepseek-harness-web-companion-3.47.1/bootstrap/install.mjs
 ```
+
+**The wizard will ask you two things before it does anything** — where to install the program, and
+where your DSH data lives. Both come with a sensible default, so **just press Enter twice**:
+
+```
+? 本程序安装到哪个目录？ [/Users/you/.dsh/plugins/dsh-web-companion]   ← press Enter
+? DSH 数据目录（配对钥匙/凭据放这里）？ [/Users/you/.dsh]             ← press Enter
+```
+
+(The two prompts are in Chinese — the installer is a terminal program written for this project. The
+default install folder sits inside `~/.dsh`, next to your DSH settings, which is where it belongs.
+**Do not** point it at the folder you unzipped: that is just the source you downloaded, and the wizard
+adds `node_modules`, a built extension and a launcher to the install folder it owns.)
 
 Then, once:
 
@@ -374,7 +387,7 @@ operations; the two local channels are `/ag/agent` (extension) and `/ag/client` 
 
    （或者打开项目主页，在**右侧栏**点 **Releases**。）
 
-2. 你会看到一条标题为 **v3.47.0 — first public release** 的记录，**点这个标题**。
+2. 你会看到**最上面那一条**（当前是 **v3.47.1**），**点它的标题**。
 
 3. 进去后**拉到页面最下面**，最后一块区域叫 **Assets**。在它下面点 **`Source code (zip)`**
    那一项，浏览器就开始下载一个 `.zip`。
@@ -425,6 +438,17 @@ node bootstrap/install.mjs --apply  # 真装：每一步都会先问你
 ```bash
 node /你的完整路径/deepseek-harness-web-companion-3.47.1/bootstrap/install.mjs
 ```
+
+**向导在动手之前会问你两件事** —— 程序装到哪、DSH 数据目录在哪。两个都有合适的默认值，
+**直接按两次回车就行**：
+
+```
+? 本程序安装到哪个目录？ [/Users/你/.dsh/plugins/dsh-web-companion]   ← 回车
+? DSH 数据目录（配对钥匙/凭据放这里）？ [/Users/你/.dsh]             ← 回车
+```
+
+（默认安装目录在 `~/.dsh` 里、和你的 DSH 设置放在一起 —— 它就该在那儿。**不要**装进你解压出来的那个
+文件夹：那只是你下载的源码；向导会往它自己的安装目录里放 `node_modules`、构建出的扩展和拉起器。）
 
 然后一次性的事：
 
