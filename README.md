@@ -11,6 +11,16 @@ translates, clicks, collects things from several tabs into one place.
 It runs on **your own computer** (through DeepSeek Harness). Nothing is sent to a third-party
 browser service.
 
+**What you actually do — three things, nothing else:**
+
+1. **Download and unzip it** — see *Step 1* below.
+2. **Run two commands** in the Terminal — the wizard asks you before every change, and asks for your
+   DeepSeek API key once.
+3. **Load the extension in Chrome** — the wizard tells you exactly which folder to pick.
+
+Everything else — *including building the extension* — the wizard does for you. No compiler, no Xcode,
+no developer tools: only **Node 22 or newer**.
+
 ---
 
 ## Background: why I built this
@@ -228,6 +238,15 @@ operations; the two local channels are `/ag/agent` (extension) and `/ag/client` 
 填表、翻译、点击、把好几个标签页里的东西收拢到一处。
 
 它跑在**你自己的电脑上**（通过 DeepSeek Harness），网页不需要交给任何第三方的浏览器服务。
+
+**你实际要做的 —— 只有 3 件事：**
+
+1. **下载并解压** —— 见下面「第一步」。
+2. **在终端运行两条命令** —— 向导每改一处都会先问你，并会问你一次 DeepSeek API key。
+3. **在 Chrome 里加载扩展** —— 向导会告诉你具体该选哪个文件夹。
+
+其余全部（**包括构建扩展**）都由向导自己做。不需要编译器、不需要 Xcode、不需要开发者工具，
+**只需要装好 Node 22 或更高版本**。
 
 ---
 
