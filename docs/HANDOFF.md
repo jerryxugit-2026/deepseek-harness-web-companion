@@ -117,7 +117,7 @@ dsh web                         # 起 DSH
 
 | 阻力 | 事实（源码/实测） | 影响 |
 |---|---|---|
-| **插件挂载是用户 profile 里的绝对路径** | `/Users/mac/.dsh/profiles/web/cordis.patch.yml` 里 `name: '<绝对路径>/dsh-plugin/src/host/index.js'` | 安装器必须把插件放到**稳定安装目录**（如 `~/.dsh/plugins/dsh-web-companion/`）并改这一行；升级时要防止路径漂移 |
+| **插件挂载是用户 profile 里的绝对路径** | `/Users/mac/.dsh/profiles/web/cordis.patch.yml` 里 `name: '<绝对路径>/dsh-plugin/src/host/index.js'` | 安装器把插件装在**用户解压出来的那个目录**（2026-09-13 用户要求；原地安装时源码不动、跳过复制）并改这一行；升级时要防止路径漂移 |
 | **扩展 ID 由 `manifest.json` 的 `key` 决定** | `native-host/install.mjs#extensionIdFromKey` 从 `key` 推导 ID，写进 host 清单的 `allowed_origins`；配对文件里也要登记同一个 `chrome-extension://<id>` | 换 key ⇒ ID 变 ⇒ native host 清单、配对文件、文档、探针都要同步（**上一轮有过私钥外发事故，用户明确决定"不轮换 key"**，所以英文版是否复用同一 key 要问用户） |
 | **Chrome 不允许静默装扩展** | Chrome 137+ 忽略 `--load-extension`（探针改走 CDP `Extensions.loadUnpacked`）；`loadUnpacked` 要求**路径不含空格**（探针因此先把 dist 拷到 `/tmp`） | 真正的"一键"要么走 **Chrome Web Store**，要么走**企业策略强制安装**，要么用**启动器**（自己起 Chrome 并带扩展）。三条路的取舍必须先跟用户定 |
 | **native host 清单要落到 Chrome 的目录** | `~/Library/Application Support/Google/Chrome/NativeMessagingHosts/com.dsh.web_companion.json`（`native-host/install.mjs` 写） | macOS 上还好；跨平台（Linux `~/.config/google-chrome/NativeMessagingHosts`、Windows 注册表）需要分支 |

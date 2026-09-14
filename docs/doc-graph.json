@@ -42,7 +42,7 @@
       "path": "README.md",
       "title": "DSH Web Companion",
       "version": null,
-      "lines": 477,
+      "lines": 482,
       "sections": 14,
       "codeRefs": 3,
       "docRefs": 2
@@ -177,8 +177,8 @@
       "path": "docs/CHANGELOG.md",
       "title": "变更记录（CHANGELOG）",
       "version": "v3.0",
-      "lines": 2777,
-      "sections": 53,
+      "lines": 2818,
+      "sections": 54,
       "codeRefs": 0,
       "docRefs": 1
     },
@@ -234,6 +234,15 @@
       "lines": 55,
       "sections": 6,
       "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
+      "path": "docs/releases/v3.47.3.md",
+      "title": "v3.47.3 — the plan now tells the truth about in-place installs",
+      "version": null,
+      "lines": 49,
+      "sections": 4,
+      "codeRefs": 1,
       "docRefs": 0
     },
     {

@@ -40,7 +40,7 @@ export const name = 'dsh-web-companion-bridge'
 export const inject = ['webServer', 'credentials', 'tools']
 
 export { PROTOCOL_VERSION }
-export const PLUGIN_VERSION = '3.47.2'
+export const PLUGIN_VERSION = '3.47.3'
 
 /** How long a loaded pairing file is trusted before it is re-read. */
 const PAIRING_TTL_MS = 5000

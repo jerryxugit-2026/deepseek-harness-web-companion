@@ -155,7 +155,7 @@ exactly this: **Releases**. Here is what to click.
 
    (Or open the project page and click **Releases**, in the right-hand column.)
 
-2. You will see the newest entry at the top (currently **v3.47.1**). **Click its title.**
+2. You will see the newest entry at the top (currently **v3.47.3**). **Click its title.**
 
 3. On that page, **scroll to the very bottom** — the last section is called **Assets**.
    Under it, click the one that says **`Source code (zip)`**. A `.zip` file starts downloading.
@@ -208,21 +208,24 @@ file, and Node answers `Cannot find module`. Let it type itself instead: type `n
 An absolute path also works from any directory:
 
 ```bash
-node /full/path/to/deepseek-harness-web-companion-3.47.1/bootstrap/install.mjs
+node /full/path/to/deepseek-harness-web-companion-3.47.3/bootstrap/install.mjs
 ```
 
 **The wizard will ask you two things before it does anything** — where to install the program, and
 where your DSH data lives. Both come with a sensible default, so **just press Enter twice**:
 
 ```
-? 本程序安装到哪个目录？ [/Users/you/.dsh/plugins/dsh-web-companion]   ← press Enter
-? DSH 数据目录（配对钥匙/凭据放这里）？ [/Users/you/.dsh]             ← press Enter
+? 本程序安装到哪个目录？ [/Users/you/Downloads/deepseek-harness-web-companion-3.47.3]   ← press Enter
+? DSH 数据目录（配对钥匙/凭据放这里）？ [/Users/you/.dsh]                            ← press Enter
 ```
 
-(The two prompts are in Chinese — the installer is a terminal program written for this project. The
-default install folder sits inside `~/.dsh`, next to your DSH settings, which is where it belongs.
-**Do not** point it at the folder you unzipped: that is just the source you downloaded, and the wizard
-adds `node_modules`, a built extension and a launcher to the install folder it owns.)
+(The two prompts are in Chinese — the installer is a terminal program written for this project.
+
+**It installs into the folder you unzipped — that is the default, and it is safe.** The wizard keeps
+the sources where they are and adds what it needs next to them (`node_modules`, the built extension,
+a launcher). So the program lives in a folder you can see and delete, instead of scattering itself
+somewhere you would have to hunt for. If you would rather put it elsewhere, pass `--install-dir <path>`
+or type a path at that prompt.)
 
 Then, once:
 
@@ -387,7 +390,7 @@ operations; the two local channels are `/ag/agent` (extension) and `/ag/client` 
 
    （或者打开项目主页，在**右侧栏**点 **Releases**。）
 
-2. 你会看到**最上面那一条**（当前是 **v3.47.1**），**点它的标题**。
+2. 你会看到**最上面那一条**（当前是 **v3.47.3**），**点它的标题**。
 
 3. 进去后**拉到页面最下面**，最后一块区域叫 **Assets**。在它下面点 **`Source code (zip)`**
    那一项，浏览器就开始下载一个 `.zip`。
@@ -436,19 +439,21 @@ node bootstrap/install.mjs --apply  # 真装：每一步都会先问你
 用绝对路径也行（在任何目录下都能跑）：
 
 ```bash
-node /你的完整路径/deepseek-harness-web-companion-3.47.1/bootstrap/install.mjs
+node /你的完整路径/deepseek-harness-web-companion-3.47.3/bootstrap/install.mjs
 ```
 
 **向导在动手之前会问你两件事** —— 程序装到哪、DSH 数据目录在哪。两个都有合适的默认值，
 **直接按两次回车就行**：
 
 ```
-? 本程序安装到哪个目录？ [/Users/你/.dsh/plugins/dsh-web-companion]   ← 回车
+? 本程序安装到哪个目录？ [/Users/你/Downloads/deepseek-harness-web-companion-3.47.3]   ← 回车
 ? DSH 数据目录（配对钥匙/凭据放这里）？ [/Users/你/.dsh]             ← 回车
 ```
 
-（默认安装目录在 `~/.dsh` 里、和你的 DSH 设置放在一起 —— 它就该在那儿。**不要**装进你解压出来的那个
-文件夹：那只是你下载的源码；向导会往它自己的安装目录里放 `node_modules`、构建出的扩展和拉起器。）
+（**它就装在你解压出来的那个文件夹里 —— 这是缺省值，而且是安全的。** 向导把源码留在原地，
+只把需要的东西加到旁边（`node_modules`、构建出的扩展、拉起器）。这样程序就在一个你看得见、删得掉的
+文件夹里，而不是散落到某个你还得去找的地方。想装到别处，就加 `--install-dir <路径>`，或者在那个
+提示处直接输入路径。）
 
 然后一次性的事：
 

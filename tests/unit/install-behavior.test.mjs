@@ -120,6 +120,53 @@ console.log('\n3. ★ --apply 但非交互且没给 --yes：一个字节都不�
   record('确实没走到安装步骤（计划里那句"dry-run 结束"不该出现）', r.out.includes('dry-run 结束') === false)
 }
 
+console.log('\n4. ★ 缺省安装目录 = 你解压出来的这个文件夹（用户 2026-09-13 要求）；原地安装不删源码')
+{
+  /*
+   * 不给 --install-dir ⇒ 缺省值必须就是**本包所在目录**（bootstrap/ 的上一级）。
+   * 非交互（stdin 是管道）⇒ 就算触发"问你装到哪"也立刻返回缺省值，不会挂住。
+   */
+  const runNoInstallDir = () => {
+    const home = join(BASE, 'inplace', 'home')
+    const dshHome = join(BASE, 'inplace', 'dsh')
+    let out = ''
+    let code = 0
+    let spawnFailed = false
+    try {
+      out = execFileSync(process.execPath, [INSTALLER, '--dsh-home', dshHome], {
+        cwd: ROOT,
+        env: { ...process.env, HOME: home, DSH_HOME: dshHome },
+        input: '',
+        encoding: 'utf8',
+        stdio: ['pipe', 'pipe', 'pipe'],
+        timeout: 180000,
+      })
+    } catch (error) {
+      spawnFailed = typeof error?.status !== 'number'
+      code = error?.status ?? 1
+      out = `${String(error?.stdout ?? '')}${String(error?.stderr ?? '')}`
+    }
+    return { home, dshHome, out, code, spawnFailed }
+  }
+
+  const inPlace = runNoInstallDir()
+  record('原地分支：进程真的跑起来了', inPlace.spawnFailed === false)
+  record('★ 缺省安装目录 == 本包目录（而不是 ~/.dsh/plugins/...）', inPlace.out.includes(`安装目录   ${ROOT}`))
+  record('★ 计划如实说"沿用本目录（原地安装）"', inPlace.out.includes('沿用本目录'))
+  record('★ 计划如实说"复制源码          跳过"', inPlace.out.includes('复制源码          跳过'))
+  record('dry-run 下临时 HOME / DSH 数据目录都没被创建', existsSync(inPlace.home) === false && existsSync(inPlace.dshHome) === false)
+
+  /*
+   * ★ 反向断言（防硬编码骗过上面几条）：显式给**别的**目录时，必须走
+   * "创建安装目录 + 复制源码 N 项"，且**绝不能**出现"沿用本目录"。
+   */
+  const elsewhere = runInstaller('elsewhere', [])
+  record('异地分支：进程真的跑起来了', elsewhere.spawnFailed === false)
+  record('★ 显式 --install-dir 时不说"沿用本目录"', elsewhere.out.includes('沿用本目录') === false)
+  record('★ 显式 --install-dir 时计划为"创建安装目录"', elsewhere.out.includes('创建安装目录'))
+  record('★ 显式 --install-dir 时计划为"复制源码 N 项"', /复制源码\s+\d+ 项/.test(elsewhere.out))
+}
+
 rmSync(BASE, { recursive: true, force: true })
 
 const failed = Object.entries(results).filter(([, v]) => v !== true).map(([k]) => k)

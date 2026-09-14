@@ -345,6 +345,16 @@ const checks = [
 ]
 const verdict = summarize(checks)
 
+/*
+ * ★ 安装目录 == 本目录 ⇒ **原地安装**：源码已在位，不复制、更不删除。
+ * 放在"计划"之前，好让 dry-run 就能如实显示会/不会做什么（也便于回归测试观察这个分支）。
+ *
+ * 为什么必须有这个分支：原来的复制是"先 rm -rf 目标、再 cp 源码过去"，源与目标同路径时
+ * 它会**先删掉源码**、再从已删掉的路径复制 —— 直接毁掉用户解压出来的包。缺省安装目录改成
+ * ROOT 之后这条成了常规路径，所以它是**安全前提**，不是可选优化。
+ */
+const inPlace = resolve(layout.installDir) === resolve(ROOT)
+
 /* ─────────────────────────── 计划 ─────────────────────────── */
 
 w.info('════════════════════════════════════════════════════════════')
@@ -368,8 +378,8 @@ if (verdict.blockers.length > 0) {
 }
 
 w.info(' 将要写入 / 改动的东西')
-w.info(`   ① 创建安装目录      ${layout.installDir}`)
-w.info(`   ② 复制源码          ${String(installPayload().length)} 项（不含 node_modules、不含 dist —— 发行包保持轻）`)
+w.info(inPlace ? '   ① 安装目录          沿用本目录（原地安装）' : `   ① 创建安装目录      ${layout.installDir}`)
+w.info(inPlace ? '   ② 复制源码          跳过（源码已在本目录，不复制也不删除）' : `   ② 复制源码          ${String(installPayload().length)} 项（不含 node_modules、不含 dist —— 发行包保持轻）`)
 w.info(`   ③ 准备 DSH          ${dshPath === null ? `**缺** ⇒ 将安装 @deepseek-ai/dsh@${targetDshVersion}（钉版本，不用 latest）` : `已装，跳过（${dshPath}）`}`)
 w.info(`      接上插件依赖      ${layout.pluginDir}/node_modules → 你的 DSH（优先链接、版本自动一致；DSH 里真缺了才下载 ws）`)
 w.info(`   ④ 准备 esbuild      ${join(layout.installDir, 'extension')}（只有它要下载，约 11MB）`)
@@ -412,13 +422,6 @@ if (await w.confirm('创建这个目录？')) {
   die(4)
 }
 
-/*
- * ★ 原地安装（安装目录就是本目录）时**整段跳过复制**。
- * 原因：原来的复制是"先 rm -rf 再把源码拷过去"，源与目标同路径时它会**先删掉源码**、
- * 再试图从已删掉的路径复制 —— 直接把用户解压出来的包毁掉（默认值改成 ROOT 之后这条是
- * **安全前提**，不是可选优化）。原地安装时源码本来就在位，无需复制、也无需删除。
- */
-const inPlace = resolve(layout.installDir) === resolve(ROOT)
 step(2, inPlace ? '复制源码（原地安装：源码已在本目录，跳过）' : '复制源码（依赖不复制，稍后下载）')
 {
   if (inPlace) {
