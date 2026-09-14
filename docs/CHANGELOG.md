@@ -5,6 +5,57 @@
 
 ---
 
+## v3.48.2 — 2026-09-14（远端实测抓到的真 bug：doctor / uninstall 还指着旧的缺省安装目录）
+
+**触发**：把安装向导当成"人类在真机上装一遍"来测（远端 Mac mini，解压到 `/Volumes/Ex/ai_workspace/`，
+原地安装）。11 步全部跑通、`/ag/ping` 已配对，但**自查脚本报假红**：
+
+```
+D  /Volumes/Ex/ai_workspace/deepseek-harness-web-companion-3.48.0
+✅ 本插件在本机 3080 端口应答（/ag/ping） —— 是
+✅ 插件已加载并配对（/ag/ping → paired） —— 是
+❌ 扩展产物端口 == 真实配对端口 —— 未检查
+      ↳ 缺 /Users/apexmini/.dsh/plugins/dsh-web-companion/scripts/check-dist-config.mjs
+        （安装不完整）—— 重跑本引导程序补上
+doctor 真实 exit=1
+```
+
+### 根因：同一件事有两个真源
+
+- 安装器从 v3.47.2 起的缺省安装目录是「**你解压出来的那个文件夹**」（用户明确要求）；
+- 但 `bootstrap/doctor.mjs:34` 与 `bootstrap/uninstall.mjs:39` 仍在用
+  `defaultInstallDir(homeDir)` = 旧的 `~/.dsh/plugins/dsh-web-companion`。
+
+后果：原地安装之后，`doctor` 去旧路径找 `scripts/check-dist-config.mjs`，找不到就判"安装不完整"、
+**叫用户重跑引导程序**（安装其实是完整的 —— 假红 + 误导，且退出码 1）；`uninstall` 则会去删一个
+不存在（更糟：不该删）的目录。
+
+### 修
+
+- `doctor.mjs` / `uninstall.mjs` 的缺省值统一改成**本包所在的目录**（`resolve(dirname(fileURLToPath(import.meta.url)), '..')`），
+  与安装器完全一致；装在别处时用 `--install-dir` 显式给出。
+- **删除** `bootstrap/lib/layout.mjs` 的 `defaultInstallDir()` —— 旧缺省目录这个概念从此只剩一个真源。
+- 顺手修掉一处**只有跑起来才会暴露**的接线问题：`install.mjs` 还在导入 `defaultInstallDir`
+  （`node --check` 不解析导入，所以静态检查发现不了）。
+
+### 门禁
+
+`tests/unit/install-behavior.test.mjs` 第 7 节（5 条）：跑 `doctor.mjs --json` 与 `uninstall.mjs`，
+断言两者的缺省安装目录 **== 本包目录**、且**不再**出现旧路径。
+**验真**：把 `doctor.mjs` 的缺省值退回旧写法 ⇒ 立刻 **2 条变红**；恢复后 47 条全绿。
+
+### 远端实测（3.48.0 全程）
+
+- 解压 → dry run（依赖报告正确列出 DSH / 插件依赖 / esbuild 三项缺失 + 可复制命令，未写任何文件）
+- 按报告装 `@deepseek-ai/dsh@0.1.5-rc.2`（→ `/opt/homebrew/bin/dsh`）与 `esbuild`（→ 包内 `extension/`）
+- `--apply --yes`：11 步全过（原地安装、3 个依赖符号链接、配对钥匙、扩展构建、native host 清单、
+  profile 挂载）；`exit=5` 是因为 DSH 还没启动，属**预期**
+- 启动 `dsh web` 后 `/ag/ping` ⇒ `paired: true`、`trustedOrigins: 1`、插件版本 3.48.0
+
+### 版本号 3.48.2（5 处）
+
+---
+
 ## v3.48.1 — 2026-09-13（Pimoa 复核后的修正：3 条 MAJOR + 若干 MINOR）
 
 **背景**：v3.48.0 的依赖层改动经 Pimoa `moa_verify` 复核（`quorum=2/2`，报告在

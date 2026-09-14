@@ -34,7 +34,6 @@ import { fileURLToPath } from 'node:url'
 import {
   DEFAULT_PORT,
   PLUGIN_ID,
-  defaultInstallDir,
   installPayload,
   installPayloadFilter,
   parsePort,

@@ -34,10 +34,12 @@ export const DEFAULT_PORT = 3080
 /** 本插件运行所需的最低 Node 主版本。 */
 export const MIN_NODE_MAJOR = 22
 
-/** 默认建议的安装目录（用户可以在引导程序里改）。 */
-export function defaultInstallDir(homeDir, platform = process.platform) {
-  return pathFor(platform).join(homeDir, '.dsh', 'plugins', 'dsh-web-companion')
-}
+/*
+ * ★ 2026-09-14 删除 `defaultInstallDir()`（旧的 `~/.dsh/plugins/dsh-web-companion`）：
+ * 安装器从 v3.47.2 起的缺省是"**你解压出来的那个文件夹**"（用户明确要求），而这个函数还留着旧概念、
+ * 被 doctor / uninstall 各用了一次 —— 同一件事有了**两个真源**，远端实测已经因此产生假红。
+ * 缺省值现在只有一个：脚本自己所在的包目录，或者用户显式给的 `--install-dir`。
+ */
 
 /** 按目标平台取 path 实现。 */
 function pathFor(platform) {

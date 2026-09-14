@@ -11,14 +11,17 @@
  * 用法：
  *   node bootstrap/doctor.mjs
  *   node bootstrap/doctor.mjs --json          # 机器可读，便于贴日志
- *   node bootstrap/doctor.mjs --port 3080 --dsh-home ~/.dsh --install-dir ~/.dsh/plugins/dsh-web-companion
+ *   node bootstrap/doctor.mjs --port 3080 --dsh-home ~/.dsh --install-dir <安装目录>
+ *
+ * 缺省安装目录 = 本包所在的目录（与安装器一致）；装在别处时用 --install-dir 显式给出。
  *
  * 退出码：0 = 硬判据全过；1 = 有硬判据没过。（软判据不影响退出码 —— 见 lib/health.mjs 的说明。）
  */
 import { homedir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-import { DEFAULT_PORT, defaultInstallDir, parsePort } from './lib/layout.mjs'
+import { DEFAULT_PORT, parsePort } from './lib/layout.mjs'
 import { overallOk, pendingHard, probeHealth, renderHealth } from './lib/health.mjs'
 import { createWizard } from './lib/wizard.mjs'
 
@@ -31,7 +34,18 @@ const argOf = (name, fallback) => {
 const homeDir = homedir()
 const port = parsePort(argOf('port', DEFAULT_PORT)) ?? DEFAULT_PORT
 const dshHome = resolve(argOf('dsh-home', process.env.DSH_HOME?.trim() || join(homeDir, '.dsh')))
-const installDir = resolve(argOf('install-dir', defaultInstallDir(homeDir)))
+/*
+ * ★ 缺省安装目录 = **这个包所在的目录**（`bootstrap/` 的上一级）—— 与安装器**同一个**缺省值。
+ *
+ * 2026-09-14 在远端实测抓到的真 bug：这里原来用 `defaultInstallDir(homeDir)`，也就是旧的
+ * `~/.dsh/plugins/dsh-web-companion`；而安装器从 v3.47.2 起是"装在你解压出来的那个文件夹里"。
+ * 两个缺省值各说各话 ⇒ 原地安装之后 doctor 去旧路径找东西、找不到就报
+ * "安装不完整 —— 重跑本引导程序"（**假红 + 误导**，远端实测 exit=1）；uninstall 则会去删一个
+ * 根本不存在（更糟：不该删）的目录。
+ */
+const HERE = dirname(fileURLToPath(import.meta.url))
+const ROOT = resolve(HERE, '..')
+const installDir = resolve(argOf('install-dir', ROOT))
 const asJson = argv.includes('--json')
 
 const items = await probeHealth({ port, dshHome, installDir })

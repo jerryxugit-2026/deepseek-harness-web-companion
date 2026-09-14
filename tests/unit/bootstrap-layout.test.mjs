@@ -23,7 +23,6 @@ import {
   MIN_NODE_MAJOR,
   PLUGIN_ID,
   chromeNativeMessagingCandidates,
-  defaultInstallDir,
   installPayload,
   installPayloadFilter,
   npmInstallTargets,
@@ -72,7 +71,6 @@ console.log('\n2. ★ 参数化：换参数必须换结果（写死的路径在�
   record('chromeManifestPath 跟着 homeDir 变', a.chromeManifestPath !== b.chromeManifestPath)
   record('同一参数两次调用结果一致（纯函数）', JSON.stringify(resolveLayout(base)) === JSON.stringify(a))
   record('结果里不含测试参数以外的用户目录', JSON.stringify(b).includes('/tmp/wc-user') === false)
-  record('默认安装目录也随 homeDir 变', defaultInstallDir('/tmp/wc-user') === '/tmp/wc-user/.dsh/plugins/dsh-web-companion')
 }
 
 console.log('\n3. 平台分支：Chrome 清单目录不是写死的 macOS 路径')

@@ -315,6 +315,50 @@ console.log('\n6. ★ --yes 不能跳过阻断项：退出码必须是 2（前�
   }
 }
 
+console.log('\n7. ★ doctor / uninstall 的缺省安装目录也必须 == 本包目录（同一件事不许有两个真源）')
+{
+  /*
+   * 2026-09-14 **远端实测**抓到的真 bug：这两个脚本缺省到旧的 `~/.dsh/plugins/dsh-web-companion`，
+   * 而安装器的缺省是"你解压出来的那个文件夹"。于是原地安装之后：
+   *   · `node bootstrap/doctor.mjs` 去旧路径找 `scripts/check-dist-config.mjs`，找不到就报
+   *     "安装不完整 —— 重跑本引导程序"（**假红 + 误导**，实测 exit=1）；
+   *   · `uninstall.mjs` 会去删一个不存在（更糟：不该删）的目录。
+   * 这条测试把"两者必须一致"钉死：退回任一旧缺省值都会红。
+   */
+  const home = join(BASE, 'scripts-home')
+  mkdirSync(home, { recursive: true })
+  /*
+   * ★ 参数必须是**数组**：写成 `run('doctor.mjs --json')` 会把两段当成一个参数，
+   * node 会去找一个名为 "doctor.mjs --json" 的文件并失败 —— 这条测试自己踩过一次。
+   */
+  const run = (script, args = []) => {
+    try {
+      return execFileSync(process.execPath, [join(ROOT, 'bootstrap', script), ...args], {
+        cwd: ROOT,
+        env: { ...process.env, HOME: home, DSH_HOME: join(home, '.dsh') },
+        input: '',
+        encoding: 'utf8',
+        stdio: ['pipe', 'pipe', 'pipe'],
+        timeout: 120000,
+      })
+    } catch (error) {
+      // doctor 在硬判据未过时退 1 —— 那也要能读到它的输出
+      return `${String(error?.stdout ?? '')}${String(error?.stderr ?? '')}`
+    }
+  }
+
+  const doctorJson = run('doctor.mjs', ['--json'])
+  let parsed = null
+  try { parsed = JSON.parse(doctorJson) } catch { parsed = null }
+  record('doctor --json 输出可解析', parsed !== null)
+  record('★ doctor 的缺省安装目录 == 本包目录', parsed !== null && parsed.installDir === ROOT)
+  record('★ doctor 不再指向旧的 ~/.dsh/plugins/dsh-web-companion', doctorJson.includes('.dsh/plugins/dsh-web-companion') === false)
+
+  const uninstallOut = run('uninstall.mjs')
+  record('★ uninstall 的缺省安装目录 == 本包目录', uninstallOut.includes(ROOT))
+  record('★ uninstall 不再指向旧目录', uninstallOut.includes('.dsh/plugins/dsh-web-companion') === false)
+}
+
 rmSync(BASE, { recursive: true, force: true })
 
 const failed = Object.entries(results).filter(([, v]) => v !== true).map(([k]) => k)

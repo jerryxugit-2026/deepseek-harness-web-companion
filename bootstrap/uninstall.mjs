@@ -22,7 +22,7 @@ import { homedir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { DEFAULT_PORT, PLUGIN_ID, defaultInstallDir, parsePort, resolveLayout } from './lib/layout.mjs'
+import { DEFAULT_PORT, PLUGIN_ID, parsePort, resolveLayout } from './lib/layout.mjs'
 import { removeCompanion, readCompanionEntry } from './lib/profile-patch.mjs'
 import { planNativeHostInstall } from './lib/native-host-install.mjs'
 import { createWizard } from './lib/wizard.mjs'
@@ -36,7 +36,11 @@ const argOf = (name, fallback) => {
 
 const DRY_RUN = !flag('apply')
 const homeDir = homedir()
-const installDir = resolve(argOf('install-dir', defaultInstallDir(homeDir)))
+/* ★ 与安装器同一个缺省值：**本包所在的目录**（不是旧的 ~/.dsh/plugins/...）。
+ * 2026-09-14 远端实测：两个缺省值各说各话时，doctor 报假红、uninstall 会去删错的目录。 */
+const HERE = dirname(fileURLToPath(import.meta.url))
+const ROOT = resolve(HERE, '..')
+const installDir = resolve(argOf('install-dir', ROOT))
 const dshHome = resolve(argOf('dsh-home', process.env.DSH_HOME?.trim() || join(homeDir, '.dsh')))
 const port = parsePort(argOf('port', DEFAULT_PORT)) ?? DEFAULT_PORT
 

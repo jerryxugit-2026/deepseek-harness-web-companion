@@ -177,8 +177,8 @@
       "path": "docs/CHANGELOG.md",
       "title": "变更记录（CHANGELOG）",
       "version": "v3.0",
-      "lines": 2974,
-      "sections": 56,
+      "lines": 3025,
+      "sections": 57,
       "codeRefs": 0,
       "docRefs": 1
     },
@@ -261,6 +261,15 @@
       "lines": 61,
       "sections": 2,
       "codeRefs": 0,
+      "docRefs": 0
+    },
+    {
+      "path": "docs/releases/v3.48.2.md",
+      "title": "v3.48.2 — a real bug found by installing it on a real machine",
+      "version": null,
+      "lines": 52,
+      "sections": 2,
+      "codeRefs": 5,
       "docRefs": 0
     },
     {
