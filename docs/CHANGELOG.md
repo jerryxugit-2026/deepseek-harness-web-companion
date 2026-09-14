@@ -5,7 +5,36 @@
 
 ---
 
-## v3.47 — 2026-09-13（引导程序：六片 PiMoa 对抗审查 + 逐条验真后的修复）
+## v3.47.1 — 2026-09-13（发布包不再带内部文档；安装说明改成非 GitHub 用户也能照做）
+
+**触发**：用户在远端 Mac（Apexmini）按 README 下载解压运行，撞到三件事。
+
+### 1. 发布包里不该有内部文档
+
+v3.47.0 的源码包带着 `详细设计文档.md`、`PRD_需求定义说明书.md`、`DESIGN.md`、`FINDINGS.md`。
+新增 `.gitattributes` 的 `export-ignore`：**归档里排除、仓库里保留**（本机照旧）。
+另排除 `docs/PROGRESS.md`、`docs/11-台账.md`、`docs/REVIEW-v3.0.md`、`docs/reviews/`、`docs/research/`。
+实测 `git archive`（GitHub 生成下载包的同一机制）：这些都不在，而 `README.md`、`bootstrap/install.mjs` 仍在。
+⚠️ 对**已发布**的 v3.47.0 无效（`.gitattributes` 必须在那个 tag 的树里），**本版起生效**。
+
+### 2. 安装说明改成"从没用过 GitHub 的人照着点"
+
+`Code → Download ZIP` 改为 **`Releases` → 该版本 → 页面最底部 `Assets` → `Source code (zip)`**；
+新增开头「你实际要做的只有 3 件事」、「需要我自己编译吗？—— 不需要」、
+以及"怎么让终端进到解压出来的文件夹"（`cd ` + 拖拽目录 / `Cmd+Option+C` 复制路径）。英文在前、中文在后。
+
+### 3. 仓库卫生
+
+`git ls-files` 发现 `.DS_Store`（含 `extension/.DS_Store`）被提交 ⇒ 也进了发布包。已移除并加进 `.gitignore`。
+
+### 4. 版本号统一为 3.47.1（5 处）+ 门禁
+
+`package.json` / `dsh-plugin/package.json` / `extension/package.json` / `extension/manifest.json` /
+`PLUGIN_VERSION` / CHANGELOG 本条，由 `tests/unit/version-consistency.test.mjs` 守住。
+
+---
+
+## v3.47.0 — 2026-09-13（引导程序：六片 PiMoa 对抗审查 + 逐条验真后的修复）
 
 **触发**：用户要求对**向导程序**（此前从未实机跑过）做全方法 code review，并明确"调用多个 Pimoa
 子代理、把任务拆细"，以及"你要验真、判断、控住修改范围，警惕 overdesign；特别注意硬编码/接线/假绿"。
